@@ -21,7 +21,7 @@ def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
     repo, path = init_repo, create_test_data
     repo.import_df('test_players', pd.read_csv(path), ['id'], create=True)
     yield repo, 'test_players'
-    _execute(['dolt', 'table', 'rm', 'test_players'], REPO_DIR)
+    _execute(['doltpy', 'table', 'rm', 'test_players'], REPO_DIR)
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from etl.tools import ETLWorkload, Dataset, insert_unique_key
+from doltpy_etl.tools import ETLWorkload, Dataset, insert_unique_key
 from doltpy.dolt import Dolt
 from doltpy.tests.dolt_testing_fixtures import init_repo
 

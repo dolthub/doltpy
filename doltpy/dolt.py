@@ -28,12 +28,6 @@ class DoltCommitSummary:
         return '{}: {} @ {}'.format(self.hash, self.author, self.ts)
 
 
-class DoltLoader:
-    # Not clear what this should look like quite yet, but it should baiscally take a function that produces a commit
-    # thus the function is paratrized by the unit that separates the work.
-    pass
-
-
 def _execute(args, cwd):
     proc = Popen(args=args, cwd=cwd, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
@@ -239,22 +233,22 @@ class Dolt(object):
             os.chdir(cur_dur)
 
     def put_row(self, table_name, row_data):
-        args = ["dolt", "table", "put-row", table_name]
+        args = ["doltpy", "table", "put-row", table_name]
         key_value_pairs = [str(k) + ':' + str(v) for k, v in row_data.items()]
         args.extend(key_value_pairs)
 
         _execute_restart_serve_if_needed(self, args)
 
     def add_table_to_next_commit(self, table_name):
-        args = ["dolt", "add", table_name]
+        args = ["doltpy", "add", table_name]
         _execute_restart_serve_if_needed(self, args)
 
     def commit(self, commit_message):
-        args = ["dolt", "commit", "-m", commit_message]
+        args = ["doltpy", "commit", "-m", commit_message]
         _execute_restart_serve_if_needed(self, args)
 
     def get_commits(self) -> List[DoltCommitSummary]:
-        output = _execute(['dolt', 'log'], self.repo_dir).split('\n')
+        output = _execute(['doltpy', 'log'], self.repo_dir).split('\n')
         current_commit, author, date = None, None, None
         for line in output:
             if line.startswith('commit'):
@@ -274,7 +268,7 @@ class Dolt(object):
         new_tables, changes = {}, {}
 
         if not self.repo_is_clean():
-            output = [line.lstrip() for line in _execute(['dolt', 'status'], self.repo_dir).split('\n')]
+            output = [line.lstrip() for line in _execute(['doltpy', 'status'], self.repo_dir).split('\n')]
             staged = False
             for line in output:
                 if line.startswith('Changes to be committed'):
@@ -297,28 +291,28 @@ class Dolt(object):
 
         for table in [table for table, is_staged in list(new_tables.items()) + list(changes.items()) if is_staged]:
             print('Resetting table {}'.format(table))
-            _execute(['dolt', 'reset', table], self.repo_dir)
+            _execute(['doltpy', 'reset', table], self.repo_dir)
 
         for table in new_tables.keys():
             print('Removing newly created table {}'.format(table))
-            _execute(['dolt', 'table', 'rm', table], self.repo_dir)
+            _execute(['doltpy', 'table', 'rm', table], self.repo_dir)
 
         for table in changes.keys():
             print('Discarding local changes to table {}'.format(table))
-            _execute(['dolt', 'checkout', table], self.repo_dir)
+            _execute(['doltpy', 'checkout', table], self.repo_dir)
 
         assert self.repo_is_clean(), 'Something went wrong, repo is not clean'
 
     def get_exisitng_tabels(self) -> List[str]:
-        return [line.lstrip() for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n')[1:] if line]
+        return [line.lstrip() for line in _execute(['doltpy', 'ls'], self.repo_dir).split('\n')[1:] if line]
 
     def get_last_commit_time(self):
         return max([commit.ts for commit in self.get_commits()])
 
     def get_branch_list(self):
-        return [line.replace('*', '') for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n')]
+        return [line.replace('*', '') for line in _execute(['doltpy', 'ls'], self.repo_dir).split('\n')]
 
     def get_current_branch(self):
-        for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n'):
+        for line in _execute(['doltpy', 'ls'], self.repo_dir).split('\n'):
             if line.startswith('*'):
                 return line
