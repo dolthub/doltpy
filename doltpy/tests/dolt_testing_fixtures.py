@@ -4,7 +4,7 @@ import pytest
 import shutil
 
 REPO_DIR = '/Users/oscarbatori/Documents/liquidata/doltpy/test_data'
-REPO_DATA_DIR = os.path.join(REPO_DIR, '.doltpy')
+REPO_DATA_DIR = os.path.join(REPO_DIR, '.dolt')
 
 
 @pytest.fixture
