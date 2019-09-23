@@ -220,7 +220,7 @@ class Dolt(object):
 
         # Primary key columns cannot be null
         clean = df.dropna(subset=primary_keys)
-        print('Dropped {} records with null values in the primary key columsn {}'.format(len(df) - len(clean),
+        print('Dropped {} records with null values in the primary key columns {}'.format(len(df) - len(clean),
                                                                                          primary_keys))
         clean.to_csv(temp_location, index=False)
 
