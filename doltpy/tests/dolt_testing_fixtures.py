@@ -2,16 +2,19 @@ import os
 from doltpy.dolt import Dolt
 import pytest
 import shutil
+from typing import Tuple
 
-REPO_DIR = '/Users/oscarbatori/Documents/liquidata/doltpy/test_data'
-REPO_DATA_DIR = os.path.join(REPO_DIR, '.dolt')
+
+def get_repo_path_tmp_path(path: str) -> Tuple[str, str]:
+    return path, os.path.join(path, '.dolt')
 
 
 @pytest.fixture
-def init_repo() -> Dolt:
-    assert not os.path.exists(REPO_DATA_DIR)
-    repo = Dolt(REPO_DIR)
+def init_repo(tmp_path) -> Dolt:
+    repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
+    assert not os.path.exists(repo_data_dir)
+    repo = Dolt(repo_path)
     repo.init_new_repo()
     yield repo
-    if os.path.exists(REPO_DATA_DIR):
-        shutil.rmtree(REPO_DATA_DIR)
+    if os.path.exists(repo_data_dir):
+        shutil.rmtree(repo_data_dir)

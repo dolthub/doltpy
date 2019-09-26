@@ -4,13 +4,14 @@ from doltpy.dolt import Dolt, _execute
 import shutil
 import pandas as pd
 import uuid
+import os
 from typing import Tuple
-from doltpy.tests.dolt_testing_fixtures import init_repo, REPO_DIR, REPO_DATA_DIR
+from doltpy.tests.dolt_testing_fixtures import init_repo, get_repo_path_tmp_path
 
 
 @pytest.fixture
-def create_test_data() -> str:
-    path = str(uuid.uuid4())
+def create_test_data(tmp_path) -> str:
+    path = os.path.join(tmp_path, str(uuid.uuid4()))
     pd.DataFrame({'name': ['Rafael', 'Novak'], 'id': [1, 2]}).to_csv(path, index_label=False)
     yield path
     os.remove(path)
@@ -18,10 +19,10 @@ def create_test_data() -> str:
 
 @pytest.fixture
 def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
-    repo, path = init_repo, create_test_data
-    repo.import_df('test_players', pd.read_csv(path), ['id'], create=True)
+    repo, test_data_path = init_repo, create_test_data
+    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], create=True)
     yield repo, 'test_players'
-    _execute(['dolt', 'table', 'rm', 'test_players'], REPO_DIR)
+    _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir)
 
 
 @pytest.fixture
@@ -32,12 +33,13 @@ def run_serve_mode(init_repo):
     repo.stop_server()
 
 
-def test_init_new_repo():
-    assert not os.path.exists(REPO_DATA_DIR)
-    dolt = Dolt(REPO_DIR)
+def test_init_new_repo(tmp_path):
+    repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
+    assert not os.path.exists(repo_data_dir)
+    dolt = Dolt(repo_path)
     dolt.init_new_repo()
-    assert os.path.exists(REPO_DATA_DIR)
-    shutil.rmtree(REPO_DATA_DIR)
+    assert os.path.exists(repo_data_dir)
+    shutil.rmtree(repo_data_dir)
 
 
 def test_put_row(create_test_table):
