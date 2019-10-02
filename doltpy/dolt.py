@@ -1,13 +1,19 @@
 import mysql.connector
 import pandas as pd
 import os
-import uuid
 from typing import List, Tuple, Callable, Mapping
 from subprocess import Popen, PIPE, STDOUT
 from datetime import datetime
 import pyarrow
 import pyarrow.csv as pacsv
 from retry import retry
+import tempfile
+
+CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
+IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
+                         FORCE_CREATE: ['-f', '-c'],
+                         REPLACE: ['-r'],
+                         UPDATE: ['-u']}
 
 
 class DoltException(Exception):
@@ -80,11 +86,11 @@ class Dolt(object):
             _execute(args=email_args, cwd=self.repo_dir)
 
     def clone(self, repo):
-        if self.dir_exists:
-            raise Exception(self.repo_dir + " .")
-
-        os.makedirs(self.repo_dir)
-        self.dir_exists = True
+        # if self.dir_exists:
+        #     raise Exception(self.repo_dir + " .")
+        #
+        # os.makedirs(self.repo_dir)
+        # self.dir_exists = True
 
         args = ["dolt", "clone", repo, "./"]
 
@@ -119,7 +125,6 @@ class Dolt(object):
         def get_connection():
             return mysql.connector.connect(user='root', host='127.0.0.1', port=3306, database='dolt')
 
-        # Need to replace this with Turbodbc
         cnx = get_connection()
 
         self.server = proc
@@ -156,10 +161,11 @@ class Dolt(object):
 
     def read_table(self, table_name: str, delimiter: str = ',') -> pyarrow.Table:
         # export table (hopefully soon we can do this with ODBC)
-        path = '{}/{}_export_{}.csv'.format(self.repo_dir, table_name, str(uuid.uuid4()))
-        _execute(['dolt', 'table', 'export', table_name, path], self.repo_dir)
-        result = pacsv.read_csv(path, parse_options=pacsv.ParseOptions(delimiter=delimiter))
-        os.remove(path)
+        # path = '{}/{}_export_{}.csv'.format(self.repo_dir, table_name, str(uuid.uuid4()))
+        fp = tempfile.NamedTemporaryFile(suffix='.csv')
+        _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir)
+        result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
+        # os.remove(path)
         return result
 
     def create_derivded_table(self,
@@ -167,14 +173,14 @@ class Dolt(object):
                               target_table: str,
                               target_pk_cols: List[str],
                               transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(source_table, target_table, target_pk_cols, transformer, create_target=True)
+        self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=CREATE)
 
     def transform_to_existing_table(self,
                                     source_table: str,
                                     target_table: str,
                                     target_pk_cols: List[str],
                                     transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(source_table, target_table, target_pk_cols, transformer, create_target=False)
+        self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=UPDATE)
 
     # TODO: for now this method needs the PK cols, though in theory it should not
     # TODO: there remains a question about what to do if the transformation drops records? Should they remain unchanged?
@@ -182,55 +188,41 @@ class Dolt(object):
                                 table: str,
                                 pk_cols: List[str],
                                 transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(table, table, pk_cols, transformer, create_target=False)
+        self._transform_helper(table, table, pk_cols, transformer, import_mode=UPDATE)
 
     def _transform_helper(self,
                           source_table: str,
                           target_table: str,
                           target_pk_cols: List[str],
                           transformer: Callable[[pd.DataFrame], pd.DataFrame],
-                          create_target: bool):
+                          import_mode: str):
         existing = self.read_table(source_table).to_pandas()
         transformed = transformer(existing)
         assert all(col in transformed.columns for col in target_pk_cols), 'Result must have pk cols specified'
-        self.import_df(target_table, transformed, target_pk_cols, create=create_target)
+        self.import_df(target_table, transformed, target_pk_cols, import_mode=import_mode)
 
     def import_df(self,
                   table_name: str,
                   df: pd.DataFrame,
                   primary_keys: List[str],
-                  create: bool = False,
-                  force: bool = False):
-        cur_dur = os.getcwd()
-        if cur_dur != self.repo_dir:
-            os.chdir(self.repo_dir)
+                  import_mode: str = CREATE):
+        import_modes = IMPORT_MODES_TO_FLAGS.keys()
+        assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
+        import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
 
-        print('Importing {} rows to table {} in dolt directory located in {}'.format(len(df), table_name, os.getcwd()))
-        base_args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))]
-
-        if create:
-            create_switches = ['-c', '-f'] if force else ['-c']
-            print('Creating table with force set to {}'.format(force))
-            args = base_args + create_switches
-        else:
-            print('Updating existing table')
-            args = base_args + ['-u']
-
-        temp_location = '{}.csv'.format(str(uuid.uuid4()))
+        print('Importing {} rows to table {} in dolt directory located in {}, import mode {}'.format(len(df),
+                                                                                                     table_name,
+                                                                                                     os.getcwd(),
+                                                                                                     import_mode))
+        args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
+        fp = tempfile.NamedTemporaryFile(suffix='.csv')
 
         # Primary key columns cannot be null
         clean = df.dropna(subset=primary_keys)
         print('Dropped {} records with null values in the primary key columns {}'.format(len(df) - len(clean),
                                                                                          primary_keys))
-        clean.to_csv(temp_location, index=False)
-
-        try:
-            _execute(args + [temp_location], self.repo_dir)
-        except Exception as e:
-            raise e
-        finally:
-            os.remove(temp_location)
-            os.chdir(cur_dur)
+        clean.to_csv(fp.name, index=False)
+        _execute(args + [fp.name], self.repo_dir)
 
     def put_row(self, table_name, row_data):
         args = ["dolt", "table", "put-row", table_name]
@@ -240,12 +232,15 @@ class Dolt(object):
         _execute_restart_serve_if_needed(self, args)
 
     def add_table_to_next_commit(self, table_name):
-        args = ["dolt", "add", table_name]
-        _execute_restart_serve_if_needed(self, args)
+        _execute_restart_serve_if_needed(self, ["dolt", "add", table_name])
 
     def commit(self, commit_message):
-        args = ["dolt", "commit", "-m", commit_message]
-        _execute_restart_serve_if_needed(self, args)
+        _execute_restart_serve_if_needed(self, ["dolt", "commit", "-m", commit_message])
+
+    def push(self, remote: str, branch: str):
+        assert branch in self.get_branch_list(), 'cannot push to branch that does not exist'
+        assert remote in self.get_remote_list(), 'cannot push to remote that does not exist'
+        _execute_restart_serve_if_needed(self, ['dolt', 'push', remote, branch])
 
     def get_commits(self) -> List[DoltCommitSummary]:
         output = _execute(['dolt', 'log'], self.repo_dir).split('\n')
@@ -311,6 +306,9 @@ class Dolt(object):
 
     def get_branch_list(self):
         return [line.replace('*', '') for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n')]
+
+    def get_remote_list(self):
+        return [line.rstrip() for line in _execute(['dolt', 'remote'], self.repo_dir).split('\n') if line]
 
     def get_current_branch(self):
         for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n'):

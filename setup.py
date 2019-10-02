@@ -8,4 +8,4 @@ setup(name='doltpy',
       author_email='oscar@liquidata.co',
       description='',
       url='https://github.com/liquidata-inc/doltpy',
-      project_urls={'Bug Tracker': 'https://github.com/liquidata-inc/doltpy/issues'})
+      project_urls={'Bug Tracker': 'https://github.com /liquidata-inc/doltpy/issues'})

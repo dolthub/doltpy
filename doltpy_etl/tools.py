@@ -14,11 +14,13 @@ class Dataset:
                  dolt_table_name: str,
                  get_data: Callable[[], pd.DataFrame],
                  pk_cols: List[str],
-                 transformers: List[Transformer] = None):
+                 transformers: List[Transformer] = None,
+                 import_mode: str = None):
         self.dolt_table_name = dolt_table_name
         self.get_data = get_data
         self.transformers = transformers or []
         self.pk_cols = pk_cols
+        self.import_mode = import_mode
 
     def _apply_transformers(self, data: pd.DataFrame) -> pd.DataFrame:
         if not self.transformers:
@@ -29,11 +31,12 @@ class Dataset:
         return temp
 
     def load_data(self, repo: Dolt):
+        import_mode = self.import_mode or ('create' if self.dolt_table_name not in repo.get_exisitng_tabels() else 'update')
         data_to_load = self._apply_transformers(self.get_data())
         repo.import_df(self.dolt_table_name,
                        data_to_load,
                        self.pk_cols,
-                       create=self.dolt_table_name not in repo.get_exisitng_tabels())
+                       import_mode=import_mode)
 
 
 class ETLWorkload:
@@ -42,9 +45,16 @@ class ETLWorkload:
         self.repo = repo
         self.datasets = datasets
 
-    def load_to_dolt(self, commit: bool, message: str = None):
+    def load_to_dolt(self,
+                     commit: bool,
+                     push: bool = False,
+                     message: str = None,
+                     remote: str = 'origin',
+                     branch: str = 'master'):
         assert not commit or message is not None, 'When commit is True, must provide message'
+        assert self.repo.repo_is_clean(), 'Must be operating on a clean repo'
         print('Loading Dolt repo at {}'.format(self.repo.repo_dir))
+
         for dataset in self.datasets:
             print('Loading data to table {} with primary keys {}'.format(dataset.dolt_table_name, dataset.pk_cols))
             dataset.load_data(self.repo)
@@ -62,6 +72,10 @@ class ETLWorkload:
                 print('Committing changes')
                 self.repo.commit(message)
 
+            if push:
+                print('Pushing changes to remote'.format(remote))
+                self.repo.push(remote, branch)
+
 
 def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
     assert 'hash_id' not in df.columns and 'count' not in df.columns, 'Require hash_id and count not in df'
@@ -70,3 +84,4 @@ def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
     count_by_id = with_id.groupby('hash_id').size()
     with_id.loc[:, 'count'] = count_by_id
     return with_id.reset_index()
+

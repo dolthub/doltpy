@@ -20,7 +20,7 @@ def create_test_data(tmp_path) -> str:
 @pytest.fixture
 def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
     repo, test_data_path = init_repo, create_test_data
-    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], create=True)
+    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'])
     yield repo, 'test_players'
     _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir)
 
@@ -71,12 +71,12 @@ def test_get_dirty_tables(create_test_table):
 
     # existing, modified, staged
     modified_staged = 'modified_staged'
-    repo.import_df(modified_staged, initial, ['id'], True)
+    repo.import_df(modified_staged, initial, ['id'])
     repo.add_table_to_next_commit(modified_staged)
 
     # existing, modified, unstaged
     modified_unstaged = 'modified_unstaged'
-    repo.import_df(modified_unstaged, initial, ['id'], True)
+    repo.import_df(modified_unstaged, initial, ['id'])
     repo.add_table_to_next_commit(modified_unstaged)
 
     # Commit and modify data
@@ -87,12 +87,12 @@ def test_get_dirty_tables(create_test_table):
 
     # created, staged
     created_staged = 'created_staged'
-    repo.import_df(created_staged, initial, ['id'], True)
+    repo.import_df(created_staged, initial, ['id'])
     repo.add_table_to_next_commit(created_staged)
 
     # created, unstaged
     created_unstaged = 'created_unstaged'
-    repo.import_df(created_unstaged, initial, ['id'], True)
+    repo.import_df(created_unstaged, initial, ['id'])
 
     new_tables, changes = repo.get_dirty_tables()
 
@@ -146,14 +146,14 @@ def test_transform_to_existing_table(create_test_table):
     wins_table = 'wins_by_player'
     aggregates = pd.DataFrame({'player': ['Novak', 'Roger', 'Rafael'],
                                'wins': [1, 2, 1]})
-    repo.import_df(wins_table, aggregates, ['player'], True)
+    repo.import_df(wins_table, aggregates, ['player'])
     repo.add_table_to_next_commit(wins_table)
 
     # Create some raw match data
     raw_match_table = 'raw_matches'
     raw_matches = pd.DataFrame({'match_id': [1, 2, 3, 4, 5],
                                 'winner': ['Novak', 'Roger', 'Roger', 'Rafael', 'Rafael']})
-    repo.import_df(raw_match_table, raw_matches, ['match_id'], True)
+    repo.import_df(raw_match_table, raw_matches, ['match_id'])
     repo.add_table_to_next_commit(raw_match_table)
 
     # Commit the test data
@@ -173,3 +173,4 @@ def test_transform_to_existing_table(create_test_table):
 
     result = repo.read_table(wins_table).to_pandas()
     assert result.loc[result['player'] == 'Rafael', 'wins'].iloc[0] == 2
+
