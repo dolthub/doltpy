@@ -305,7 +305,8 @@ class Dolt(object):
         return max([commit.ts for commit in self.get_commits()])
 
     def get_branch_list(self):
-        return [line.replace('*', '') for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n')]
+        return [line.replace('*', '').lstrip().rstrip()
+                for line in _execute(['dolt', 'branch'], self.repo_dir).split('\n')]
 
     def get_remote_list(self):
         return [line.rstrip() for line in _execute(['dolt', 'remote'], self.repo_dir).split('\n') if line]
