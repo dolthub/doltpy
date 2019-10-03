@@ -1,6 +1,6 @@
 import pytest
 import os
-from doltpy.dolt import Dolt, _execute
+from doltpy.dolt import Dolt, _execute, DoltException
 import shutil
 import pandas as pd
 import uuid
@@ -174,3 +174,26 @@ def test_transform_to_existing_table(create_test_table):
     result = repo.read_table(wins_table).to_pandas()
     assert result.loc[result['player'] == 'Rafael', 'wins'].iloc[0] == 2
 
+
+def test_branch_list(create_test_table):
+    repo, _ = create_test_table
+    assert repo.get_branch_list() == [repo.get_current_branch()] == ['master']
+    repo.create_branch('dosac')
+    assert set(repo.get_branch_list()) == {'master', 'dosac'} and repo.get_current_branch() == 'master'
+    repo.checkout('dosac')
+    assert repo.get_current_branch() == 'dosac'
+
+# TODO: use testing against remote (found in bats tests)
+# def test_remote_list():
+#
+
+
+def test_checkout_non_existent_branch(create_test_table):
+    repo, _ = create_test_table
+    with pytest.raises(DoltException):
+        repo.checkout('master')
+
+
+def test_get_existing_tables(create_test_table):
+    repo, test_table = create_test_table
+    assert repo.get_existing_tables() == [test_table]

@@ -31,7 +31,7 @@ class Dataset:
         return temp
 
     def load_data(self, repo: Dolt):
-        import_mode = self.import_mode or ('create' if self.dolt_table_name not in repo.get_exisitng_tabels() else 'update')
+        import_mode = self.import_mode or ('create' if self.dolt_table_name not in repo.get_existing_tables() else 'update')
         data_to_load = self._apply_transformers(self.get_data())
         repo.import_df(self.dolt_table_name,
                        data_to_load,
@@ -45,12 +45,7 @@ class ETLWorkload:
         self.repo = repo
         self.datasets = datasets
 
-    def load_to_dolt(self,
-                     commit: bool,
-                     push: bool = False,
-                     message: str = None,
-                     remote: str = 'origin',
-                     branch: str = 'master'):
+    def load_to_dolt(self, commit: bool, message: str = None):
         assert not commit or message is not None, 'When commit is True, must provide message'
         assert self.repo.repo_is_clean(), 'Must be operating on a clean repo'
         print('Loading Dolt repo at {}'.format(self.repo.repo_dir))
@@ -64,17 +59,12 @@ class ETLWorkload:
         if not (new_tables or changes):
             print('No changes detected in upstream data sources, all done')
         else:
-            for table in [table for table, staged in list(new_tables.items()) + list(changes.items()) if not staged]:
-                print("Adding {}".format(table))
-                self.repo.add_table_to_next_commit(table)
-
             if commit:
+                for table in [table for table, staged in list(new_tables.items()) + list(changes.items()) if not staged]:
+                    print("Adding {}".format(table))
+                    self.repo.add_table_to_next_commit(table)
                 print('Committing changes')
                 self.repo.commit(message)
-
-            if push:
-                print('Pushing changes to remote'.format(remote))
-                self.repo.push(remote, branch)
 
 
 def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:

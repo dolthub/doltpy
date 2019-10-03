@@ -110,6 +110,7 @@ class Dolt(object):
         _execute(args=args, cwd=self.repo_dir)
 
     def checkout(self, branch_name):
+        assert branch_name in self.get_branch_list(), 'Cannot checkout of non-existent branch {}'.format(branch_name)
         args = ["dolt", "checkout", branch_name]
         _execute_restart_serve_if_needed(self, args)
 
@@ -298,7 +299,7 @@ class Dolt(object):
 
         assert self.repo_is_clean(), 'Something went wrong, repo is not clean'
 
-    def get_exisitng_tabels(self) -> List[str]:
+    def get_existing_tables(self) -> List[str]:
         return [line.lstrip() for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n')[1:] if line]
 
     def get_last_commit_time(self):
@@ -306,12 +307,12 @@ class Dolt(object):
 
     def get_branch_list(self):
         return [line.replace('*', '').lstrip().rstrip()
-                for line in _execute(['dolt', 'branch'], self.repo_dir).split('\n')]
+                for line in _execute(['dolt', 'branch'], self.repo_dir).split('\n') if line]
 
     def get_remote_list(self):
         return [line.rstrip() for line in _execute(['dolt', 'remote'], self.repo_dir).split('\n') if line]
 
     def get_current_branch(self):
-        for line in _execute(['dolt', 'ls'], self.repo_dir).split('\n'):
-            if line.startswith('*'):
-                return line
+        for line in _execute(['dolt', 'branch'], self.repo_dir).split('\n'):
+            if line.lstrip().startswith('*'):
+                return line.replace('*', '').lstrip().rstrip()
