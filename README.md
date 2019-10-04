@@ -8,6 +8,7 @@ We are yet to publish this API to PyPi, but you can install from source using `p
 ```
 Which will use `setup.py` to make the appropriate installation using a fresh build of the local copy of the source files.
 
+### Usage
 You will then have two commands at your disposal:
 ```bash
 $ dolt-load
@@ -21,3 +22,6 @@ usage: dolthub-load [-h] [-c] [-d DOLT_DIR] [-p] [-m MESSAGE] -r REMOTE_URL
 dolthub-load: error: the following arguments are required: dolt_load_module, -r/--remote_url
 ```
 Which will allow you to start using these scripts to load data into Dolt.
+
+### Examples
+See the [liquidata-etl-jobs](https://github.com/liquidata-inc/liquidata-etl-jobs) repo for examples.
