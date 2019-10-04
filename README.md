@@ -4,13 +4,12 @@ This is DoltPy, the Python API for Dolt. Python is the language of choice for da
 ### Installation
 We are yet to publish this API to PyPi, but you can install from source using `pip` by cloning this repo into a directory, let's assume you used `doltpy`, then:
 ```bash
-[doltpy] $
 [doltpy] $ pip install .
 ```
 Which will use `setup.py` to make the appropriate installation using a fresh build of the local copy of the source files.
 
 You will then have two commands at your disposal:
-```
+```bash
 $ dolt-load
 usage: dolt-load [-h] [-c] -d DOLT_DIR [-m MESSAGE] [-b BRANCH] [--dry_run]
                  dolt_load_module
