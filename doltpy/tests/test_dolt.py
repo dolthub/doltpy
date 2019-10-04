@@ -1,5 +1,4 @@
 import pytest
-import os
 from doltpy.dolt import Dolt, _execute, DoltException
 import shutil
 import pandas as pd
