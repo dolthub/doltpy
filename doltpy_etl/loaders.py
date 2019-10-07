@@ -1,6 +1,7 @@
 from typing import Callable, List
 import io
 from doltpy import Dolt, DoltException
+from doltpy.dolt import UPDATE
 import pandas as pd
 import hashlib
 import importlib
@@ -94,11 +95,12 @@ def get_df_table_loader(table: str,
 def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
                          target_table: str,
                          target_pk_cols: List[str],
-                         transformer: DataframeTransformer):
+                         transformer: DataframeTransformer,
+                         import_mode: str = UPDATE):
     def inner(repo: Dolt):
         input_data = get_data(repo)
         transformed_data = transformer(input_data)
-        repo.import_df(target_table, transformed_data, target_pk_cols)
+        repo.import_df(target_table, transformed_data, target_pk_cols, import_mode=import_mode)
         return target_table
 
     return inner
