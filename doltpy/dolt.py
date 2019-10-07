@@ -8,6 +8,7 @@ import pyarrow
 import pyarrow.csv as pacsv
 from retry import retry
 import tempfile
+import io
 
 CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
 IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
@@ -169,38 +170,38 @@ class Dolt(object):
         # os.remove(path)
         return result
 
-    def create_derivded_table(self,
-                              source_table: str,
-                              target_table: str,
-                              target_pk_cols: List[str],
-                              transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=CREATE)
-
-    def transform_to_existing_table(self,
-                                    source_table: str,
-                                    target_table: str,
-                                    target_pk_cols: List[str],
-                                    transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=UPDATE)
-
-    # TODO: for now this method needs the PK cols, though in theory it should not
-    # TODO: there remains a question about what to do if the transformation drops records? Should they remain unchanged?
-    def transform_table_inplace(self,
-                                table: str,
-                                pk_cols: List[str],
-                                transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-        self._transform_helper(table, table, pk_cols, transformer, import_mode=UPDATE)
-
-    def _transform_helper(self,
-                          source_table: str,
-                          target_table: str,
-                          target_pk_cols: List[str],
-                          transformer: Callable[[pd.DataFrame], pd.DataFrame],
-                          import_mode: str):
-        existing = self.read_table(source_table).to_pandas()
-        transformed = transformer(existing)
-        assert all(col in transformed.columns for col in target_pk_cols), 'Result must have pk cols specified'
-        self.import_df(target_table, transformed, target_pk_cols, import_mode=import_mode)
+    # def create_derivded_table(self,
+    #                           source_table: str,
+    #                           target_table: str,
+    #                           target_pk_cols: List[str],
+    #                           transformer: Callable[[pd.DataFrame], pd.DataFrame]):
+    #     self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=CREATE)
+    #
+    # def transform_to_existing_table(self,
+    #                                 source_table: str,
+    #                                 target_table: str,
+    #                                 target_pk_cols: List[str],
+    #                                 transformer: Callable[[pd.DataFrame], pd.DataFrame]):
+    #     self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=UPDATE)
+    #
+    # # TODO: for now this method needs the PK cols, though in theory it should not
+    # # TODO: there remains a question about what to do if the transformation drops records? Should they remain unchanged?
+    # def transform_table_inplace(self,
+    #                             table: str,
+    #                             pk_cols: List[str],
+    #                             transformer: Callable[[pd.DataFrame], pd.DataFrame]):
+    #     self._transform_helper(table, table, pk_cols, transformer, import_mode=UPDATE)
+    #
+    # def _transform_helper(self,
+    #                       source_table: str,
+    #                       target_table: str,
+    #                       target_pk_cols: List[str],
+    #                       transformer: Callable[[pd.DataFrame], pd.DataFrame],
+    #                       import_mode: str):
+    #     existing = self.read_table(source_table).to_pandas()
+    #     transformed = transformer(existing)
+    #     assert all(col in transformed.columns for col in target_pk_cols), 'Result must have pk cols specified'
+    #     self.import_df(target_table, transformed, target_pk_cols, import_mode=import_mode)
 
     def import_df(self,
                   table_name: str,
@@ -225,6 +226,13 @@ class Dolt(object):
         clean.to_csv(fp.name, index=False)
         _execute(args + [fp.name], self.repo_dir)
 
+    def bulk_load(self,
+                  table_name: str,
+                  get_data: Callable[[], io.StringIO],
+                  primary_keys: List[str],
+                  import_mode: str):
+        raise NotImplementedError('Bulk load not implemented')
+
     def put_row(self, table_name, row_data):
         args = ["dolt", "table", "put-row", table_name]
         key_value_pairs = [str(k) + ':' + str(v) for k, v in row_data.items()]
@@ -239,8 +247,12 @@ class Dolt(object):
         _execute_restart_serve_if_needed(self, ["dolt", "commit", "-m", commit_message])
 
     def push(self, remote: str, branch: str):
-        assert branch in self.get_branch_list(), 'cannot push to branch that does not exist'
-        assert remote in self.get_remote_list(), 'cannot push to remote that does not exist'
+        def _assertion_helper(name: str, required: str, existing: List[str]):
+            assert required in existing, 'cannot push to {} that does not exist, {} not in {}'.format(name,
+                                                                                                      required,
+                                                                                                      existing)
+        _assertion_helper('branch', branch, self.get_branch_list())
+        _assertion_helper('remote', remote, self.get_remote_list())
         _execute_restart_serve_if_needed(self, ['dolt', 'push', remote, branch])
 
     def get_commits(self) -> List[DoltCommitSummary]:
