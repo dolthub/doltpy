@@ -1,7 +1,12 @@
+import io
 import pytest
 import pandas as pd
 from doltpy.dolt import Dolt, CREATE, UPDATE
-from doltpy_etl import get_df_table_loader, load_to_dolt, insert_unique_key, get_table_transfomer
+from doltpy_etl import (get_df_table_loader,
+                        load_to_dolt,
+                        insert_unique_key,
+                        get_table_transfomer,
+                        get_bulk_table_loader)
 from doltpy.tests.dolt_testing_fixtures import init_repo
 
 MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT = 'mens_major_count', 'womens_major_count'
@@ -11,19 +16,15 @@ INITIAL_MENS = pd.DataFrame({'name': ['Roger'], 'major_count': [20]})
 UPDATE_WOMENS = pd.DataFrame({'name': ['Margaret'], 'major_count': [24]})
 UPDATE_MENS = pd.DataFrame({'name': ['Rafael'], 'major_count': [19]})
 
-# TODO:
-#  write test for file loader,
-#  introduce the runner,
-#  tests for branching logic,
 
-
-def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame):
+def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame, branch: str = 'master'):
     table_loaders = [get_df_table_loader(MENS_MAJOR_COUNT, lambda: mens, ['name']),
                      get_df_table_loader(WOMENS_MAJOR_COUNT, lambda: womens, ['name'])]
     load_to_dolt(repo,
                  table_loaders,
                  True,
-                 'Loaded {} and {}'.format(MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT))
+                 'Loaded {} and {}'.format(MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT),
+                 branch=branch)
     return repo
 
 
@@ -115,6 +116,88 @@ def test_insert_unique_key_column_error():
     with pytest.raises(AssertionError):
         insert_unique_key(pd.DataFrame({'hash_id': ['count']}))
 
-# TODO look at bats test to get remotes involved
-# def test_dolthub_loader()
 
+def test_branching(initial_test_data):
+    repo = initial_test_data
+    test_branch = 'new-branch'
+    repo.create_branch(test_branch)
+    _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
+
+    assert repo.get_current_branch() == test_branch
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Margaret' in list(womens_data.to_pandas()['name'])
+    assert 'Rafael' in list(mens_data.to_pandas()['name'])
+
+    repo.checkout('master')
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Margaret' not in list(womens_data.to_pandas()['name'])
+    assert 'Rafael' not in list(mens_data.to_pandas()['name'])
+
+
+def test_branching_missing_branch(initial_test_data):
+    repo = initial_test_data
+    test_branch = 'new-branch'
+    with pytest.raises(AssertionError):
+        _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
+
+
+CORRUPT_CSV = """player_name,weeks_at_number_1
+Roger,Federer,310
+Pete Sampras,286
+Novak Djokovic,272
+Ivan Lendl,270
+Jimmy Connors,268
+Rafael Nadal,196
+John McEnroe,170
+Björn Borg,109,,
+Andre Agassi,101
+Lleyton Hewitt,80
+,Stefan Edberg,72
+Jim Courier,58
+Gustavo Kuerten,43
+"""
+
+CLEANED_CSV = """player_name,weeks_at_number_1
+Pete Sampras,286
+Novak Djokovic,272
+Ivan Lendl,270
+Jimmy Connors,268
+Rafael Nadal,196
+John McEnroe,170
+Andre Agassi,101
+Lleyton Hewitt,80
+Jim Courier,58
+Gustavo Kuerten,43
+"""
+
+
+def test_get_bulk_table_loader(init_repo):
+    repo = init_repo
+    table = 'test_table'
+
+    def get_data():
+        return io.StringIO(CORRUPT_CSV)
+
+    def cleaner(data: io.StringIO) -> io.StringIO:
+        output = io.StringIO()
+        header_line = data.readline()
+        columns = header_line.split(',')
+        output.write(header_line)
+        for l in data.readlines():
+            if len(l.split(',')) != len(columns):
+                print('Corrupt line, discarding:\n{}'.format(l))
+            else:
+                output.write(l)
+
+        output.seek(0)
+        return output
+
+    get_bulk_table_loader(table, get_data, ['player_name'], import_mode=CREATE, transformers=[cleaner])(repo)
+    actual = repo.read_table(table).to_pandas()
+    expected = io.StringIO(CLEANED_CSV)
+    headers = [col.rstrip() for col in expected.readline().split(',')]
+    assert all(headers == actual.columns)
+    players_to_week_counts = actual.set_index('player_name')['weeks_at_number_1'].to_dict()
+    for line in expected.readlines():
+        player_name, weeks_at_number_1 = line.split(',')
+        assert player_name in players_to_week_counts and players_to_week_counts[player_name] == int(weeks_at_number_1.rstrip())

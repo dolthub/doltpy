@@ -113,67 +113,6 @@ def test_sql_server(create_test_table, run_serve_mode):
     assert list(data['id']) == [1, 2]
 
 
-def test_transform_table_create_target(create_test_table):
-    repo, test_table = create_test_table
-
-    def transformer(df: pd.DataFrame) -> pd.DataFrame:
-        return df.assign(role='player')
-
-    target_table = 'enriched_{}'.format(test_table)
-    repo.create_derivded_table(test_table, target_table, ['id', 'role'], transformer)
-    result = repo.read_table(target_table).to_pandas()
-    assert len(result.loc[(result['name'] == 'Rafael') & (result['role'] == 'player')]) == 1
-
-
-def test_transform_table_inplace(create_test_table):
-    repo, test_table = create_test_table
-    initial_record_count = len(repo.read_table(test_table))
-
-    def transformer(df: pd.DataFrame) -> pd.DataFrame:
-        return df.assign(name=df['name'].str.lower())
-
-    repo.transform_table_inplace(test_table, ['id'], transformer)
-    result = repo.read_table(test_table).to_pandas()
-    assert initial_record_count == len(result)
-    assert len(result.loc[(result['name'] == 'rafael') & (result['id'] == 1)]) == 1
-
-
-def test_transform_to_existing_table(create_test_table):
-    repo, test_table = create_test_table
-
-    # Create a test aggregates table
-    wins_table = 'wins_by_player'
-    aggregates = pd.DataFrame({'player': ['Novak', 'Roger', 'Rafael'],
-                               'wins': [1, 2, 1]})
-    repo.import_df(wins_table, aggregates, ['player'])
-    repo.add_table_to_next_commit(wins_table)
-
-    # Create some raw match data
-    raw_match_table = 'raw_matches'
-    raw_matches = pd.DataFrame({'match_id': [1, 2, 3, 4, 5],
-                                'winner': ['Novak', 'Roger', 'Roger', 'Rafael', 'Rafael']})
-    repo.import_df(raw_match_table, raw_matches, ['match_id'])
-    repo.add_table_to_next_commit(raw_match_table)
-
-    # Commit the test data
-    repo.commit('Committing test data')
-
-    # Perform transformation to update aggreagtes table with new data
-    def aggregator(df: pd.DataFrame) -> pd.DataFrame:
-        return (df
-                .groupby('winner')[['match_id']]
-                .count()
-                .reset_index()
-                .rename(columns={'match_id': 'wins', 'winner': 'player'}))
-
-    repo.transform_to_existing_table(raw_match_table, wins_table, ['player'], aggregator)
-    repo.add_table_to_next_commit(wins_table)
-    repo.commit('Committing update to {}'.format(wins_table))
-
-    result = repo.read_table(wins_table).to_pandas()
-    assert result.loc[result['player'] == 'Rafael', 'wins'].iloc[0] == 2
-
-
 def test_branch_list(create_test_table):
     repo, _ = create_test_table
     assert repo.get_branch_list() == [repo.get_current_branch()] == ['master']

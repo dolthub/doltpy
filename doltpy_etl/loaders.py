@@ -49,13 +49,24 @@ def _apply_df_transformers(data: pd.DataFrame, transformers: List[DataframeTrans
     return temp
 
 
+def _apply_file_transformers(data: io.StringIO, transformers: List[FileTransformer]) -> io.StringIO:
+    data.seek(0)
+    if not transformers:
+        return data
+    temp = transformers[0](data)
+    for transformer in transformers[1:]:
+        temp = transformer(temp)
+
+    return temp
+
+
 def get_bulk_table_loader(table: str,
                           get_data: Callable[[], io.StringIO],
                           pk_cols: List[str],
                           import_mode: str = None,
-                          transformers: FileTransformer = None) -> DoltTableLoader:
+                          transformers: List[FileTransformer] = None) -> DoltTableLoader:
     """
-    Returns a loader function that writes a file-like object to Dolt.
+    Returns a loader function that writes a file-like object to Dolt, the file must be a valid CSV file.
     :param table:
     :param get_data:
     :param pk_cols:
@@ -64,7 +75,10 @@ def get_bulk_table_loader(table: str,
     :return:
     """
     def inner(repo: Dolt):
-        raise NotImplementedError('Not yet implemented')
+        _import_mode = import_mode or ('create' if table not in repo.get_existing_tables() else 'update')
+        data_to_load = _apply_file_transformers(get_data(), transformers)
+        repo.bulk_import(table, data_to_load, pk_cols, import_mode=_import_mode)
+        return table
 
     return inner
 
@@ -125,9 +139,9 @@ def get_dolt_loader(repo: Dolt,
     :return:
     """
     def inner():
-        if branch not in repo.get_branch_list():
-            raise DoltException('Trying to update branch {} that does not exist, branches are:\n {}'.format(branch,
-                                                                                                            repo.get_branch_list()))
+        # TODO currently this fails, but maybe it should create a branch?
+        assert branch in repo.get_branch_list(), 'Trying to update branch {} that does not exist, branches are:\n {}'.format(branch, repo.get_branch_list())
+
         if repo.get_current_branch() != branch:
             print('Current branch is {}, checking out {}'.format(repo.get_current_branch(), branch))
             repo.checkout(branch)

@@ -162,76 +162,67 @@ class Dolt(object):
         return pd.read_sql(query, con=self.cnx)
 
     def read_table(self, table_name: str, delimiter: str = ',') -> pyarrow.Table:
-        # export table (hopefully soon we can do this with ODBC)
-        # path = '{}/{}_export_{}.csv'.format(self.repo_dir, table_name, str(uuid.uuid4()))
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir)
         result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
-        # os.remove(path)
         return result
-
-    # def create_derivded_table(self,
-    #                           source_table: str,
-    #                           target_table: str,
-    #                           target_pk_cols: List[str],
-    #                           transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-    #     self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=CREATE)
-    #
-    # def transform_to_existing_table(self,
-    #                                 source_table: str,
-    #                                 target_table: str,
-    #                                 target_pk_cols: List[str],
-    #                                 transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-    #     self._transform_helper(source_table, target_table, target_pk_cols, transformer, import_mode=UPDATE)
-    #
-    # # TODO: for now this method needs the PK cols, though in theory it should not
-    # # TODO: there remains a question about what to do if the transformation drops records? Should they remain unchanged?
-    # def transform_table_inplace(self,
-    #                             table: str,
-    #                             pk_cols: List[str],
-    #                             transformer: Callable[[pd.DataFrame], pd.DataFrame]):
-    #     self._transform_helper(table, table, pk_cols, transformer, import_mode=UPDATE)
-    #
-    # def _transform_helper(self,
-    #                       source_table: str,
-    #                       target_table: str,
-    #                       target_pk_cols: List[str],
-    #                       transformer: Callable[[pd.DataFrame], pd.DataFrame],
-    #                       import_mode: str):
-    #     existing = self.read_table(source_table).to_pandas()
-    #     transformed = transformer(existing)
-    #     assert all(col in transformed.columns for col in target_pk_cols), 'Result must have pk cols specified'
-    #     self.import_df(target_table, transformed, target_pk_cols, import_mode=import_mode)
 
     def import_df(self,
                   table_name: str,
-                  df: pd.DataFrame,
+                  data: pd.DataFrame,
                   primary_keys: List[str],
                   import_mode: str = CREATE):
+        """
+        Imports the given DataFrame object to the specified table, dropping records that are duplicates on primary key
+        (in order, preserving the first record, something we might want to allow the user to sepcify), subject to
+        given import mode.
+        :param table_name:
+        :param data:
+        :param primary_keys:
+        :param import_mode:
+        :return:
+        """
+        def writer(filepath: str):
+            clean = data.dropna(subset=primary_keys)
+            clean.to_csv(filepath, index=False)
+
+        self._import_helper(table_name, writer, primary_keys, import_mode)
+
+    def bulk_import(self,
+                    table_name: str,
+                    data: io.StringIO,
+                    primary_keys: List[str],
+                    import_mode: str):
+        """
+        This takes a file-handle like object and produces a
+        :param table_name:
+        :param data:
+        :param primary_keys:
+        :param import_mode:
+        :return:
+        """
+        def writer(filepath: str):
+            with open(filepath, 'w') as f:
+                f.writelines(data.readlines())
+
+        self._import_helper(table_name, writer, primary_keys, import_mode)
+
+    def _import_helper(self,
+                       table_name: str,
+                       write_import_file: Callable[[str], None],
+                       primary_keys: List[str],
+                       import_mode: str):
         import_modes = IMPORT_MODES_TO_FLAGS.keys()
         assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
         import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
 
-        print('Importing {} rows to table {} in dolt directory located in {}, import mode {}'.format(len(df),
-                                                                                                     table_name,
-                                                                                                     os.getcwd(),
-                                                                                                     import_mode))
-        args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
+        print('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
+                                                                                             self.repo_dir,
+                                                                                             import_mode))
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
-
-        # Primary key columns cannot be null
-        clean = df.dropna(subset=primary_keys)
-        print('Dropped {} records with null values in the primary key columns {}'.format(len(df) - len(clean),
-                                                                                         primary_keys))
-        clean.to_csv(fp.name, index=False)
+        write_import_file(fp.name)
+        args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
         _execute(args + [fp.name], self.repo_dir)
-
-    def bulk_load(self,
-                  table_name: str,
-                  get_data: Callable[[], io.StringIO],
-                  primary_keys: List[str],
-                  import_mode: str):
-        raise NotImplementedError('Bulk load not implemented')
 
     def put_row(self, table_name, row_data):
         args = ["dolt", "table", "put-row", table_name]
