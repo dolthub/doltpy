@@ -11,15 +11,50 @@ Which will use `setup.py` to make the appropriate installation using a fresh bui
 ### Usage
 You will then have two commands at your disposal:
 ```bash
-$ dolt-load
-usage: dolt-load [-h] [-c] -d DOLT_DIR [-m MESSAGE] [-b BRANCH] [--dry_run]
+$ dolt-load --help
+usage: dolt-load [-h] --dolt-dir DOLT_DIR [--commit] [--message MESSAGE]
+                 [--branch BRANCH] [--dry-run]
                  dolt_load_module
-dolt-load: error: the following arguments are required: dolt_load_module, -d/--dolt_dir
-$ dolthub-load
-usage: dolthub-load [-h] [-c] [-d DOLT_DIR] [-p] [-m MESSAGE] -r REMOTE_URL
-                    [--clone] [-b BRANCH] [--dry_run]
+
+positional arguments:
+  dolt_load_module     Fully qualified path to a module providing a set of
+                       loaders
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --dolt-dir DOLT_DIR  The directory of the Dolt repo being loaded to
+  --commit
+  --message MESSAGE    Commit message to assciate created commit (requires
+                       --commit)
+  --branch BRANCH      Branch to write to, default is master
+  --dry-run            Print out parameters, but don't do anything
+```
+And then `dolthub-load` has an expanded set of tools for dealing with remotes:
+```
+$ dolthub-load --help
+usage: dolthub-load [-h] [--dolt-dir DOLT_DIR] [--commit] [--message MESSAGE]
+                    [--branch BRANCH] [--clone] --remote-url REMOTE_URL
+                    [--remote-name REMOTE_NAME] [--push] [--dry-run]
                     dolt_load_module
-dolthub-load: error: the following arguments are required: dolt_load_module, -r/--remote_url
+
+positional arguments:
+  dolt_load_module      Fully qualified path to a module providing a set of
+                        loaders
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dolt-dir DOLT_DIR   The directory of the Dolt repo being loaded to
+  --commit
+  --message MESSAGE     Commit message to assciate created commit (requires
+                        --commit)
+  --branch BRANCH       Branch to write to, default is master
+  --clone               Clone the remote to the local machine
+  --remote-url REMOTE_URL
+                        DoltHub remote being used
+  --remote-name REMOTE_NAME
+                        Alias for remote, default is origin
+  --push                Push changes to remote, must sepcify arg --remote
+  --dry-run             Print out parameters, but don't do anything
 ```
 Which will allow you to start using these scripts to load data into Dolt.
 

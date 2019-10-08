@@ -55,15 +55,15 @@ def loader(dolt_load_module: str,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('dolt_load_module', help='Fully qualified path to a module providing a set of loaders')
-    parser.add_argument('-c', '--commit', action='store_true')
-    parser.add_argument('-d', '--dolt_dir', type=str, help='The dolt dir')
-    parser.add_argument('-p', '--push', action='store_true', help='Push changes to remote, must sepcify arg --remote')
-    parser.add_argument('-m', '--message', type=str, help='Commit message associated with the commit')
-    parser.add_argument('-r', '--remote_url', type=str, help='DoltHub remote being used', required=True)
-    parser.add_argument('--remote_name', type=str, default='origin')
+    parser.add_argument('--dolt-dir', type=str, help='The directory of the Dolt repo being loaded to')
+    parser.add_argument('--commit', action='store_true')
+    parser.add_argument('--message', type=str, help=' Commit message to assciate created commit (requires --commit)')
+    parser.add_argument('--branch', type=str, help='Branch to write to, default is master', default='master')
     parser.add_argument('--clone', action='store_true', help='Clone the remote to the local machine')
-    parser.add_argument('-b', '--branch', type=str, help='Branch to write to, default is master', default='master')
-    parser.add_argument('--dry_run', action='store_true')
+    parser.add_argument('--remote-url', type=str, help='DoltHub remote being used', required=True)
+    parser.add_argument('--remote-name', type=str, default='origin', help='Alias for remote, default is origin')
+    parser.add_argument('--push', action='store_true', help='Push changes to remote, must sepcify arg --remote')
+    parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
     loader(dolt_load_module=args.dolt_load_module,
            dolt_dir=args.dolt_dir,
