@@ -1,6 +1,6 @@
 from typing import Callable, List
 import io
-from doltpy import Dolt, DoltException
+from doltpy import Dolt
 from doltpy.dolt import UPDATE
 import pandas as pd
 import hashlib

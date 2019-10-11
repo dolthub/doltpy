@@ -2,10 +2,11 @@ import argparse
 from doltpy.dolt import Dolt
 import os
 import tempfile
-from doltpy_etl.loaders import load_to_dolt, resolve_loaders
+from doltpy_etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
+from typing import List
 
 
-def loader(dolt_load_module: str,
+def loader(loaders: List[DoltTableLoader],
            dolt_dir: str,
            clone: bool,
            branch: str,
@@ -29,15 +30,13 @@ def loader(dolt_load_module: str,
 
     print(
         '''Commencing to load to DoltHub with the following options, and the following options
-                        - module    {dolt_load_module}
                         - dolt_dir  {dolt_dir}
                         - commit    {commit}
                         - branch    {branch}
                         - clone     {clone}
                         - remote    {remote}
                         - push      {push}
-        '''.format(dolt_load_module=dolt_load_module,
-                   dolt_dir=repo.repo_dir,
+        '''.format(dolt_dir=repo.repo_dir,
                    commit=commit,
                    branch=branch,
                    push=push,
@@ -45,7 +44,7 @@ def loader(dolt_load_module: str,
                    remote=remote_name))
 
     if not dry_run:
-        load_to_dolt(repo, resolve_loaders(dolt_load_module), commit, message, branch)
+        load_to_dolt(repo, resolve_loaders(loaders), commit, message, branch)
 
         if push:
             print('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
@@ -65,7 +64,8 @@ def main():
     parser.add_argument('--push', action='store_true', help='Push changes to remote, must sepcify arg --remote')
     parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
-    loader(dolt_load_module=args.dolt_load_module,
+    print('Resolving loaders for module path {}'.format(args.dolt_load_module))
+    loader(loaders=resolve_loaders(args.dolt_load_module),
            dolt_dir=args.dolt_dir,
            clone=args.clone,
            commit=args.commit,

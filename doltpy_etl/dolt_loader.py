@@ -1,23 +1,22 @@
 import argparse
 from doltpy.dolt import Dolt
-from doltpy_etl.loaders import load_to_dolt, resolve_loaders
+from typing import List
+from doltpy_etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
 
 
-def loader(dolt_load_module: str, dolt_dir: str, commit: bool, message: str, dry_run: bool, branch: str):
+def loader(loaders: List[DoltTableLoader], dolt_dir: str, commit: bool, message: str, dry_run: bool, branch: str):
     print(
         '''Commencing load to Dolt with the following options, and the following options
-                - module    {dolt_load_module}
                 - dolt_dir  {dolt_dir}
                 - commit    {commit}
                 - branch    {branch}
-        '''.format(dolt_load_module=dolt_load_module,
-                   dolt_dir=dolt_dir,
+        '''.format(dolt_dir=dolt_dir,
                    commit=commit,
                    branch=branch)
     )
 
     if not dry_run:
-        load_to_dolt(Dolt(dolt_dir), resolve_loaders(dolt_load_module), commit, message, branch)
+        load_to_dolt(Dolt(dolt_dir), loaders, commit, message, branch)
 
 
 def main():
@@ -29,7 +28,8 @@ def main():
     parser.add_argument('--branch', type=str, help='Branch to write to, default is master', default='master')
     parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
-    loader(dolt_load_module=args.dolt_load_module,
+    print('Resolving loaders for module path {}'.format(args.dolt_load_module))
+    loader(loaders=resolve_loaders(args.dolt_load_module),
            dolt_dir=args.dolt_dir,
            commit=args.commit,
            message=args.message,
