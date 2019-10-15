@@ -44,7 +44,7 @@ def loader(loaders: List[DoltTableLoader],
                    remote=remote_name))
 
     if not dry_run:
-        load_to_dolt(repo, resolve_loaders(loaders), commit, message, branch)
+        load_to_dolt(repo, loaders, commit, message, branch)
 
         if push:
             print('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
