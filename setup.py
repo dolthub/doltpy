@@ -1,8 +1,4 @@
 from setuptools import setup, find_packages
-import os
-
-PACKAGES_TO_DIRS = {'core': os.path.join('core', 'core'),
-                    'etl': os.path.join('core', 'etl')}
 
 setup(name='core',
       version='0.1',
@@ -12,11 +8,11 @@ setup(name='core',
       author_email='oscar@liquidata.co',
       description='A Python package for using Dolt database via Python.',
       url='https://github.com/liquidata-inc/doltpy',
-      keywords=['Dolt', 'Liquidata', 'DoltHub'],
+      keywords=['Dolt', 'Liquidata', 'DoltHub', 'ETL', 'ELT'],
       project_urls={'Bug Tracker': 'https://github.com /liquidata-inc/core/issues'},
       entry_points={
             'console_scripts': [
-                  'dolthub-load=etl:dolthub_loader_main',
-                  'dolt-load=etl:dolt_loader_main'
+                  'dolthub-load=doltpy.etl:dolthub_loader_main',
+                  'dolt-load=doltpy.etl:dolt_loader_main'
             ]
       })
