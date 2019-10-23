@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
-setup(name='core',
-      version='0.1',
+setup(name='doltpy',
+      version='0.0.1',
       packages=find_packages(),
       install_requires=['pandas>=0.25.0', 'pyarrow>=0.14.1', 'mysql-connector-python==8.0.17', 'retry>=0.9.2'],
       author='Liquidata',
