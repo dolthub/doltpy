@@ -121,9 +121,13 @@ def test_branch_list(create_test_table):
     repo.checkout('dosac')
     assert repo.get_current_branch() == 'dosac'
 
-# TODO: use testing against remote (found in bats tests)
-# def test_remote_list():
-#
+
+def test_remote_list(create_test_table):
+    repo, _ = create_test_table
+    _execute(['dolt', 'remote', 'add', 'origin', 'blah-blah'], repo.repo_dir)
+    assert repo.get_remote_list() == ['origin']
+    _execute(['dolt', 'remote', 'add', 'another-origin', 'la-la-land'], repo.repo_dir)
+    assert set(repo.get_remote_list()) == {'origin', 'another-origin'}
 
 
 def test_checkout_non_existent_branch(create_test_table):
