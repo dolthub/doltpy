@@ -45,8 +45,8 @@ def update_test_data(initial_test_data):
 
 
 def get_raw_data(repo: Dolt):
-    return pd.concat([repo.read_table(MENS_MAJOR_COUNT).to_pandas().assign(gender='mens'),
-                      repo.read_table(WOMENS_MAJOR_COUNT).to_pandas().assign(gender='womens')])
+    return pd.concat([repo.read_table(MENS_MAJOR_COUNT).assign(gender='mens'),
+                      repo.read_table(WOMENS_MAJOR_COUNT).assign(gender='womens')])
 
 
 def averager(df: pd.DataFrame) -> pd.DataFrame:
@@ -68,28 +68,28 @@ def test_dataframe_table_loader_create(initial_test_data):
     repo = initial_test_data
 
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
-    assert womens_data.to_pandas().iloc[0]['name'] == 'Serena'
-    assert mens_data.to_pandas().iloc[0]['name'] == 'Roger'
+    assert womens_data.iloc[0]['name'] == 'Serena'
+    assert mens_data.iloc[0]['name'] == 'Roger'
 
 
 def test_dataframe_table_loader_update(update_test_data):
     repo = update_test_data
 
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
-    assert 'Margaret' in list(womens_data.to_pandas()['name'])
-    assert 'Rafael' in list(mens_data.to_pandas()['name'])
+    assert 'Margaret' in list(womens_data['name'])
+    assert 'Rafael' in list(mens_data['name'])
 
 
 def test_table_transfomer_create(initial_derived_data):
     repo = initial_derived_data
-    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT).to_pandas()
+    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT)
     assert avg_df.loc[avg_df['gender'] == 'mens', 'average'].iloc[0] == 20
     assert avg_df.loc[avg_df['gender'] == 'womens', 'average'].iloc[0] == 23
 
 
 def test_table_transfomer_update(update_derived_data):
     repo = update_derived_data
-    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT).to_pandas()
+    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT)
     assert avg_df.loc[avg_df['gender'] == 'mens', 'average'].iloc[0] == (20 + 19) / 2
     assert avg_df.loc[avg_df['gender'] == 'womens', 'average'].iloc[0] == (23 + 24) / 2
 
@@ -105,7 +105,7 @@ def test_insert_unique_key(init_repo):
                  [get_df_table_loader(test_table, generate_data, ['hash_id'], transformers=[insert_unique_key])],
                  True,
                  'Updating test data')
-    result = repo.read_table(test_table).to_pandas()
+    result = repo.read_table(test_table)
     assert result.loc[result['id'] == 1, 'count'].iloc[0] == 2 and 'hash_id' in result.columns
 
 
@@ -125,13 +125,13 @@ def test_branching(initial_test_data):
 
     assert repo.get_current_branch() == test_branch
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
-    assert 'Margaret' in list(womens_data.to_pandas()['name'])
-    assert 'Rafael' in list(mens_data.to_pandas()['name'])
+    assert 'Margaret' in list(womens_data['name'])
+    assert 'Rafael' in list(mens_data['name'])
 
     repo.checkout('master')
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
-    assert 'Margaret' not in list(womens_data.to_pandas()['name'])
-    assert 'Rafael' not in list(mens_data.to_pandas()['name'])
+    assert 'Margaret' not in list(womens_data['name'])
+    assert 'Rafael' not in list(mens_data['name'])
 
 
 def test_branching_missing_branch(initial_test_data):
@@ -193,7 +193,7 @@ def test_get_bulk_table_loader(init_repo):
         return output
 
     get_bulk_table_loader(table, get_data, ['player_name'], import_mode=CREATE, transformers=[cleaner])(repo)
-    actual = repo.read_table(table).to_pandas()
+    actual = repo.read_table(table)
     expected = io.StringIO(CLEANED_CSV)
     headers = [col.rstrip() for col in expected.readline().split(',')]
     assert all(headers == actual.columns)

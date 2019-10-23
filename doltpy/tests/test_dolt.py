@@ -44,7 +44,7 @@ def test_init_new_repo(tmp_path):
 def test_put_row(create_test_table):
     repo, test_table = create_test_table
     repo.put_row(test_table, {'name': 'Roger', 'id': 3})
-    df = repo.read_table(test_table).to_pandas()
+    df = repo.read_table(test_table)
     assert 'Roger' in df['name'].tolist() and 3 in df['id'].tolist()
 
 

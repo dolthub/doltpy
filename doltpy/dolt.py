@@ -161,11 +161,11 @@ class Dolt(object):
 
         return pd.read_sql(query, con=self.cnx)
 
-    def read_table(self, table_name: str, delimiter: str = ',') -> pyarrow.Table:
+    def read_table(self, table_name: str, delimiter: str = ',') -> pd.DataFrame:
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir)
         result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
-        return result
+        return result.to_pandas()
 
     def import_df(self,
                   table_name: str,
