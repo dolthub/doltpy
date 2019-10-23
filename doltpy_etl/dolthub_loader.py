@@ -4,6 +4,10 @@ import os
 import tempfile
 from doltpy_etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
 from typing import List
+import logging
+from doltpy_etl.cli_logging_config_helper import config_cli_logger
+
+logger = logging.getLogger(__name__)
 
 
 def loader(loaders: List[DoltTableLoader],
@@ -19,16 +23,16 @@ def loader(loaders: List[DoltTableLoader],
     if clone:
         assert remote_url, 'If clone is True then remote must be passed'
         temp_dir = tempfile.mkdtemp()
-        print('Clone is set to true, so ignoring dolt_dir')
+        logger.info('Clone is set to true, so ignoring dolt_dir')
         repo = Dolt(temp_dir)
         if clone:
-            print('Clone set to True, cloning remote {}'.format(remote_url))
+            logger.info('Clone set to True, cloning remote {}'.format(remote_url))
         repo.clone(remote_url)
     else:
         assert os.path.exists(os.path.join(dolt_dir, '.dolt')), 'Repo must exist locally if not cloned'
         repo = Dolt(dolt_dir)
 
-    print(
+    logger.info(
         '''Commencing to load to DoltHub with the following options, and the following options
                         - dolt_dir  {dolt_dir}
                         - commit    {commit}
@@ -47,11 +51,12 @@ def loader(loaders: List[DoltTableLoader],
         load_to_dolt(repo, loaders, commit, message, branch)
 
         if push:
-            print('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
+            logger.info('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
             repo.push(remote_name, branch)
 
 
 def main():
+    config_cli_logger()
     parser = argparse.ArgumentParser()
     parser.add_argument('dolt_load_module', help='Fully qualified path to a module providing a set of loaders')
     parser.add_argument('--dolt-dir', type=str, help='The directory of the Dolt repo being loaded to')
@@ -64,7 +69,7 @@ def main():
     parser.add_argument('--push', action='store_true', help='Push changes to remote, must sepcify arg --remote')
     parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
-    print('Resolving loaders for module path {}'.format(args.dolt_load_module))
+    logger.info('Resolving loaders for module path {}'.format(args.dolt_load_module))
     loader(loaders=resolve_loaders(args.dolt_load_module),
            dolt_dir=args.dolt_dir,
            clone=args.clone,

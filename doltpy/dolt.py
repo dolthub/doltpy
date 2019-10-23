@@ -4,11 +4,13 @@ import os
 from typing import List, Tuple, Callable, Mapping
 from subprocess import Popen, PIPE, STDOUT
 from datetime import datetime
-import pyarrow
+import logging
 import pyarrow.csv as pacsv
 from retry import retry
 import tempfile
 import io
+
+logger = logging.getLogger(__name__)
 
 CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
 IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
@@ -216,9 +218,9 @@ class Dolt(object):
         assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
         import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
 
-        print('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
-                                                                                             self.repo_dir,
-                                                                                             import_mode))
+        logger.info('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
+                                                                                                    self.repo_dir,
+                                                                                                    import_mode))
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         write_import_file(fp.name)
         args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
@@ -289,15 +291,15 @@ class Dolt(object):
         new_tables, changes = self.get_dirty_tables()
 
         for table in [table for table, is_staged in list(new_tables.items()) + list(changes.items()) if is_staged]:
-            print('Resetting table {}'.format(table))
+            logger.info('Resetting table {}'.format(table))
             _execute(['dolt', 'reset', table], self.repo_dir)
 
         for table in new_tables.keys():
-            print('Removing newly created table {}'.format(table))
+            logger.info('Removing newly created table {}'.format(table))
             _execute(['dolt', 'table', 'rm', table], self.repo_dir)
 
         for table in changes.keys():
-            print('Discarding local changes to table {}'.format(table))
+            logger.info('Discarding local changes to table {}'.format(table))
             _execute(['dolt', 'checkout', table], self.repo_dir)
 
         assert self.repo_is_clean(), 'Something went wrong, repo is not clean'
