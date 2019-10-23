@@ -1,7 +1,7 @@
 from typing import Callable, List
 import io
 from doltpy import Dolt
-from doltpy.dolt import UPDATE
+from doltpy.doltpy.dolt import UPDATE
 import pandas as pd
 import hashlib
 import importlib

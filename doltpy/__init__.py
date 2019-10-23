@@ -1,1 +1,1 @@
-from .dolt import Dolt, DoltException, DoltCommitSummary
+from doltpy.doltpy.dolt import Dolt, DoltException, DoltCommitSummary
