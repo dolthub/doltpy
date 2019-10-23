@@ -8,6 +8,7 @@ setup(name='doltpy',
       author_email='oscar@liquidata.co',
       description='A Python package for using Dolt database via Python.',
       url='https://github.com/liquidata-inc/doltpy',
+      download_url='https://github.com/liquidata-inc/doltpy/archive/v0.0.1.tar.gz',
       keywords=['Dolt', 'Liquidata', 'DoltHub', 'ETL', 'ELT'],
       project_urls={'Bug Tracker': 'https://github.com /liquidata-inc/core/issues'},
       entry_points={
