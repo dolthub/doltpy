@@ -1,11 +1,11 @@
 import argparse
-from doltpy.doltpy.dolt import Dolt
+from doltpy.core import Dolt
 import os
 import tempfile
-from doltpy.doltpy_etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
+from doltpy.etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
 from typing import List
 import logging
-from doltpy.doltpy_etl.cli_logging_config_helper import config_cli_logger
+from doltpy.etl.cli_logging_config_helper import config_cli_logger
 
 logger = logging.getLogger(__name__)
 

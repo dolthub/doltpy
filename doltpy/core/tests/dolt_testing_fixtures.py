@@ -1,5 +1,5 @@
 import os
-from doltpy.doltpy.dolt import Dolt
+from doltpy.core.dolt import Dolt
 import pytest
 import shutil
 from typing import Tuple

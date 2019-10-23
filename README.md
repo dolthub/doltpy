@@ -7,6 +7,9 @@ This is DoltPy, the Python API for Dolt. Python is the language of choice for da
 pip install doltpy
 ```
 
+### Layout
+The top level package is organized into two subpackages, `core` and `etl`. `etl` depends on `core`, but not vice versa. 
+
 ### Usage
 You will then have two commands at your disposal:
 ```bash
@@ -58,4 +61,4 @@ optional arguments:
 Which will allow you to start using these scripts to load data into Dolt.
 
 ### Examples
-See the [liquidata-etl-jobs](https://github.com/liquidata-inc/liquidata-etl-jobs) repo for examples.
+See the [liquidata-etl-jobs](https://github.com/liquidata-inc/liquidata-etl-jobs) repo for examples of using the package as a dependency rather than a via the command line.

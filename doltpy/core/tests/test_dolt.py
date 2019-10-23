@@ -1,11 +1,11 @@
 import pytest
-from doltpy.doltpy.dolt import Dolt, _execute, DoltException
+from doltpy.core.dolt import Dolt, _execute, DoltException
 import shutil
 import pandas as pd
 import uuid
 import os
 from typing import Tuple
-from doltpy.doltpy.tests.dolt_testing_fixtures import get_repo_path_tmp_path, init_repo
+from doltpy.core.tests.dolt_testing_fixtures import get_repo_path_tmp_path, init_repo
 
 
 @pytest.fixture

@@ -1,13 +1,13 @@
 import io
 import pytest
 import pandas as pd
-from doltpy.doltpy.dolt import Dolt, CREATE, UPDATE
-from doltpy.doltpy_etl import (get_df_table_loader,
-                               load_to_dolt,
-                               insert_unique_key,
-                               get_table_transfomer,
-                               get_bulk_table_loader)
-from doltpy.doltpy.tests.dolt_testing_fixtures import init_repo
+from doltpy.core.dolt import Dolt, CREATE, UPDATE
+from doltpy.etl import (get_df_table_loader,
+                        load_to_dolt,
+                        insert_unique_key,
+                        get_table_transfomer,
+                        get_bulk_table_loader)
+from doltpy.core.tests.dolt_testing_fixtures import init_repo
 
 MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT = 'mens_major_count', 'womens_major_count'
 AVERAGE_MAJOR_COUNT = 'average_major_count'
