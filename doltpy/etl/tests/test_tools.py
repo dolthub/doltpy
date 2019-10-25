@@ -121,6 +121,7 @@ def test_branching(initial_test_data):
     repo = initial_test_data
     test_branch = 'new-branch'
     repo.create_branch(test_branch)
+    repo.checkout(test_branch)
     _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
 
     assert repo.get_current_branch() == test_branch
@@ -132,13 +133,6 @@ def test_branching(initial_test_data):
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
     assert 'Margaret' not in list(womens_data['name'])
     assert 'Rafael' not in list(mens_data['name'])
-
-
-def test_branching_missing_branch(initial_test_data):
-    repo = initial_test_data
-    test_branch = 'new-branch'
-    with pytest.raises(AssertionError):
-        _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
 
 
 CORRUPT_CSV = """player_name,weeks_at_number_1
@@ -200,4 +194,25 @@ def test_get_bulk_table_loader(init_repo):
     players_to_week_counts = actual.set_index('player_name')['weeks_at_number_1'].to_dict()
     for line in expected.readlines():
         player_name, weeks_at_number_1 = line.split(',')
-        assert player_name in players_to_week_counts and players_to_week_counts[player_name] == int(weeks_at_number_1.rstrip())
+        assert (player_name in players_to_week_counts and
+                players_to_week_counts[player_name] == int(weeks_at_number_1.rstrip()))
+
+
+def test_load_to_dolt_new_branch(initial_test_data):
+    repo = initial_test_data
+    test_branch = 'new-branch'
+
+    # check we have only the expected branches in the sample data
+    assert repo.get_branch_list() == ['master']
+
+    # load some data to a new branch
+    _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
+
+    # check that we are still on the branch we started on
+    assert repo.get_current_branch() == 'master' and repo.get_branch_list() == ['master', test_branch]
+
+    # check out our new branch and confirm our data is present
+    repo.checkout(test_branch)
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Margaret' in list(womens_data['name'])
+    assert 'Rafael' in list(mens_data['name'])

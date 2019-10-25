@@ -6,5 +6,5 @@ from .loaders import (get_df_table_loader,
                       get_table_transfomer,
                       load_to_dolt,
                       insert_unique_key,
-                      resolve_loaders,
+                      resolve_function,
                       DoltTableLoader)

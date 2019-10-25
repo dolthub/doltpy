@@ -2,7 +2,7 @@ import argparse
 from doltpy.core import Dolt
 import os
 import tempfile
-from doltpy.etl.loaders import load_to_dolt, resolve_loaders, DoltTableLoader
+from doltpy.etl.loaders import load_to_dolt, resolve_function, DoltTableLoader, resolve_branch
 from typing import List
 import logging
 from doltpy.etl.cli_logging_config_helper import config_cli_logger
@@ -62,7 +62,8 @@ def main():
     parser.add_argument('--dolt-dir', type=str, help='The directory of the Dolt repo being loaded to')
     parser.add_argument('--commit', action='store_true')
     parser.add_argument('--message', type=str, help=' Commit message to assciate created commit (requires --commit)')
-    parser.add_argument('--branch', type=str, help='Branch to write to, default is master', default='master')
+    parser.add_argument('--branch', type=str, help='Branch to write to, default is master')
+    parser.add_argument('--branch-generator', type=str, help='A module path to generate a branch name programmatically')
     parser.add_argument('--clone', action='store_true', help='Clone the remote to the local machine')
     parser.add_argument('--remote-url', type=str, help='DoltHub remote being used', required=True)
     parser.add_argument('--remote-name', type=str, default='origin', help='Alias for remote, default is origin')
@@ -70,7 +71,7 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
     logger.info('Resolving loaders for module path {}'.format(args.dolt_load_module))
-    loader(loaders=resolve_loaders(args.dolt_load_module),
+    loader(loaders=resolve_function(args.dolt_load_module),
            dolt_dir=args.dolt_dir,
            clone=args.clone,
            commit=args.commit,
@@ -78,7 +79,7 @@ def main():
            remote_name=args.remote_name,
            message=args.message,
            dry_run=args.dry_run,
-           branch=args.branch,
+           branch=resolve_branch(args.branch, args.branch_generator, 'master'),
            remote_url=args.remote_url)
 
 
