@@ -13,7 +13,7 @@ FileTransformer = Callable[[io.StringIO], io.StringIO]
 logger = logging.getLogger(__name__)
 
 
-def resolve_loaders(module_path: str):
+def resolve_function(module_path: str):
     """
     Takes a string of the form you.module.member_containing_loaders and returns a list of loaders.
     :param module_path:
@@ -31,6 +31,18 @@ def resolve_loaders(module_path: str):
     except ModuleNotFoundError as e:
         logger.info('Could not load module {}, ensure that the package is installed'.format(module_path))
         raise e
+
+
+def resolve_branch(branch: str, module_generator_path: str, default: str):
+    if branch:
+        return_value = branch
+    elif module_generator_path:
+        return_value = resolve_function(module_generator_path)()
+    else:
+        return_value = default
+
+    logger.info('Using branch {}'.format(return_value))
+    return return_value
 
 
 def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
@@ -141,12 +153,13 @@ def get_dolt_loader(repo: Dolt,
     :return:
     """
     def inner():
-        # TODO currently this fails, but maybe it should create a branch?
-        assert branch in repo.get_branch_list(), \
-            'Trying to update branch {} that does not exist, branches are:\n {}'.format(branch, repo.get_branch_list())
+        original_branch = repo.get_current_branch()
 
         if repo.get_current_branch() != branch:
             logger.info('Current branch is {}, checking out {}'.format(repo.get_current_branch(), branch))
+            if branch not in repo.get_branch_list():
+                logger.info('{} does not exist, creating'.format(branch))
+                repo.create_branch(branch)
             repo.checkout(branch)
 
         if transaction_mode:
@@ -159,6 +172,12 @@ def get_dolt_loader(repo: Dolt,
             for table in tables_updated:
                 repo.add_table_to_next_commit(table)
             repo.commit(message)
+
+        if original_branch != repo.get_current_branch():
+            logger.info('Checked out {} from {}, checking out {} to restore state'.format(repo.get_current_branch(),
+                                                                                          original_branch,
+                                                                                          original_branch))
+            repo.checkout(original_branch)
 
     return inner
 
