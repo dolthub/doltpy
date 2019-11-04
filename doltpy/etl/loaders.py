@@ -6,7 +6,9 @@ import hashlib
 import importlib
 import logging
 
-DoltTableLoader = Callable[[Dolt], str]
+DoltTableWriter = Callable[[Dolt], str]
+DoltLoader = Callable[[Dolt], str]
+DoltLoaderBuilder = Callable[[], List[DoltLoader]]
 DataframeTransformer = Callable[[pd.DataFrame], pd.DataFrame]
 FileTransformer = Callable[[io.StringIO], io.StringIO]
 
@@ -74,11 +76,11 @@ def _apply_file_transformers(data: io.StringIO, transformers: List[FileTransform
     return temp
 
 
-def get_bulk_table_loader(table: str,
+def get_bulk_table_writer(table: str,
                           get_data: Callable[[], io.StringIO],
                           pk_cols: List[str],
                           import_mode: str = None,
-                          transformers: List[FileTransformer] = None) -> DoltTableLoader:
+                          transformers: List[FileTransformer] = None) -> DoltTableWriter:
     """
     Returns a loader function that writes a file-like object to Dolt, the file must be a valid CSV file.
     :param table:
@@ -97,11 +99,11 @@ def get_bulk_table_loader(table: str,
     return inner
 
 
-def get_df_table_loader(table: str,
+def get_df_table_writer(table: str,
                         get_data: Callable[[], pd.DataFrame],
                         pk_cols: List[str],
                         import_mode: str = None,
-                        transformers: List[DataframeTransformer] = None) -> DoltTableLoader:
+                        transformers: List[DataframeTransformer] = None) -> DoltTableWriter:
     """
     Returns a loader that writes the `pd.DataFrame` produced by get_data to Dolt.
     :param table:
@@ -134,25 +136,23 @@ def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
     return inner
 
 
-def get_dolt_loader(repo: Dolt,
-                    table_loaders: List[DoltTableLoader],
+def get_dolt_loader(table_writers: List[DoltTableWriter],
                     commit: bool,
                     message: str,
                     branch: str = 'master',
-                    transaction_mode: bool = None):
+                    transaction_mode: bool = None) -> DoltLoader:
     """
     Given a repo and a set of table loaders, run the table loaders and conditionally commit the results with the
     specified message on the specified branch. If transaction_mode is true then ensure all loaders/transformers are
     successful, or all are rolled back.
-    :param repo:
-    :param table_loaders:
+    :param table_writers:
     :param commit:
     :param message:
     :param branch:
     :param transaction_mode:
-    :return:
+    :return: the branch written to
     """
-    def inner():
+    def inner(repo: Dolt):
         original_branch = repo.get_current_branch()
 
         if branch != original_branch and not commit:
@@ -168,7 +168,7 @@ def get_dolt_loader(repo: Dolt,
         if transaction_mode:
             raise NotImplementedError('transaction_mode is not yet implemented')
 
-        tables_updated = [loader(repo) for loader in table_loaders]
+        tables_updated = [writer(repo) for writer in table_writers]
 
         if commit:
             logger.info('Committing to repo located in {} for tables:\n{}'.format(repo.repo_dir, tables_updated))
@@ -182,13 +182,6 @@ def get_dolt_loader(repo: Dolt,
                                                                                           original_branch))
             repo.checkout(original_branch)
 
+        return branch
+
     return inner
-
-
-def load_to_dolt(repo: Dolt,
-                 table_loaders: List[DoltTableLoader],
-                 commit: bool,
-                 message: str,
-                 branch: str = 'master',
-                 transaction_mode: bool = None):
-    get_dolt_loader(repo, table_loaders, commit, message, branch, transaction_mode)()

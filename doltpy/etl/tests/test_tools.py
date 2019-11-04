@@ -2,12 +2,13 @@ import io
 import pytest
 import pandas as pd
 from doltpy.core.dolt import Dolt, CREATE, UPDATE
-from doltpy.etl import (get_df_table_loader,
-                        load_to_dolt,
+from doltpy.etl import (get_df_table_writer,
                         insert_unique_key,
                         get_table_transfomer,
-                        get_bulk_table_loader)
+                        get_bulk_table_writer,
+                        get_dolt_loader)
 from doltpy.core.tests.dolt_testing_fixtures import init_repo
+
 
 MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT = 'mens_major_count', 'womens_major_count'
 AVERAGE_MAJOR_COUNT = 'average_major_count'
@@ -18,19 +19,18 @@ UPDATE_MENS = pd.DataFrame({'name': ['Rafael'], 'major_count': [19]})
 
 
 def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame, branch: str = 'master'):
-    table_loaders = [get_df_table_loader(MENS_MAJOR_COUNT, lambda: mens, ['name']),
-                     get_df_table_loader(WOMENS_MAJOR_COUNT, lambda: womens, ['name'])]
-    load_to_dolt(repo,
-                 table_loaders,
-                 True,
-                 'Loaded {} and {}'.format(MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT),
-                 branch=branch)
+    table_loaders = [get_df_table_writer(MENS_MAJOR_COUNT, lambda: mens, ['name']),
+                     get_df_table_writer(WOMENS_MAJOR_COUNT, lambda: womens, ['name'])]
+    get_dolt_loader(table_loaders,
+                    True,
+                    'Loaded {} and {}'.format(MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT),
+                    branch=branch)(repo)
     return repo
 
 
 def _populate_derived_data_helper(repo: Dolt, import_mode: str):
     table_transfomers = [get_table_transfomer(get_raw_data, AVERAGE_MAJOR_COUNT, ['gender'], averager, import_mode)]
-    load_to_dolt(repo, table_transfomers, True, 'Updated {}'.format(AVERAGE_MAJOR_COUNT))
+    get_dolt_loader(table_transfomers, True, 'Updated {}'.format(AVERAGE_MAJOR_COUNT))(repo)
     return repo
 
 
@@ -101,10 +101,9 @@ def test_insert_unique_key(init_repo):
         return pd.DataFrame({'id': [1, 1, 2], 'value': ['foo', 'foo', 'baz']})
 
     test_table = 'test_data'
-    load_to_dolt(repo,
-                 [get_df_table_loader(test_table, generate_data, ['hash_id'], transformers=[insert_unique_key])],
-                 True,
-                 'Updating test data')
+    get_dolt_loader([get_df_table_writer(test_table, generate_data, ['hash_id'], transformers=[insert_unique_key])],
+                    True,
+                    'Updating test data')(repo)
     result = repo.read_table(test_table)
     assert result.loc[result['id'] == 1, 'count'].iloc[0] == 2 and 'hash_id' in result.columns
 
@@ -186,7 +185,7 @@ def test_get_bulk_table_loader(init_repo):
         output.seek(0)
         return output
 
-    get_bulk_table_loader(table, get_data, ['player_name'], import_mode=CREATE, transformers=[cleaner])(repo)
+    get_bulk_table_writer(table, get_data, ['player_name'], import_mode=CREATE, transformers=[cleaner])(repo)
     actual = repo.read_table(table)
     expected = io.StringIO(CLEANED_CSV)
     headers = [col.rstrip() for col in expected.readline().split(',')]
