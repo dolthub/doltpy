@@ -155,6 +155,9 @@ def get_dolt_loader(repo: Dolt,
     def inner():
         original_branch = repo.get_current_branch()
 
+        if branch != original_branch and not commit:
+            raise ValueError('If writes are to another branch, and commit is not True, writes will be lost')
+
         if repo.get_current_branch() != branch:
             logger.info('Current branch is {}, checking out {}'.format(repo.get_current_branch(), branch))
             if branch not in repo.get_branch_list():
