@@ -16,6 +16,8 @@ INITIAL_WOMENS = pd.DataFrame({'name': ['Serena'], 'major_count': [23]})
 INITIAL_MENS = pd.DataFrame({'name': ['Roger'], 'major_count': [20]})
 UPDATE_WOMENS = pd.DataFrame({'name': ['Margaret'], 'major_count': [24]})
 UPDATE_MENS = pd.DataFrame({'name': ['Rafael'], 'major_count': [19]})
+SECOND_UPDATE_WOMENS = pd.DataFrame({'name': ['Steffi'], 'major_count': [22]})
+SECOND_UPDATE_MENS = pd.DataFrame({'name': ['Novak'], 'major_count': [16]})
 
 
 def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame, branch: str = 'master'):
@@ -213,5 +215,26 @@ def test_load_to_dolt_new_branch(initial_test_data):
     # check out our new branch and confirm our data is present
     repo.checkout(test_branch)
     womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
-    assert 'Margaret' in list(womens_data['name'])
-    assert 'Rafael' in list(mens_data['name'])
+    assert 'Margaret' in list(womens_data['name']) and 'Rafael' in list(mens_data['name'])
+
+
+def test_multi_branch_load(initial_test_data):
+    repo = initial_test_data
+    first_branch, second_branch = 'first-branch', 'second-branch'
+
+    _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, first_branch)
+    _populate_test_data_helper(repo, SECOND_UPDATE_MENS, SECOND_UPDATE_WOMENS, second_branch)
+
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Margaret' not in list(womens_data['name']) and 'Rafael' not in list(mens_data['name'])
+    assert 'Steffi' not in list(womens_data['name']) and 'Novak' not in list(mens_data['name'])
+
+    repo.checkout(first_branch)
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Margaret' in list(womens_data['name']) and 'Rafael' in list(mens_data['name'])
+
+    repo.checkout(second_branch)
+    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    assert 'Steffi' in list(womens_data['name']) and 'Novak' in list(mens_data['name'])
+
+
