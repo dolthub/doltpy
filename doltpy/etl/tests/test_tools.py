@@ -243,5 +243,6 @@ def test_branch_creator(initial_test_data):
     repo = initial_test_data
     new_branch = 'new-branch'
     assert repo.get_branch_list() == ['master']
-    get_branch_creator(new_branch)(repo)
+    branch_name = get_branch_creator(new_branch)(repo)
+    assert branch_name == new_branch
     assert new_branch in repo.get_branch_list()
