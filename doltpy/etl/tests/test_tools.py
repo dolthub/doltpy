@@ -6,7 +6,8 @@ from doltpy.etl import (get_df_table_writer,
                         insert_unique_key,
                         get_table_transfomer,
                         get_bulk_table_writer,
-                        get_dolt_loader)
+                        get_dolt_loader,
+                        get_branch_creator)
 from doltpy.core.tests.dolt_testing_fixtures import init_repo
 
 
@@ -238,3 +239,9 @@ def test_multi_branch_load(initial_test_data):
     assert 'Steffi' in list(womens_data['name']) and 'Novak' in list(mens_data['name'])
 
 
+def test_branch_creator(initial_test_data):
+    repo = initial_test_data
+    new_branch = 'new-branch'
+    assert repo.get_branch_list() == ['master']
+    get_branch_creator(new_branch)(repo)
+    assert new_branch in repo.get_branch_list()

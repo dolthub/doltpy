@@ -185,3 +185,15 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
         return branch
 
     return inner
+
+
+def get_branch_creator(new_branch_name: str, refspec: str = None):
+    def inner(repo: Dolt):
+        assert new_branch_name not in repo.get_branch_list(), 'Branch {} already exists'.format(new_branch_name)
+        logger.info('Creating new branch on repo in {} named {} at refspec {}'.format(repo.repo_dir,
+                                                                                      new_branch_name,
+                                                                                      refspec))
+        repo.create_branch(new_branch_name, refspec)
+
+    return inner
+
