@@ -195,5 +195,7 @@ def get_branch_creator(new_branch_name: str, refspec: str = None):
                                                                                       refspec))
         repo.create_branch(new_branch_name, refspec)
 
+        return new_branch_name
+
     return inner
 
