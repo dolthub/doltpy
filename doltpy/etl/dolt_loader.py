@@ -10,16 +10,15 @@ logger = logging.getLogger(__name__)
 
 def loader(loader_builder: DoltLoaderBuilder, dolt_dir: str, dry_run: bool):
     logger.info(
-        '''Commencing load to Dolt with the following options, and the following options
+        '''Commencing load to Dolt with the following options:
                 - dolt_dir  {dolt_dir}
         '''.format(dolt_dir=dolt_dir)
     )
 
     if not dry_run:
-        if not dry_run:
-            loaders = loader_builder()
-            for dolt_loader in loaders:
-                dolt_loader(Dolt(dolt_dir))
+        loaders = loader_builder()
+        for dolt_loader in loaders:
+            dolt_loader(Dolt(dolt_dir))
 
 
 def main():

@@ -29,7 +29,7 @@ def loader(loader_builder: DoltLoaderBuilder,
         repo = Dolt(dolt_dir)
 
     logger.info(
-        '''Commencing to load to DoltHub with the following options, and the following options
+        '''Commencing to load to DoltHub with the following options:
                         - dolt_dir  {dolt_dir}
                         - clone     {clone}
                         - remote    {remote}
@@ -56,7 +56,7 @@ def main():
     parser.add_argument('--clone', action='store_true', help='Clone the remote to the local machine')
     parser.add_argument('--remote-url', type=str, help='DoltHub remote being used', required=True)
     parser.add_argument('--remote-name', type=str, default='origin', help='Alias for remote, default is origin')
-    parser.add_argument('--push', action='store_true', help='Push changes to remote, must sepcify arg --remote')
+    parser.add_argument('--push', action='store_true', help='Push changes to remote, must specify arg --remote')
     parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
     args = parser.parse_args()
     logger.info('Resolving loaders for module path {}'.format(args.dolt_load_module))
