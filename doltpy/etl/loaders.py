@@ -1,6 +1,6 @@
 from typing import Callable, List
 import io
-from doltpy.core.dolt import UPDATE, Dolt
+from doltpy.core.dolt import UPDATE, Dolt, DoltException
 import pandas as pd
 import hashlib
 import importlib
@@ -171,10 +171,14 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
         tables_updated = [writer(repo) for writer in table_writers]
 
         if commit:
-            logger.info('Committing to repo located in {} for tables:\n{}'.format(repo.repo_dir, tables_updated))
-            for table in tables_updated:
-                repo.add_table_to_next_commit(table)
-            repo.commit(message)
+            if not repo.repo_is_clean():
+                logger.info('Committing to repo located in {} for tables:\n{}'.format(repo.repo_dir, tables_updated))
+                for table in tables_updated:
+                    repo.add_table_to_next_commit(table)
+                repo.commit(message)
+
+            else:
+                logger.warning('No changes to repo in:\n{}'.format(repo.repo_dir))
 
         if original_branch != repo.get_current_branch():
             logger.info('Checked out {} from {}, checking out {} to restore state'.format(repo.get_current_branch(),
