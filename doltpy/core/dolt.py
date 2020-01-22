@@ -5,7 +5,7 @@ from typing import List, Tuple, Callable, Mapping
 from subprocess import Popen, PIPE, STDOUT
 from datetime import datetime
 import logging
-import pyarrow.csv as pacsv
+# import pyarrow.csv as pacsv
 from retry import retry
 import tempfile
 import io
@@ -166,8 +166,10 @@ class Dolt(object):
     def read_table(self, table_name: str, delimiter: str = ',') -> pd.DataFrame:
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir)
-        result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
-        return result.to_pandas()
+        # result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
+        result = pd.read_csv(fp.name, delimiter=delimiter)
+        return result#.to_pandas()
+
 
     def import_df(self,
                   table_name: str,

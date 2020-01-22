@@ -1,5 +1,5 @@
 import os
-from doltpy.core.dolt import Dolt
+from doltpy.core.dolt import Dolt, _execute
 import pytest
 import shutil
 from typing import Tuple
@@ -15,6 +15,8 @@ def init_repo(tmp_path) -> Dolt:
     assert not os.path.exists(repo_data_dir)
     repo = Dolt(repo_path)
     repo.init_new_repo()
+    _execute(['rm', 'LICENSE.md'], repo.repo_dir)
+    _execute(['rm', 'README.md'], repo.repo_dir)
     yield repo
     if os.path.exists(repo_data_dir):
         shutil.rmtree(repo_data_dir)
