@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Note that the user name for this is oscarbatori, see me for password
 version=$1
 message="Are you sure you want to release doltpy version $version using commit $(git rev-parse HEAD)? [Y/y to proceed]"
 
