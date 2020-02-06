@@ -1,11 +1,11 @@
-name: Python package
+name: Doltpy Tests
 
-on: [push]
+on: push
 
 jobs:
+  # Run test suite across all major OS types
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, macos-latest, windows-latest]
     strategy:
       matrix:
         python-version: [3.7, 3.8]
@@ -27,3 +27,30 @@ jobs:
       run: |
         pip install pytest
         pytest
+
+  # Publish all pushes to Test PyPi, publish only tags to PyPi
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/build
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build from source
+        run:
+          python setup.py sdist
+    - name: Publish Doltpy to Test PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.test_pypi_password }}
+        repository_url: https://test.pypi.org/legacy/
+    - name: Publish Doltpy to PyPI
+      if: startsWith(github.event.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.pypi_password }}
