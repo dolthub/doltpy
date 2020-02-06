@@ -30,13 +30,14 @@ jobs:
 
   # Publish all pushes to Test PyPi, publish only tags to PyPi
   publish:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.7, 3.8]
 
     steps:
-    - uses: liquidata-inc/doltpy/build@
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
