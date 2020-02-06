@@ -1,0 +1,59 @@
+name: Doltpy Tests
+
+on: push
+
+jobs:
+  # Run test suite across all major OS types
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash
+        dolt config --global --add user.email bojack@horseman.com
+        dolt config --global --add user.name "Bojack Horseman"
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Execute pytest
+      run: |
+        pip install pytest
+        pytest
+
+  # Publish all pushes to Test PyPi, publish only tags to PyPi
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build from source
+      run: |
+        python setup.py sdist
+    - name: Publish Doltpy to Test PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
+        repository_url: https://test.pypi.org/legacy/
+    - name: Publish Doltpy to PyPI
+      if: startsWith(github.event.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
