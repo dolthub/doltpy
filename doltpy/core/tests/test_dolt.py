@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException
+from doltpy.core.dolt import Dolt, _execute, DoltException, UPDATE
 import shutil
 import pandas as pd
 import uuid
@@ -41,13 +41,6 @@ def test_init_new_repo(tmp_path):
     shutil.rmtree(repo_data_dir)
 
 
-def test_put_row(create_test_table):
-    repo, test_table = create_test_table
-    repo.put_row(test_table, {'name': 'Roger', 'id': 3})
-    df = repo.read_table(test_table)
-    assert 'Roger' in df['name'].tolist() and 3 in df['id'].tolist()
-
-
 def test_commit(create_test_table):
     repo, test_table = create_test_table
     repo.add_table_to_next_commit(test_table)
@@ -62,7 +55,10 @@ def test_get_dirty_tables(create_test_table):
 
     # Some test data
     initial = pd.DataFrame({'id': [1], 'name': ['Bianca'], 'role': ['Champion']})
-    appended_row = {'name': 'Serena', 'id': 2, 'role': 'Runner-up'}
+    appended_row = pd.DataFrame({'name': ['Serena'], 'id': [2], 'role': ['Runner-up']})
+
+    def _insert_row_helper(repo, table, row):
+        repo.import_df(table, row, ['id'], import_mode=UPDATE)
 
     # existing, not modified
     repo.add_table_to_next_commit(test_table)
@@ -80,9 +76,10 @@ def test_get_dirty_tables(create_test_table):
 
     # Commit and modify data
     repo.commit(message)
-    repo.put_row(modified_staged, appended_row)
+    _insert_row_helper(repo, modified_staged, appended_row)
+    repo.import_df(modified_staged, appended_row, ['id'], UPDATE)
     repo.add_table_to_next_commit(modified_staged)
-    repo.put_row(modified_unstaged, appended_row)
+    repo.import_df(modified_unstaged, appended_row, ['id'], UPDATE)
 
     # created, staged
     created_staged = 'created_staged'

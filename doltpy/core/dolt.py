@@ -228,13 +228,6 @@ class Dolt(object):
         args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
         _execute(args + [fp.name], self.repo_dir)
 
-    def put_row(self, table_name, row_data):
-        args = ["dolt", "table", "put-row", table_name]
-        key_value_pairs = [str(k) + ':' + str(v) for k, v in row_data.items()]
-        args.extend(key_value_pairs)
-
-        _execute_restart_serve_if_needed(self, args)
-
     def add_table_to_next_commit(self, table_name):
         _execute_restart_serve_if_needed(self, ["dolt", "add", table_name])
 
