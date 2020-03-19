@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(name='doltpy',
       version='0.0.6',
       packages=find_packages(),
-      install_requires=['pandas>=0.25.0', 'mysql-connector-python==8.0.17', 'retry>=0.9.2'],
+      install_requires=['pandas>=0.25.0', 'sqlalchemy>=1.3.8', 'retry>=0.9.2'],
       author='Liquidata',
       author_email='oscar@liquidata.co',
       description='A Python package for using Dolt database via Python.',

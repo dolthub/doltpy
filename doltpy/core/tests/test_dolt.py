@@ -136,3 +136,15 @@ def test_checkout_non_existent_branch(create_test_table):
 def test_get_existing_tables(create_test_table):
     repo, test_table = create_test_table
     assert repo.get_existing_tables() == [test_table]
+
+
+def test_execute_sql_stmt(create_test_table):
+    repo, test_table = create_test_table
+    sql = '''
+        INSERT INTO {table} (name, id)
+        VALUES ('Roger', 3)
+    '''.format(table=test_table)
+    repo.execute_sql_stmt(sql)
+
+    test_data = repo.read_table(test_table)
+    assert 'Roger' in test_data['name'].to_list()
