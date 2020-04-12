@@ -1,14 +1,13 @@
-import mysql.connector
 import pandas as pd
 import os
 from typing import List, Tuple, Callable, Mapping
 from subprocess import Popen, PIPE, STDOUT
 from datetime import datetime
 import logging
-# import pyarrow.csv as pacsv
 from retry import retry
 import tempfile
 import io
+import sqlalchemy
 
 logger = logging.getLogger(__name__)
 
@@ -88,14 +87,14 @@ class Dolt(object):
             _execute(args=name_args, cwd=self.repo_dir)
             _execute(args=email_args, cwd=self.repo_dir)
 
-    def clone(self, repo):
-        # if self.dir_exists:
-        #     raise Exception(self.repo_dir + " .")
-        #
-        # os.makedirs(self.repo_dir)
-        # self.dir_exists = True
+    def clone(self, repo_url: str):
+        if self.dir_exists:
+            raise Exception(self.repo_dir + " .")
 
-        args = ["dolt", "clone", repo, "./"]
+        os.makedirs(self.repo_dir)
+        self.dir_exists = True
+
+        args = ["dolt", "clone", repo_url, self.repo_dir]
 
         _execute(args=args, cwd=self.repo_dir)
 
@@ -127,8 +126,7 @@ class Dolt(object):
         # make sure the thread has started, this is a bit hacky
         @retry(exceptions=Exception, backoff=2)
         def get_connection():
-            return mysql.connector.connect(user='root', host='127.0.0.1', port=3306, database='dolt')
-
+            return sqlalchemy.create_engine('mysql+mysqlconnector://root@127.0.0.1/dolt?port=3306').connect()
         cnx = get_connection()
 
         self.server = proc
@@ -157,6 +155,10 @@ class Dolt(object):
 
         return cursor
 
+    def execute_sql_stmt(self, stmt: str):
+        logger.info('Executing the following SQL statement via CLI:\n{}\n'.format(stmt))
+        _execute(['dolt', 'sql', '-q', stmt], cwd=self.repo_dir)
+
     def pandas_read_sql(self, query):
         if self.server is None:
             raise Exception("never started.")
@@ -166,10 +168,8 @@ class Dolt(object):
     def read_table(self, table_name: str, delimiter: str = ',') -> pd.DataFrame:
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir)
-        # result = pacsv.read_csv(fp.name, parse_options=pacsv.ParseOptions(delimiter=delimiter))
         result = pd.read_csv(fp.name, delimiter=delimiter)
-        return result#.to_pandas()
-
+        return result
 
     def import_df(self,
                   table_name: str,
@@ -242,6 +242,9 @@ class Dolt(object):
         _assertion_helper('branch', branch, self.get_branch_list())
         _assertion_helper('remote', remote, self.get_remote_list())
         _execute_restart_serve_if_needed(self, ['dolt', 'push', remote, branch])
+
+    def pull(self, remote: str = 'origin'):
+        _execute(['dolt', 'pull', remote], self.repo_dir)
 
     def get_commits(self) -> List[DoltCommitSummary]:
         output = _execute(['dolt', 'log'], self.repo_dir).split('\n')

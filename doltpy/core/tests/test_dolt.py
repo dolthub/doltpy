@@ -19,7 +19,14 @@ def create_test_data(tmp_path) -> str:
 @pytest.fixture
 def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
     repo, test_data_path = init_repo, create_test_data
-    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'])
+    repo.execute_sql_stmt('''
+        CREATE TABLE `test_players` (
+            `name` LONGTEXT NOT NULL COMMENT 'tag:0',
+            `id` BIGINT NOT NULL COMMENT 'tag:1',
+            PRIMARY KEY (`id`)
+        );
+    ''')
+    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], UPDATE)
     yield repo, 'test_players'
     _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir)
 
@@ -92,8 +99,11 @@ def test_get_dirty_tables(create_test_table):
 
     new_tables, changes = repo.get_dirty_tables()
 
-    assert new_tables[created_staged] and not new_tables[created_unstaged]
-    assert changes[modified_staged] and not changes[modified_unstaged]
+    expected_new_tables = {'created_staged': True, 'created_unstaged': False}
+    expected_changes = {'modified_staged': True, 'modified_unstaged': False}
+
+    assert new_tables == expected_new_tables
+    assert expected_changes == expected_changes
 
 
 def test_clean_local(create_test_table):
@@ -102,8 +112,6 @@ def test_clean_local(create_test_table):
     assert repo.repo_is_clean()
 
 
-# TODO Python sends these back as strings, causing tests to fail
-@pytest.mark.skip('Currently the SQL API returns DataFrame with strings instead of ints')
 def test_sql_server(create_test_table, run_serve_mode):
     repo, test_table = create_test_table
     data = repo.pandas_read_sql('SELECT * FROM {}'.format(test_table))
@@ -136,3 +144,15 @@ def test_checkout_non_existent_branch(create_test_table):
 def test_get_existing_tables(create_test_table):
     repo, test_table = create_test_table
     assert repo.get_existing_tables() == [test_table]
+
+
+def test_execute_sql_stmt(create_test_table):
+    repo, test_table = create_test_table
+    sql = '''
+        INSERT INTO {table} (name, id)
+        VALUES ('Roger', 3)
+    '''.format(table=test_table)
+    repo.execute_sql_stmt(sql)
+
+    test_data = repo.read_table(test_table)
+    assert 'Roger' in test_data['name'].to_list()
