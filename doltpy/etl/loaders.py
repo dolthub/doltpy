@@ -1,6 +1,6 @@
 from typing import Callable, List
 import io
-from doltpy.core.dolt import UPDATE, Dolt, DoltException
+from doltpy.core.dolt import UPDATE, Dolt
 import pandas as pd
 import hashlib
 import importlib
@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 def resolve_function(module_path: str):
     """
-    Takes a string of the form you.module.member_containing_loaders and returns a list of loaders.
+    Takes a string of the form you.module.member_containing_loaders and returns a list of loaders. It exists to allow
+    commands to be called with arguments that are strings that can be resolved to functions. This is used when
+    specifying function parameters via the command line.
     :param module_path:
     :return:
     """
@@ -48,6 +50,13 @@ def resolve_branch(branch: str, module_generator_path: str, default: str):
 
 
 def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function takes Pandas `DataFrame` and inserts a unique hash to each row created from the row itself, along
+    with a count of how many rows produce the same hash. The idea is to provide some rudimentary tools for writing data
+    with unique keys.
+    :param df:
+    :return:
+    """
     assert 'hash_id' not in df.columns and 'count' not in df.columns, 'Require hash_id and count not in df'
     ids = df.apply(lambda r: hashlib.md5(','.join([str(el) for el in r]).encode('utf-8')).hexdigest(), axis=1)
     with_id = df.assign(hash_id=ids).set_index('hash_id')
@@ -82,7 +91,10 @@ def get_bulk_table_writer(table: str,
                           import_mode: str = None,
                           transformers: List[FileTransformer] = None) -> DoltTableWriter:
     """
-    Returns a loader function that writes a file-like object to Dolt, the file must be a valid CSV file.
+    Returns a function that takes a Dolt repository object and writes the contents of the file like object returned by
+    the function parameter `get_data` to the table specified using the primary keys passed. Optionally toggle the import
+    mode and apply a list of transformers to do some data cleaning operations. For example, we might apply a transformer
+    that converts some date strings to proper datetime objects.
     :param table:
     :param get_data:
     :param pk_cols:
@@ -105,7 +117,10 @@ def get_df_table_writer(table: str,
                         import_mode: str = None,
                         transformers: List[DataframeTransformer] = None) -> DoltTableWriter:
     """
-    Returns a loader that writes the `pd.DataFrame` produced by get_data to Dolt.
+    Returns a function that takes a Dolt repository object and writes the Pandas DataFrame returned by the function
+    parameter `get_data` to the table specified using the primary keys passed. Optionally toggle the import mode and
+    apply a list of transformers to do some data cleaning operations. For example, we might apply a transformer that
+    converts some date strings to proper datetime objects.
     :param table:
     :param get_data:
     :param pk_cols:
@@ -127,6 +142,16 @@ def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
                          target_pk_cols: List[str],
                          transformer: DataframeTransformer,
                          import_mode: str = UPDATE) -> DoltTableWriter:
+    """
+    A version of get_df_table writer where the input is a Dolt repository. This is used for transforming raw data into
+    derived tables.
+    :param get_data:
+    :param target_table:
+    :param target_pk_cols:
+    :param transformer:
+    :param import_mode:
+    :return:
+    """
     def inner(repo: Dolt):
         input_data = get_data(repo)
         transformed_data = transformer(input_data)
@@ -192,6 +217,12 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
 
 
 def get_branch_creator(new_branch_name: str, refspec: str = None):
+    """
+    Returns a function that creates a branch at the specified refspec.
+    :param new_branch_name:
+    :param refspec:
+    :return:
+    """
     def inner(repo: Dolt):
         assert new_branch_name not in repo.get_branch_list(), 'Branch {} already exists'.format(new_branch_name)
         logger.info('Creating new branch on repo in {} named {} at refspec {}'.format(repo.repo_dir,

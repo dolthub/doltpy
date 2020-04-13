@@ -1,5 +1,5 @@
 import argparse
-from doltpy.core import Dolt
+from doltpy.core import Dolt, clone_repo
 import os
 import tempfile
 from doltpy.etl.loaders import resolve_function, DoltLoaderBuilder
@@ -16,14 +16,26 @@ def loader(loader_builder: DoltLoaderBuilder,
            remote_name: str,
            dry_run: bool,
            remote_url: str):
+    """
+    This function takes a `DoltLoaderBuilder`, repo and remote settings, and attempts to execute the loaders returned
+    by the builder.
+    :param loader_builder:
+    :param dolt_dir:
+    :param clone:
+    :param push:
+    :param remote_name:
+    :param dry_run:
+    :param remote_url:
+    :return:
+    """
     if clone:
         assert remote_url, 'If clone is True then remote must be passed'
         temp_dir = tempfile.mkdtemp()
         logger.info('Clone is set to true, so ignoring dolt_dir')
-        repo = Dolt(temp_dir)
         if clone:
             logger.info('Clone set to True, cloning remote {}'.format(remote_url))
-        repo.clone(remote_url)
+        clone_repo(remote_url, temp_dir)
+        repo = Dolt(temp_dir)
     else:
         assert os.path.exists(os.path.join(dolt_dir, '.dolt')), 'Repo must exist locally if not cloned'
         repo = Dolt(dolt_dir)
@@ -49,6 +61,10 @@ def loader(loader_builder: DoltLoaderBuilder,
 
 
 def main():
+    """
+    Used as a function backing shim for surfacing command line tool.
+    :return:
+    """
     config_cli_logger()
     parser = argparse.ArgumentParser()
     parser.add_argument('dolt_load_module', help='Fully qualified path to a module providing a set of loaders')

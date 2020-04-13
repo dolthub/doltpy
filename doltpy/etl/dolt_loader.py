@@ -1,6 +1,5 @@
 import argparse
 from doltpy.core import Dolt
-from typing import List
 from doltpy.etl.loaders import resolve_function, DoltLoaderBuilder
 import logging
 from doltpy.etl.cli_logging_config_helper import config_cli_logger
@@ -9,6 +8,14 @@ logger = logging.getLogger(__name__)
 
 
 def loader(loader_builder: DoltLoaderBuilder, dolt_dir: str, dry_run: bool):
+    """
+    This function takes a `DoltLoaderBuilder`, repo and remote settings, and attempts to execute the loaders returned
+    by the builder.
+    :param loader_builder:
+    :param dolt_dir:
+    :param dry_run:
+    :return:
+    """
     logger.info(
         '''Commencing load to Dolt with the following options:
                 - dolt_dir  {dolt_dir}
@@ -22,6 +29,10 @@ def loader(loader_builder: DoltLoaderBuilder, dolt_dir: str, dry_run: bool):
 
 
 def main():
+    """
+    Used as a function backing shim for surfacing command line tool.
+    :return:
+    """
     config_cli_logger()
     parser = argparse.ArgumentParser()
     parser.add_argument('dolt_load_module', help='Fully qualified path to a module providing a set of loaders')

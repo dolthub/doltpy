@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException, UPDATE
+from doltpy.core.dolt import init_new_repo, Dolt, _execute, DoltException, UPDATE
 import shutil
 import pandas as pd
 import uuid
@@ -28,7 +28,7 @@ def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
     ''')
     repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], UPDATE)
     yield repo, 'test_players'
-    _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir)
+    _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir())
 
 
 @pytest.fixture
@@ -42,8 +42,7 @@ def run_serve_mode(init_repo):
 def test_init_new_repo(tmp_path):
     repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
     assert not os.path.exists(repo_data_dir)
-    dolt = Dolt(repo_path)
-    dolt.init_new_repo()
+    init_new_repo(repo_path)
     assert os.path.exists(repo_data_dir)
     shutil.rmtree(repo_data_dir)
 
@@ -112,6 +111,7 @@ def test_clean_local(create_test_table):
     assert repo.repo_is_clean()
 
 
+# TODO test datetime types here
 def test_sql_server(create_test_table, run_serve_mode):
     repo, test_table = create_test_table
     data = repo.pandas_read_sql('SELECT * FROM {}'.format(test_table))
@@ -129,9 +129,9 @@ def test_branch_list(create_test_table):
 
 def test_remote_list(create_test_table):
     repo, _ = create_test_table
-    _execute(['dolt', 'remote', 'add', 'origin', 'blah-blah'], repo.repo_dir)
+    _execute(['dolt', 'remote', 'add', 'origin', 'blah-blah'], repo.repo_dir())
     assert repo.get_remote_list() == ['origin']
-    _execute(['dolt', 'remote', 'add', 'another-origin', 'la-la-land'], repo.repo_dir)
+    _execute(['dolt', 'remote', 'add', 'another-origin', 'la-la-land'], repo.repo_dir())
     assert set(repo.get_remote_list()) == {'origin', 'another-origin'}
 
 
