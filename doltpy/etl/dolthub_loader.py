@@ -34,8 +34,7 @@ def loader(loader_builder: DoltLoaderBuilder,
         logger.info('Clone is set to true, so ignoring dolt_dir')
         if clone:
             logger.info('Clone set to True, cloning remote {}'.format(remote_url))
-        clone_repo(remote_url, temp_dir)
-        repo = Dolt(temp_dir)
+        repo = clone_repo(remote_url, temp_dir)
     else:
         assert os.path.exists(os.path.join(dolt_dir, '.dolt')), 'Repo must exist locally if not cloned'
         repo = Dolt(dolt_dir)

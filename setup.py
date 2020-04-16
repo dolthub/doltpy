@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='doltpy',
-      version='0.0.7',
+      version='0.0.8',
       packages=find_packages(),
       install_requires=['pandas>=0.25.0', 'sqlalchemy>=1.3.8', 'mysql-connector-python==8.0.17', 'retry>=0.9.2'],
       author='Liquidata',
