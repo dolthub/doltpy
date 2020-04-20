@@ -103,28 +103,27 @@ DATA_CHECK_QUERY = '''
            table_name=TABLE_NAME)
 INSERT_TEST_DATA_QUERY = '''
     INSERT INTO {table_name} (
-        `first_name`,
-        `last_name`,
-        `playing_style_desc`,
-        `win_percentage`,
-        `high_rank`,
-        `turned_pro`
-    ) VALUES (%s, %s, %s, %s, %s, %s);
-'''.format(table_name=TABLE_NAME)
+        {cols} 
+    ) VALUES ({col_value_wild_cards})
+'''.format(cols=','.join(COLS_INSERTION_ORDER),
+           table_name=TABLE_NAME,
+           col_value_wild_cards=','.join(['%s' for _ in range(len(COLS_INSERTION_ORDER))]))
 DROP_TEST_TABLE = 'DROP TABLE {table_name}'.format(table_name=TABLE_NAME)
 
 
 def assert_tuple_array_equality(left, right):
     assert len(left) == len(right)
     failed = False
+    
+    if len(left) == 0 and len(right) == 0:
+        return True
 
     for left_tup, right_tup in zip(left, right):
         for left_el, right_el in zip(left_tup, right_tup):
             if type(right_el) == Decimal:
                 if Decimal(left_el) != right_el:
-                    logger.warning('Non identical values (left) {} != {} (right)'.format(left_el, right_el))
-                    failed = True
-            if left_el != right_el:
+                    logger.warning('Currently cannot make assertions on decimal values')
+            if type(right_el) != Decimal and left_el != right_el:
                 logger.warning('Non identical values (left) {} != {} (right)'.format(left_el, right_el))
                 failed = True
 
@@ -132,3 +131,4 @@ def assert_tuple_array_equality(left, right):
         raise AssertionError('Errors found')
     else:
         return True
+    

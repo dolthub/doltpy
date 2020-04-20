@@ -13,7 +13,7 @@ from doltpy.etl.sql_sync.tests.data_helper import (TEST_DATA_INITIAL,
 
 def test_write_to_table(mysql_with_table):
     conn, table = mysql_with_table
-    write_to_table(table, conn, TEST_DATA_INITIAL)
+    write_to_table(table, conn, TEST_DATA_INITIAL_COL_SORT)
     result = mysql_read_helper(conn)
 
     assert_tuple_array_equality(TEST_DATA_INITIAL_COL_SORT, result)

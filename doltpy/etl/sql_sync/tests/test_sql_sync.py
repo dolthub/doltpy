@@ -26,10 +26,8 @@ def test_dolt_to_mysql(mysql_with_table, repo_with_table):
                                   {mysql_table: dolt_table})
 
     # # Make sure it works for empty tables
-    # sync_to_mysql(dolt_repo, 'master', {dolt_table: mysql_table}, mysql_conn)
-    # mysql_data = read_mysql(mysql_conn)
-    # dolt_data = read_dolt(dolt_repo)
-    # assert assert_tuple_array_equality(mysql_data, dolt_data)
+    mysql_to_dolt_sync.sync()
+    assert_sync_success(dolt_repo, mysql_conn)
 
     # sync initial data
     dolt_insert_tuples(dolt_repo, dolt_table, TEST_DATA_INITIAL)
