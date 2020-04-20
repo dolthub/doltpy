@@ -41,10 +41,6 @@ def test_dolt_to_mysql(mysql_with_table, repo_with_table):
     mysql_to_dolt_sync.sync()
     assert_sync_success(dolt_repo, mysql_conn)
 
-    # sync again and test
-    mysql_to_dolt_sync.sync()
-    assert_sync_success(dolt_repo, mysql_conn)
-
 
 def assert_sync_success(dolt_repo, mysql_conn):
     mysql_data = mysql_read_helper(mysql_conn)
