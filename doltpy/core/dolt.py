@@ -202,6 +202,7 @@ class Dolt(object):
 
         self.server = proc
         self.cnx = cnx
+        return cnx
 
     def repo_is_clean(self):
         """
