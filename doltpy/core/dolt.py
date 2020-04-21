@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from typing import List, Tuple, Callable, Mapping
 from subprocess import Popen, PIPE, STDOUT
 from datetime import datetime
@@ -45,14 +44,16 @@ def init_new_repo(repo_dir: str) -> 'Dolt':
 
 # TODO we need to sort out where stuff gets cloned and ensure that clone actually takes an argument correctly. The
 # function should return a Dolt object tied to the repo that was just cloned
-def clone_repo(repo_url: str):
+def clone_repo(repo_url: str, repo_dir: str) -> 'Dolt':
     """
     Clones a repository into the repository specified, currently only supports DoltHub as a remote.
     :return:
     """
-    args = ["dolt", "clone", repo_url, './']
+    args = ["dolt", "clone", repo_url, repo_dir]
 
     _execute(args=args, cwd='.')
+
+    return Dolt(repo_dir)
 
 
 class DoltCommitSummary:
@@ -196,6 +197,7 @@ class Dolt(object):
         def get_connection():
             database = str(self.repo_dir()).split('/')[-1]
             return connector.connect(host='127.0.0.1', user='root', database=database, port=3306)
+
         cnx = get_connection()
 
         self.server = proc
