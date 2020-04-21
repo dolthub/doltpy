@@ -6,6 +6,7 @@ import hashlib
 import importlib
 import logging
 import itertools
+import tempfile
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]
@@ -296,3 +297,68 @@ def get_branch_creator(new_branch_name: str, refspec: str = None):
 
     return inner
 
+
+def create_table_from_schema_import(repo: Dolt,
+                                    table: str,
+                                    pks: List[str],
+                                    path: str,
+                                    commit: bool = True,
+                                    commit_message: str = None):
+    """
+    Execute Dolt.schema_import_create(...) against a file with a specified set of primary key columns, and optionally
+    commit the created table.
+    :param repo:
+    :param table:
+    :param pks:
+    :param path:
+    :param commit:
+    :param commit_message:
+    :return:
+    """
+    _create_table_from_schema_import_helper(repo, table, pks, path, commit=commit, commit_message=commit_message)
+
+
+def create_table_from_schema_import_unique_key(repo: Dolt,
+                                               table: str,
+                                               path: str,
+                                               commit: bool = True,
+                                               commit_message: str = None):
+    """
+    Execute Dolt.schema_import_create(...) against a file where we will use insert_unique_key(...) to create a unique
+    key on this data. The standard "hash_id" column name will be used for the unique key.
+    :param repo:
+    :param table:
+    :param path:
+    :param commit:
+    :param commit_message:
+    :return:
+    """
+    _create_table_from_schema_import_helper(repo,
+                                            table,
+                                            [INSERTED_ROW_HASH_COL],
+                                            path,
+                                            [insert_unique_key],
+                                            commit,
+                                            commit_message)
+
+
+def _create_table_from_schema_import_helper(repo: Dolt,
+                                            table: str,
+                                            pks: List[str],
+                                            path: str,
+                                            transformers: List[DataframeTransformer] = None,
+                                            commit: bool = True,
+                                            commit_message: str = None):
+    if transformers:
+        fp = tempfile.NamedTemporaryFile(suffix='.csv')
+        temp = pd.read_csv(path)
+        transformed = _apply_df_transformers(temp, transformers)
+        transformed.to_csv(fp.name, index=False)
+        path = fp.name
+
+    repo.schema_import_create(table, pks, path)
+
+    if commit:
+        message = commit_message or 'Creating table {}'.format(table)
+        repo.add_table_to_next_commit(table)
+        repo.commit(message)

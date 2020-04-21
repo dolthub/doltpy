@@ -28,7 +28,9 @@ def create_test_table(init_repo, create_test_data) -> Tuple[Dolt, str]:
     ''')
     repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], UPDATE)
     yield repo, 'test_players'
-    _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir())
+
+    if 'test_players' in repo.get_existing_tables():
+        _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir())
 
 
 @pytest.fixture
@@ -156,3 +158,22 @@ def test_execute_sql_stmt(create_test_table):
 
     test_data = repo.read_table(test_table)
     assert 'Roger' in test_data['name'].to_list()
+
+
+TEST_IMPORT_FILE_DATA = '''
+name,id
+roger,1
+rafa,2
+'''.lstrip()
+
+
+def test_schema_import_create(init_repo, tmp_path):
+    repo = init_repo
+    table = 'test_table'
+    test_file = tmp_path / 'test_data.csv'
+    with open(test_file, 'w') as f:
+        f.writelines(TEST_IMPORT_FILE_DATA)
+    repo.schema_import_create(table, ['id'], test_file)
+
+    new_tables, _ = repo.get_dirty_tables()
+    assert new_tables == {table: False}

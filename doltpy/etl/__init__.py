@@ -8,6 +8,8 @@ from .loaders import (get_df_table_writer,
                       get_table_transfomer,
                       insert_unique_key,
                       resolve_function,
+                      create_table_from_schema_import,
+                      create_table_from_schema_import_unique_key,
                       DoltTableWriter,
                       DoltLoader,
                       DoltLoaderBuilder)

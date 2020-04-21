@@ -7,7 +7,7 @@ import logging
 from retry import retry
 import tempfile
 import io
-import sqlalchemy
+from mysql import connector
 
 logger = logging.getLogger(__name__)
 
@@ -192,9 +192,10 @@ class Dolt(object):
         proc = Popen(args=args, cwd=self.repo_dir(), stdout=PIPE, stderr=STDOUT)
 
         # make sure the thread has started, this is a bit hacky
-        @retry(exceptions=Exception, backoff=2)
+        @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
         def get_connection():
-            return sqlalchemy.create_engine('mysql+mysqlconnector://root@127.0.0.1/dolt?port=3306').connect()
+            database = str(self.repo_dir()).split('/')[-1]
+            return connector.connect(host='127.0.0.1', user='root', database=database, port=3306)
         cnx = get_connection()
 
         self.server = proc
@@ -475,3 +476,14 @@ class Dolt(object):
         for line in _execute(['dolt', 'branch'], self._repo_dir).split('\n'):
             if line.lstrip().startswith('*'):
                 return line.replace('*', '').lstrip().rstrip()
+
+    def schema_import_create(self, table: str, pks: List[str], path: str):
+        """
+        Surfaces a simple version of the schema import tool the CLI exposes for creating tables.
+        :param table:
+        :param pks:
+        :param path:
+        :return:
+        """
+        args = ['dolt', 'schema',  'import', '-c', '--pks', ','.join(pks), table, path]
+        return _execute(args, self.repo_dir())
