@@ -4,6 +4,7 @@ import pandas as pd
 from doltpy.core.dolt import Dolt, CREATE, UPDATE
 from doltpy.etl import (get_df_table_writer,
                         insert_unique_key,
+                        get_unique_key_table_writer,
                         get_table_transfomer,
                         get_bulk_table_writer,
                         get_dolt_loader,
@@ -117,6 +118,39 @@ def test_insert_unique_key_column_error():
 
     with pytest.raises(AssertionError):
         insert_unique_key(pd.DataFrame({'hash_id': ['count']}))
+
+
+def test_get_unique_key_update_writer(init_repo):
+    repo = init_repo
+
+    def generate_initial_data():
+        return pd.DataFrame([
+            {'name': 'Roger', 'id': 1},
+            {'name': 'Rafael', 'id': 2},
+            {'name': 'Rafael', 'id': 2},
+            {'name': 'Novak', 'id': 3}
+        ])
+
+    test_table = 'test_data'
+    get_dolt_loader([get_unique_key_table_writer(test_table, generate_initial_data, import_mode='create')],
+                    True,
+                    'Create test data')(repo)
+
+    # Test that we have what we expect
+    data = repo.read_table(test_table)
+    assert [data.loc[data['name'] == player, 'count'].iloc[0] == 1 for player in ['Roger', 'Novak']]
+    assert data.loc[data['name'] == 'Rafael', 'count'].iloc[0] == 2
+
+    def generate_updated_data():
+        return pd.DataFrame([
+            {'name': 'Rafael', 'id': 2},
+            {'name': 'Novak', 'id': 3},
+            {'name': 'Andy', 'id': 4}
+        ])
+
+    get_dolt_loader([get_unique_key_table_writer(test_table, generate_updated_data)], True, 'Updating data')(repo)
+    data = repo.read_table(test_table)
+    assert [data.loc[data['name'] == player, 'count'].iloc[0] == 1 for player in ['Rafael', 'Novak', 'Andy']]
 
 
 def test_branching(initial_test_data):

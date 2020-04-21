@@ -5,6 +5,8 @@ import pandas as pd
 import hashlib
 import importlib
 import logging
+import itertools
+import tempfile
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]
@@ -13,6 +15,8 @@ DataframeTransformer = Callable[[pd.DataFrame], pd.DataFrame]
 FileTransformer = Callable[[io.StringIO], io.StringIO]
 
 logger = logging.getLogger(__name__)
+INSERTED_ROW_HASH_COL = 'hash_id'
+INSERTED_COUNT_COL = 'count'
 
 
 def resolve_function(module_path: str):
@@ -47,22 +51,6 @@ def resolve_branch(branch: str, module_generator_path: str, default: str):
 
     logger.info('Using branch {}'.format(return_value))
     return return_value
-
-
-def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    This function takes Pandas `DataFrame` and inserts a unique hash to each row created from the row itself, along
-    with a count of how many rows produce the same hash. The idea is to provide some rudimentary tools for writing data
-    with unique keys.
-    :param df:
-    :return:
-    """
-    assert 'hash_id' not in df.columns and 'count' not in df.columns, 'Require hash_id and count not in df'
-    ids = df.apply(lambda r: hashlib.md5(','.join([str(el) for el in r]).encode('utf-8')).hexdigest(), axis=1)
-    with_id = df.assign(hash_id=ids).set_index('hash_id')
-    count_by_id = with_id.groupby('hash_id').size()
-    with_id.loc[:, 'count'] = count_by_id
-    return with_id.reset_index()
 
 
 def _apply_df_transformers(data: pd.DataFrame, transformers: List[DataframeTransformer]) -> pd.DataFrame:
@@ -161,6 +149,81 @@ def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
     return inner
 
 
+def get_unique_key_table_writer(table: str,
+                                get_data: Callable[[], pd.DataFrame],
+                                import_mode: str = UPDATE,
+                                transformers: List[DataframeTransformer] = None) -> DoltTableWriter:
+    """
+    This is a convenience function wrapping for loading data when using the `insert_primary_key` transformer to
+    generate a unique key.
+    :param table:
+    :param get_data:
+    :param import_mode:
+    :param transformers:
+    :return:
+    """
+    _transformers = transformers + [insert_unique_key] if transformers else [insert_unique_key]
+    create = get_df_table_writer(table, get_data, [INSERTED_ROW_HASH_COL], import_mode, _transformers)
+    update = _get_unique_key_update_writer(table, get_data, transformers)
+    return create if import_mode != UPDATE else update
+
+
+def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function takes Pandas `DataFrame` and inserts a unique hash to each row created from the row itself, along
+    with a count of how many rows produce the same hash. The idea is to provide some rudimentary tools for writing data
+    with unique keys.
+    :param df:
+    :return:
+    """
+    assert INSERTED_ROW_HASH_COL not in df.columns and INSERTED_COUNT_COL not in df.columns, 'Require hash_id and count not in df'
+    ids = df.apply(lambda r: hashlib.md5(','.join([str(el) for el in r]).encode('utf-8')).hexdigest(), axis=1)
+    with_id = df.assign(hash_id=ids).set_index(INSERTED_ROW_HASH_COL)
+    count_by_id = with_id.groupby(INSERTED_ROW_HASH_COL).size()
+    with_id.loc[:, INSERTED_COUNT_COL] = count_by_id
+    return with_id.reset_index()
+
+
+def _get_unique_key_update_writer(table: str,
+                                  get_data: Callable[[], pd.DataFrame],
+                                  transformers: List[DataframeTransformer] = None) -> DoltTableWriter:
+    def inner(repo: Dolt):
+        _transformers = transformers + [insert_unique_key] if transformers else [insert_unique_key]
+        data = _apply_df_transformers(get_data(), _transformers)
+        if table not in repo.get_existing_tables():
+            raise ValueError('Missing table')
+
+        # Get existing PKs
+        existing = repo.read_table(table)
+        existing_pks = existing[INSERTED_ROW_HASH_COL].to_list()
+
+        # Get proposed PKs
+        proposed_pks = data[INSERTED_ROW_HASH_COL].to_list()
+        to_drop = [existing for existing in existing_pks if existing not in proposed_pks]
+
+        if to_drop:
+            iterator = iter(to_drop)
+            while iterator:
+                batch = list(itertools.islice(iterator, 30000))
+                if len(batch) == 0:
+                    break
+
+            logger.info('Dropping batch of {} IDs from table {}'.format(len(batch), table))
+            drop_statement = '''
+            DELETE FROM {table} WHERE {pk} in ("{pks_to_drop}")
+            '''.format(table=table, pk=INSERTED_ROW_HASH_COL, pks_to_drop='","'.join(batch))
+            repo.execute_sql_stmt(drop_statement)
+
+        new_data = data[~(data[INSERTED_ROW_HASH_COL].isin(existing_pks))]
+        if not new_data.empty:
+            logger.info('Importing {} records'.format(len(new_data)))
+            repo.import_df(table, new_data, [INSERTED_ROW_HASH_COL], 'update')
+
+        return table
+
+    return inner
+
+
 def get_dolt_loader(table_writers: List[DoltTableWriter],
                     commit: bool,
                     message: str,
@@ -234,3 +297,68 @@ def get_branch_creator(new_branch_name: str, refspec: str = None):
 
     return inner
 
+
+def create_table_from_schema_import(repo: Dolt,
+                                    table: str,
+                                    pks: List[str],
+                                    path: str,
+                                    commit: bool = True,
+                                    commit_message: str = None):
+    """
+    Execute Dolt.schema_import_create(...) against a file with a specified set of primary key columns, and optionally
+    commit the created table.
+    :param repo:
+    :param table:
+    :param pks:
+    :param path:
+    :param commit:
+    :param commit_message:
+    :return:
+    """
+    _create_table_from_schema_import_helper(repo, table, pks, path, commit=commit, commit_message=commit_message)
+
+
+def create_table_from_schema_import_unique_key(repo: Dolt,
+                                               table: str,
+                                               path: str,
+                                               commit: bool = True,
+                                               commit_message: str = None):
+    """
+    Execute Dolt.schema_import_create(...) against a file where we will use insert_unique_key(...) to create a unique
+    key on this data. The standard "hash_id" column name will be used for the unique key.
+    :param repo:
+    :param table:
+    :param path:
+    :param commit:
+    :param commit_message:
+    :return:
+    """
+    _create_table_from_schema_import_helper(repo,
+                                            table,
+                                            [INSERTED_ROW_HASH_COL],
+                                            path,
+                                            [insert_unique_key],
+                                            commit,
+                                            commit_message)
+
+
+def _create_table_from_schema_import_helper(repo: Dolt,
+                                            table: str,
+                                            pks: List[str],
+                                            path: str,
+                                            transformers: List[DataframeTransformer] = None,
+                                            commit: bool = True,
+                                            commit_message: str = None):
+    if transformers:
+        fp = tempfile.NamedTemporaryFile(suffix='.csv')
+        temp = pd.read_csv(path)
+        transformed = _apply_df_transformers(temp, transformers)
+        transformed.to_csv(fp.name, index=False)
+        path = fp.name
+
+    repo.schema_import_create(table, pks, path)
+
+    if commit:
+        message = commit_message or 'Creating table {}'.format(table)
+        repo.add_table_to_next_commit(table)
+        repo.commit(message)
