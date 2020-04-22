@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 from doltpy.etl.sql_sync.tools import TableMetadata, Column
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ CREATE_TEST_TABLE = '''
         `first_name` VARCHAR(256),
         `last_name` VARCHAR(256),
         `playing_style_desc` LONGTEXT,
-        `win_percentage` DECIMAL, 
+        `win_percentage` DECIMAL(10, 2), 
         `high_rank` INT,
         `turned_pro` DATETIME,
         PRIMARY KEY (`first_name`, `last_name`)
@@ -96,6 +97,8 @@ def assert_tuple_array_equality(left, right):
 
     for left_tup, right_tup in zip(left, right):
         for left_el, right_el in zip(left_tup, right_tup):
+            if type(left_el) == float:
+                left_el = Decimal(str(left_el))
             if left_el != right_el:
                 logger.warning('Non identical values (left) {} != {} (right)'.format(left_el, right_el))
                 failed = True
