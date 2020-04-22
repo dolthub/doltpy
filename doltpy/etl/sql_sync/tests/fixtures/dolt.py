@@ -1,8 +1,11 @@
 import pytest
 import logging
 from doltpy.core import Dolt
-from doltpy.etl.sql_sync.tests.helpers.data_helper import CREATE_TEST_TABLE, DROP_TEST_TABLE, TABLE_NAME, TEST_DATA_INITIAL
-from doltpy.etl.sql_sync.tests.helpers.db_helpers import dolt_insert_tuples
+from doltpy.etl.sql_sync.dolt import write_to_table
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (CREATE_TEST_TABLE,
+                                                           DROP_TEST_TABLE,
+                                                           TABLE_NAME,
+                                                           TEST_DATA_INITIAL)
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,6 @@ def repo_with_table(init_empty_test_repo) -> Tuple[Dolt, str]:
 @pytest.fixture
 def repo_with_initial_data(repo_with_table) -> Tuple[Dolt, str]:
     repo, table = repo_with_table
-    dolt_insert_tuples(repo, table, TEST_DATA_INITIAL)
+    write_to_table(repo, table, TEST_DATA_INITIAL)
     return repo, table
 

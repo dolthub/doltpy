@@ -1,6 +1,7 @@
 from typing import List, Mapping
 import logging
 from typing import Iterable, Callable
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -31,3 +32,33 @@ class DoltSync:
         to_sync = self.source_reader(list(self.table_map.keys()))
         remapped = {self.table_map[source_table]: source_data for source_table, source_data in to_sync.items()}
         self.target_writer(remapped)
+
+
+class Column:
+
+    def __init__(self, col_name: str, col_type: str, key: str = None):
+        """
+
+        :param col_name:
+        :param col_type:
+        :param key:
+        """
+        self.col_name = col_name
+        self.col_type = col_type
+        self.key = key
+
+    def get_wildcard(self):
+        # TODO we should implement an is_numeric function on the column object, and rename it ColumnMetadata
+        # if 'decimal' in self.col_type:
+        #     return '%d'
+        # else:
+        #     return '%s'
+        return '%s'
+
+
+class TableMetadata:
+
+    def __init__(self, name: str, columns: List[Column]):
+        self.name = name
+        self.columns = sorted(columns, key=lambda col: col.col_name)
+

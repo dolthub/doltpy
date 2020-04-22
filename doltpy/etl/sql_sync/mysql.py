@@ -1,5 +1,5 @@
-from typing import Mapping, List, Iterable
-from doltpy.etl.sql_sync.tools import TargetWriter, SourceReader
+from typing import Mapping, List, Iterable, Tuple
+from doltpy.etl.sql_sync.tools import TargetWriter, SourceReader, TableMetadata, Column
 from mysql.connector import connection
 import logging
 
@@ -20,43 +20,50 @@ def get_target_writer(conn: connection) -> TargetWriter:
     return inner
 
 
-def write_to_table(table: str, conn: connection, data: List[tuple]):
+def write_to_table(table: str, conn: connection, data: List[tuple], drop_duplicate_pks: bool = True):
     # Get the column names in the target table
-    columns = get_mysql_columns(table, conn)
-    insert_query = _get_insert_query(table, columns)
+    table_metadata = get_table_metadata(table, conn)
+    insert_query = get_insert_query(table, table_metadata, drop_duplicate_pks)
     cursor = conn.cursor()
     cursor.executemany(insert_query, data)
     conn.commit()
 
 
-def get_mysql_columns(table_name: str, mysql_conn) -> List[str]:
-    get_cols_query = _get_columns_query(table_name).format(table_name=table_name)
-    cursor = mysql_conn.cursor()
-    cursor.execute(get_cols_query)
-    cols = [tup[0] for tup in cursor]
-    cols.sort()
-    return cols
+def get_table_metadata(table_name: str, conn: connection) -> TableMetadata:
+    query = 'SHOW COLUMNS FROM {table_name}'.format(table_name=table_name)
+    cursor = conn.cursor()
+    cursor.execute(query)
+    columns = []
+
+    for tup in cursor:
+        col_name, col_type, _, key, _, _ = tup
+        columns.append(Column(col_name, col_type, key))
+
+    return TableMetadata(table_name, columns)
 
 
-def _get_columns_query(table_name: str) -> str:
-    query_template = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{table_name}'"
-    return query_template.format(table_name=table_name)
-
-
-def _get_insert_query(table_name: str, columns: List[str]):
-    query_template = '''
-        INSERT IGNORE INTO {table_name} (
-            {cols}
-        ) VALUES ({col_value_wild_cards})
-    '''.format(table_name=table_name,
-               cols=_generate_col_list(columns),
-               col_value_wild_cards=','.join(['%s' for _ in range(len(columns))]))
-    return query_template
-
-
-def _generate_col_list(columns: List[str]):
-    if len(columns) == 1:
-        return '`{}`'.format(columns[0])
+def get_insert_query(table_name: str, table_metadata: TableMetadata, drop_duplicate_pks: bool = True):
+    col_list, wildcard_list = get_insertion_lists(table_metadata)
+    if drop_duplicate_pks:
+        query_template = '''
+            INSERT IGNORE INTO {table_name} (
+                {cols}
+            ) VALUES ({col_value_wild_cards})
+        '''
     else:
-        base = '\n'.join(['`{}`,'.format(col) for col in columns[:-1]])
-        return base + '`{}`'.format(columns[-1])
+        query_template = '''
+            INSERT INTO {table_name} (
+                {cols}
+            ) VALUES ({col_value_wild_cards})
+        '''
+    return query_template.format(table_name=table_name, cols=col_list, col_value_wild_cards=wildcard_list)
+
+
+def get_insertion_lists(table_metadata: TableMetadata) -> Tuple[str, str]:
+    col_list, wildcard_list = [], []
+
+    for col in table_metadata.columns:
+        col_list.append(col.col_name)
+        wildcard_list.append(col.get_wildcard())
+
+    return ','.join(col_list), ','.join(wildcard_list)

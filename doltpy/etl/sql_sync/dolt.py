@@ -1,5 +1,6 @@
 from doltpy.core import Dolt
 from doltpy.etl.sql_sync.tools import TargetWriter, SourceReader
+from doltpy.etl.sql_sync.mysql import write_to_table as write_to_mysql_table, get_table_metadata
 import logging
 from typing import Iterable, List, Mapping
 
@@ -61,25 +62,25 @@ def read_from_table(table_name: str, repo: Dolt, latest: bool = True, commit_ref
     if latest or commit_ref:
         commit = latest_commit if latest else commit_ref
         logger.info('Mode is latest={}, using data at commit {}'.format(latest, commit))
-        data = get_data_for_commit(table_name, repo.cnx.cursor(), commit)
+        data = get_data_for_commit(table_name, repo.cnx, commit)
     else:
         logger.info('Mode is latest={}, reading whole table'.format(latest))
-        data = get_data_for_table(table_name, repo.cnx.cursor())
+        data = get_data_for_table(table_name, repo.cnx)
 
     logger.info('Retrieved {} rows from {}'.format(len(data), table_name))
     return data
 
 
 # TODO this is currently not working as it knocks over the server
-def get_data_for_commit(table_name: str, cursor, commit_ref: str):
+def get_data_for_commit(table_name: str, conn, commit_ref: str):
     """
     Uses the dolt_diff_<table> derived tables to grab the updates introduced at a commit.
     :param table_name:
-    :param cursor:
+    :param conn:
     :param commit_ref:
     :return:
     """
-    columns = get_dolt_columns(table_name, cursor)
+    table_metadata = get_table_metadata(table_name, conn)
     query = '''
         SELECT
             {columns}
@@ -87,56 +88,32 @@ def get_data_for_commit(table_name: str, cursor, commit_ref: str):
             dolt_diff_{table_name}
         WHERE
             to_commit = '{commit_hash}'
-    '''.format(columns=','.join(['to_{} as col'.format(col) for col in columns]),
+    '''.format(columns=','.join(['to_{} as col'.format(col.col_name) for col in table_metadata.columns]),
                table_name=table_name,
                commit_hash=commit_ref)
+    cursor = conn.cursor()
     cursor.execute(query)
     return [tup for tup in cursor]
 
 
-def get_data_for_table(table_name: str, cursor):
+def get_data_for_table(table_name: str, conn):
     """
 
     :param table_name:
-    :param cursor:
+    :param conn:
     :return:
     """
-    columns = get_dolt_columns(table_name, cursor)
+    table_metadata = get_table_metadata(table_name, conn)
     query = '''
         SELECT
             {columns}
         FROM
             {table_name}
-    '''.format(columns=','.join(columns), table_name=table_name)
+    '''.format(columns=','.join(col.col_name for col in table_metadata.columns), table_name=table_name)
+    cursor = conn.cursor()
     cursor.execute(query)
     return [tup for tup in cursor]
 
 
-def get_dolt_columns(table_name: str, cursor, pks_only = False) -> List[str]:
-    """
-
-    :param table_name:
-    :param cursor:
-    :param pks_only:
-    :return:
-    """
-    logger.info('Retrieving columns for from target database')
-    query = 'DESCRIBE {table_name}'.format(table_name=table_name)
-    cursor.execute(query)
-    cols = []
-    i = 0
-    for field, _, _, key, _, _ in cursor:
-        if pks_only and key:
-            cols.append(field)
-        elif not pks_only:
-            cols.append(field)
-        i += 1
-
-    cols.sort()
-    return cols
-
-
-
-
-
-
+def write_to_table(repo: Dolt, table: str, data: List[tuple]):
+    write_to_mysql_table(table, repo.cnx, data, drop_duplicate_pks=False)
