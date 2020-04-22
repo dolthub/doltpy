@@ -12,19 +12,19 @@ BASE_TEST_DATA_INITIAL = [
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 83.0,
      'high_rank': 1,
-     'turned_pro': datetime(2003, 1, 1)},
+     'turned_pro': datetime(2003, 1, 1).strftime('%Y-%m-%d')},
     {'first_name': 'Rafael',
      'last_name': 'Nadal',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 83.2,
      'high_rank': 1,
-     'turned_pro': datetime(2001,1, 1)},
+     'turned_pro': datetime(2001,1, 1).strftime('%Y-%m-%d')},
     {'first_name': 'Roger',
      'last_name': 'Federer',
      'playing_style_desc': 'aggressive/all-court',
      'win_percentage': 81.2,
      'high_rank': 1,
-     'turned_pro': datetime(1998, 1, 1)}
+     'turned_pro': datetime(1998, 1, 1).strftime('%Y-%m-%d')}
 ]
 BASE_TEST_DATA_UPDATE = [
     {'first_name': 'Stefanos',
@@ -32,19 +32,19 @@ BASE_TEST_DATA_UPDATE = [
      'playing_style_desc': 'aggressive/all-court',
      'win_percentage': 67.6,
      'high_rank': 5,
-     'turned_pro': datetime(2016, 1, 1)},
+     'turned_pro': datetime(2016, 1, 1).strftime('%Y-%m-%d')},
     {'first_name': 'Alexander',
      'last_name': 'Zverev',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 65.8,
      'high_rank': 3,
-     'turned_pro': datetime(2013, 1, 1)},
+     'turned_pro': datetime(2013, 1, 1).strftime('%Y-%m-%d')},
     {'first_name': 'Dominic',
      'last_name': 'Thiem',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 65.1,
      'high_rank': 3,
-     'turned_pro': datetime(2011, 1, 1)}
+     'turned_pro': datetime(2011, 1, 1).strftime('%Y-%m-%d')}
 ]
 
 COLS_INSERTION_ORDER = ['first_name',
@@ -107,7 +107,7 @@ INSERT_TEST_DATA_QUERY = '''
     ) VALUES ({col_value_wild_cards})
 '''.format(cols=','.join(COLS_INSERTION_ORDER),
            table_name=TABLE_NAME,
-           col_value_wild_cards=','.join(['%s' for _ in range(len(COLS_INSERTION_ORDER))]))
+           col_value_wild_cards=','.join(['?' for _ in range(len(COLS_INSERTION_ORDER))]))
 DROP_TEST_TABLE = 'DROP TABLE {table_name}'.format(table_name=TABLE_NAME)
 
 
@@ -120,10 +120,10 @@ def assert_tuple_array_equality(left, right):
 
     for left_tup, right_tup in zip(left, right):
         for left_el, right_el in zip(left_tup, right_tup):
-            if type(right_el) == Decimal:
-                if Decimal(left_el) != right_el:
-                    logger.warning('Currently cannot make assertions on decimal values')
-            if type(right_el) != Decimal and left_el != right_el:
+            # if type(right_el) == Decimal:
+            #     if Decimal(left_el) != right_el:
+            #         logger.warning('Currently cannot make assertions on decimal values')
+            if left_el != right_el:
                 logger.warning('Non identical values (left) {} != {} (right)'.format(left_el, right_el))
                 failed = True
 

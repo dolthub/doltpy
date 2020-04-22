@@ -1,14 +1,8 @@
-from doltpy.etl.sql_sync.tests.mysql_db_helper import *
-from doltpy.etl.sql_sync.tests.db_helpers import mysql_read_helper
-from doltpy.etl.sql_sync.mysql import (get_mysql_columns, write_to_table, get_target_writer)
-from doltpy.etl.sql_sync.tests.data_helper import (TEST_DATA_INITIAL,
-                                                   TEST_DATA_INITIAL_COL_SORT,
-                                                   TEST_TABLE_COLUMNS,
-                                                   assert_tuple_array_equality)
-
-# TODO
-#   - add testing of get_target_writer
-#   - add testing of get_source_reader
+from doltpy.etl.sql_sync.tests.helpers.db_helpers import mysql_read_helper
+from doltpy.etl.sql_sync.mysql import (get_mysql_columns, write_to_table)
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_DATA_INITIAL_COL_SORT,
+                                                           TEST_TABLE_COLUMNS,
+                                                           assert_tuple_array_equality)
 
 
 def test_write_to_table(mysql_with_table):

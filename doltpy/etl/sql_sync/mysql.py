@@ -43,7 +43,6 @@ def _get_columns_query(table_name: str) -> str:
     return query_template.format(table_name=table_name)
 
 
-
 def _get_insert_query(table_name: str, columns: List[str]):
     query_template = '''
         INSERT IGNORE INTO {table_name} (

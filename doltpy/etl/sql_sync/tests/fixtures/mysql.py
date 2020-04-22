@@ -2,10 +2,8 @@ import mysql.connector as connector
 import pytest
 import yaml
 from retry import retry
-from doltpy.etl.sql_sync.tests.data_helper import TABLE_NAME, CREATE_TEST_TABLE, DROP_TEST_TABLE, TEST_DATA_INITIAL, TEST_DATA_UPDATE
-from doltpy.etl.sql_sync.tests.db_helpers import mysql_insert_helper
-from doltpy.etl.sql_sync.mysql import get_mysql_columns
-from typing import List
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, CREATE_TEST_TABLE, DROP_TEST_TABLE, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.db_helpers import mysql_insert_tuples
 
 MYSQL_USER = 'MYSQL_USER'
 MYSQL_PASSWORD = 'mysql_password'
@@ -68,9 +66,8 @@ def mysql_with_table(mysql_connection):
 @pytest.fixture
 def mysql_with_initial_data(mysql_with_table):
     conn, table = mysql_with_table
-    insert_tuples(conn, TEST_DATA_INITIAL)
+    mysql_insert_tuples(conn, TEST_DATA_INITIAL)
     return conn, table
 
 
-def insert_tuples(mysql_connection, data):
-    mysql_insert_helper(mysql_connection, data)
+

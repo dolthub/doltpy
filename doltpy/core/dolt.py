@@ -189,8 +189,8 @@ class Dolt(object):
         if self.server is not None:
             raise Exception("already running")
 
-        args = ['dolt', 'sql-server', '-t', '0']
-        proc = Popen(args=args, cwd=self.repo_dir(), stdout=PIPE, stderr=STDOUT)
+        args = ['dolt', 'sql-server', '-t', '0', '--loglevel', 'debug']
+        proc = Popen(args=args, cwd=self.repo_dir(), stdout=open('/Users/oscarbatori/Documents/doltpy/server_log', 'w'), stderr=STDOUT)
 
         # make sure the thread has started, this is a bit hacky
         @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)

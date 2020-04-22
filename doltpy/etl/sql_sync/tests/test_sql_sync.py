@@ -1,27 +1,25 @@
-from doltpy.etl.sql_sync import DoltSync, TargetWriter, SourceReader
+from doltpy.etl.sql_sync import DoltSync
 import logging
-from doltpy.etl.sql_sync.tests.data_helper import (TABLE_NAME,
-                                                   INSERT_TEST_DATA_QUERY,
-                                                   TEST_DATA_UPDATE,
-                                                   TEST_DATA_INITIAL,
-                                                   assert_tuple_array_equality)
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_DATA_UPDATE,
+                                                           TEST_DATA_INITIAL,
+                                                           assert_tuple_array_equality)
 from doltpy.etl.sql_sync.mysql import get_target_writer
 from doltpy.etl.sql_sync.dolt import get_source_reader
-from doltpy.etl.sql_sync.tests.dolt_db_helper import insert_tuples as dolt_insert_tuples, repo_with_table
-from doltpy.etl.sql_sync.tests.db_helpers import mysql_read_helper
-from doltpy.etl.sql_sync.tests.mysql_db_helper import (docker_compose_file,
-                                                       mysql_with_table,
-                                                       mysql_connection)
-from doltpy.core.tests.dolt_testing_fixtures import init_repo
+from doltpy.etl.sql_sync.tests.helpers.db_helpers import dolt_insert_tuples
+from doltpy.etl.sql_sync.tests.helpers.db_helpers import mysql_read_helper
 
 logger = logging.getLogger(__name__)
 
 
-def test_dolt_to_mysql(mysql_with_table, repo_with_table):
-    mysql_conn, mysql_table = mysql_with_table
-    dolt_repo, dolt_table = repo_with_table
+def test_dolt_to_mysql_invalid_tables():
+    pass
 
-    mysql_to_dolt_sync = DoltSync(get_source_reader(dolt_repo),
+
+def test_dolt_to_mysql(mysql_with_table, dolt_repo_with_table):
+    mysql_conn, mysql_table = mysql_with_table
+    dolt_repo, dolt_table = dolt_repo_with_table
+
+    mysql_to_dolt_sync = DoltSync(get_source_reader(dolt_repo, latest=False),
                                   get_target_writer(mysql_conn),
                                   {mysql_table: dolt_table})
 

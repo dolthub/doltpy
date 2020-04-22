@@ -1,17 +1,16 @@
 import pytest
 import logging
 from doltpy.core import Dolt
-from doltpy.etl.sql_sync.tests.data_helper import CREATE_TEST_TABLE, DROP_TEST_TABLE, TABLE_NAME, TEST_DATA_INITIAL
-from doltpy.etl.sql_sync.tests.db_helpers import mysql_insert_helper
-from doltpy.core.tests.dolt_testing_fixtures import init_repo
-from typing import List, Tuple
+from doltpy.etl.sql_sync.tests.helpers.data_helper import CREATE_TEST_TABLE, DROP_TEST_TABLE, TABLE_NAME, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.db_helpers import dolt_insert_tuples
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def repo_with_table(init_repo) -> Tuple[Dolt, str]:
-    repo = init_repo
+def repo_with_table(init_empty_test_repo) -> Tuple[Dolt, str]:
+    repo = init_empty_test_repo
     connection = repo.start_server()
     curs1 = connection.cursor()
     curs1.execute(CREATE_TEST_TABLE)
@@ -32,12 +31,6 @@ def repo_with_table(init_repo) -> Tuple[Dolt, str]:
 @pytest.fixture
 def repo_with_initial_data(repo_with_table) -> Tuple[Dolt, str]:
     repo, table = repo_with_table
-    insert_tuples(repo, table, TEST_DATA_INITIAL)
+    dolt_insert_tuples(repo, table, TEST_DATA_INITIAL)
     return repo, table
 
-
-def insert_tuples(repo: Dolt, table: str, data: List[tuple]):
-    connection = repo.cnx
-    mysql_insert_helper(connection, data)
-    repo.add_table_to_next_commit(table)
-    repo.commit('Inserted test data')

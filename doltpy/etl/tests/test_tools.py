@@ -9,7 +9,6 @@ from doltpy.etl import (get_df_table_writer,
                         get_bulk_table_writer,
                         get_dolt_loader,
                         get_branch_creator)
-from doltpy.core.tests.dolt_testing_fixtures import init_repo
 
 
 MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT = 'mens_major_count', 'womens_major_count'
@@ -39,8 +38,8 @@ def _populate_derived_data_helper(repo: Dolt, import_mode: str):
 
 
 @pytest.fixture
-def initial_test_data(init_repo):
-    return _populate_test_data_helper(init_repo, INITIAL_MENS, INITIAL_WOMENS)
+def initial_test_data(init_empty_test_repo):
+    return _populate_test_data_helper(init_empty_test_repo, INITIAL_MENS, INITIAL_WOMENS)
 
 
 @pytest.fixture
@@ -98,8 +97,8 @@ def test_table_transfomer_update(update_derived_data):
     assert avg_df.loc[avg_df['gender'] == 'womens', 'average'].iloc[0] == (23 + 24) / 2
 
 
-def test_insert_unique_key(init_repo):
-    repo = init_repo
+def test_insert_unique_key(init_empty_test_repo):
+    repo = init_empty_test_repo
 
     def generate_data():
         return pd.DataFrame({'id': [1, 1, 2], 'value': ['foo', 'foo', 'baz']})
@@ -120,8 +119,8 @@ def test_insert_unique_key_column_error():
         insert_unique_key(pd.DataFrame({'hash_id': ['count']}))
 
 
-def test_get_unique_key_update_writer(init_repo):
-    repo = init_repo
+def test_get_unique_key_update_writer(init_empty_test_repo):
+    repo = init_empty_test_repo
 
     def generate_initial_data():
         return pd.DataFrame([
@@ -201,8 +200,8 @@ Gustavo Kuerten,43
 """
 
 
-def test_get_bulk_table_loader(init_repo):
-    repo = init_repo
+def test_get_bulk_table_loader(init_empty_test_repo):
+    repo = init_empty_test_repo
     table = 'test_table'
 
     def get_data():
