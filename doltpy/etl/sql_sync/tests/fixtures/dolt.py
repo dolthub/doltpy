@@ -2,10 +2,8 @@ import pytest
 import logging
 from doltpy.core import Dolt
 from doltpy.etl.sql_sync.dolt import write_to_table
-from doltpy.etl.sql_sync.tests.helpers.data_helper import (CREATE_TEST_TABLE,
-                                                           DROP_TEST_TABLE,
-                                                           TABLE_NAME,
-                                                           TEST_DATA_INITIAL)
+from doltpy.etl.sql_sync.tests.helpers.data_helper import DROP_TEST_TABLE, TABLE_NAME, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
 from typing import Tuple
 
 logger = logging.getLogger(__name__)

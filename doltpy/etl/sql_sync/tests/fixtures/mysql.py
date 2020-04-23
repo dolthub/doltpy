@@ -1,50 +1,41 @@
 import mysql.connector as connector
 import pytest
-import yaml
 from retry import retry
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, CREATE_TEST_TABLE, DROP_TEST_TABLE, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
 from doltpy.etl.sql_sync.mysql import write_to_table
 
+MYSQL_ROOT_PASSWORD = 'test'
 MYSQL_USER = 'MYSQL_USER'
 MYSQL_PASSWORD = 'mysql_password'
-MYSQL_DB = 'test_db'
+MYSQL_DATABASE = 'test_db'
 MYSQL_CONTAINER_NAME = 'test_mysql'
+MYSQL_PORT = 3306
 
 
 @pytest.fixture(scope='session')
-def docker_compose_file(tmpdir_factory):
-    compose_file = tmpdir_factory.mktemp('docker_files').join('docker-compose.yml')
+def mysql_service_def():
     environment_dict = dict(MYSQL_ALLOW_EMPTY_PASSWORD='no',
-                            MYSQL_ROOT_PASSWORD='test',
-                            MYSQL_DATABASE='test_db',
-                            MYSQL_USER='MYSQL_USER',
-                            MYSQL_PASSWORD='mysql_password')
-    compose_conf = {
-        'version': '2',
-        'services': {
-            'mysql': {
-                'image': 'mysql',
-                'container_name': MYSQL_CONTAINER_NAME,
-                'environment': environment_dict,
-                'ports': ['3306:3306']
-            }
-        }
+                            MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD,
+                            MYSQL_DATABASE=MYSQL_DATABASE,
+                            MYSQL_USER=MYSQL_USER,
+                            MYSQL_PASSWORD=MYSQL_PASSWORD)
+    return {
+        'image': 'mysql',
+        'container_name': MYSQL_CONTAINER_NAME,
+        'environment': environment_dict,
+        'ports': ['{port}:{port}'.format(port=MYSQL_PORT)]
     }
-
-    with compose_file.open('w') as f:
-        yaml.dump(compose_conf, stream=f)
-
-    return compose_file.strpath
 
 
 @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
 def get_connection(host, port):
-    return connector.connect(host=host, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DB, port=port)
+    return connector.connect(host=host, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DATABASE, port=port)
 
 
 @pytest.fixture
 def mysql_connection(docker_ip, docker_services):
-    return get_connection(docker_ip, docker_services.port_for('mysql', 3306))
+    return get_connection(docker_ip, docker_services.port_for('mysql', MYSQL_PORT))
 
 
 @pytest.fixture

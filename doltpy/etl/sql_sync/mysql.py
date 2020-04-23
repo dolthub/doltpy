@@ -10,17 +10,17 @@ def get_source_reader() -> SourceReader:
     raise NotImplemented()
 
 
-def get_target_writer(conn: connection) -> TargetWriter:
+def get_target_writer(conn: connection, drop_duplicates: bool = False) -> TargetWriter:
     def inner(table_data_map: Mapping[str, Iterable[tuple]]):
         for table, data in table_data_map.items():
             data = list(data)
             logger.info('Writing {} rows to table {}'.format(table, len(data)))
-            write_to_table(table, conn, data)
+            write_to_table(table, conn, data, drop_duplicates)
 
     return inner
 
 
-def write_to_table(table: str, conn: connection, data: List[tuple], drop_duplicate_pks: bool = True):
+def write_to_table(table: str, conn: connection, data: List[tuple], drop_duplicate_pks: bool = False):
     # Get the column names in the target table
     table_metadata = get_table_metadata(table, conn)
     insert_query = get_insert_query(table, table_metadata, drop_duplicate_pks)
@@ -42,7 +42,7 @@ def get_table_metadata(table_name: str, conn: connection) -> TableMetadata:
     return TableMetadata(table_name, columns)
 
 
-def get_insert_query(table_name: str, table_metadata: TableMetadata, drop_duplicate_pks: bool = True):
+def get_insert_query(table_name: str, table_metadata: TableMetadata, drop_duplicate_pks: bool = True) -> str:
     col_list, wildcard_list = get_insertion_lists(table_metadata)
     if drop_duplicate_pks:
         query_template = '''

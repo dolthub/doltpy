@@ -58,18 +58,6 @@ TEST_TABLE_METADATA = TableMetadata(TABLE_NAME, TEST_TABLE_COLUMNS)
 TEST_DATA_INITIAL = [tuple(el[col.col_name] for col in TEST_TABLE_METADATA.columns) for el in BASE_TEST_DATA_INITIAL]
 TEST_DATA_UPDATE = [tuple(el[col.col_name] for col in TEST_TABLE_METADATA.columns) for el in BASE_TEST_DATA_UPDATE]
 
-CREATE_TEST_TABLE = '''
-    CREATE TABLE {table_name} (
-        `first_name` VARCHAR(256),
-        `last_name` VARCHAR(256),
-        `playing_style_desc` LONGTEXT,
-        `win_percentage` DECIMAL(10, 2), 
-        `high_rank` INT,
-        `turned_pro` DATETIME,
-        PRIMARY KEY (`first_name`, `last_name`)
-    );
-'''.format(table_name=TABLE_NAME)
-
 
 def get_data_for_comparison(conn):
     query = '''
