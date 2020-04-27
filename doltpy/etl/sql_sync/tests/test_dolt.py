@@ -1,48 +1,73 @@
 from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            TEST_TABLE_METADATA,
-                                                           TEST_DATA_INITIAL,
-                                                           TEST_DATA_APPEND_MULTIPLE_ROWS,
-                                                           TEST_DATA_APPEND_SINGLE_ROW,
-                                                           assert_tuple_array_equality)
+                                                           assert_tuple_array_equality,
+                                                           get_expected_data,
+                                                           get_expected_dolt_diffs,
+                                                           FIRST_UPDATE,
+                                                           SECOND_UPDATE,
+                                                           THIRD_UPDATE,
+                                                           FOURTH_UPDATE,
+                                                           FIFTH_UPDATE)
 from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_table_metadata
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def test_get_table_reader_diffs(create_dolt_test_data_commits):
+    """
+    Test that get_table_reader_diffs returns only the differences between a specific commit and its immediate parent.
+    :param create_dolt_test_data_commits:
+    :return:
+    """
     repo, table = create_dolt_test_data_commits
-
-    # Grab the commit that introduced the single row
     commits = list(repo.get_commits().keys())
-    latest, parent_of_latest, grandparent_of_latest = commits[0],  commits[1], commits[2]
+    update_to_commit = {
+        FIRST_UPDATE: commits[4],
+        SECOND_UPDATE: commits[3],
+        THIRD_UPDATE: commits[2],
+        FOURTH_UPDATE: commits[1],
+        FIFTH_UPDATE: commits[0]
+    }
 
-    diff_parent_of_latest = get_table_reader_diffs(parent_of_latest)(table, repo)
-    diff_at_latest = get_table_reader_diffs()(table, repo)
-
-    # Check data corresponds to insertion/commits
-    assert_tuple_array_equality(TEST_DATA_APPEND_SINGLE_ROW, diff_parent_of_latest)
-    assert_tuple_array_equality(TEST_DATA_APPEND_MULTIPLE_ROWS, diff_at_latest)
+    for update_num, commit in update_to_commit.items():
+        logger.info('comparison for commit/update_num {}/{}'.format(commit, update_num))
+        dropped_pks, dolt_data = get_table_reader_diffs(commit)(table, repo)
+        expected_dropped_pks, expected_data = get_expected_dolt_diffs(update_num)
+        assert expected_dropped_pks == dropped_pks
+        assert_tuple_array_equality(expected_data, list(dolt_data))
 
 
 def test_get_table_reader(create_dolt_test_data_commits):
+    """
+    Test that get_table_reader returns the data in a Dolt table at a given commit, or head of current branch.
+    :param create_dolt_test_data_commits:
+    :return:
+    """
     repo, table = create_dolt_test_data_commits
+    commits = list(repo.get_commits().keys())
+    update_to_commit = {
+        FIRST_UPDATE: commits[4],
+        SECOND_UPDATE: commits[3],
+        THIRD_UPDATE: commits[2],
+        FOURTH_UPDATE: commits[1],
+        FIFTH_UPDATE: commits[0]
+    }
 
-    # Grab the commit that introduced the single row
-    commits = list(repo.get_commits())
-    latest, parent_of_latest, grandparent_of_latest = commits[0], commits[1], commits[2]
-
-    # Query data at latest
-    data_at_grandparent_of_latest = get_table_reader(grandparent_of_latest)(table, repo)
-    data_at_parent_of_latest = get_table_reader(parent_of_latest)(table, repo)
-    data_at_latest = get_table_reader()(table, repo)
-
-    # Check data corresponds to insertion/commits
-    assert_tuple_array_equality(TEST_DATA_INITIAL, data_at_grandparent_of_latest)
-    expected_at_parent_of_latest = TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW
-    assert_tuple_array_equality(expected_at_parent_of_latest, data_at_parent_of_latest)
-    expected_at_grandparent_of_latest = expected_at_parent_of_latest + TEST_DATA_APPEND_MULTIPLE_ROWS
-    assert_tuple_array_equality(expected_at_grandparent_of_latest, data_at_latest)
+    for update_num, commit in update_to_commit.items():
+        logger.info('comparison for commit/update_num {}/{}'.format(commit, update_num))
+        dropped_pks, dolt_data = get_table_reader(commit)(table, repo)
+        expected_dropped_pks, expected_data = get_expected_data(update_num)
+        assert expected_dropped_pks == dropped_pks
+        assert_tuple_array_equality(expected_data, list(dolt_data))
 
 
 def test_get_table_metadata(create_dolt_test_data_commits):
+    """
+    Test that we get back manually constructed metadata we expect when querying Dolt via MySQL Sever.
+    :param create_dolt_test_data_commits:
+    :return:
+    """
     repo, table = create_dolt_test_data_commits
     conn = repo.get_connection()
     result = get_table_metadata(table, conn)
@@ -50,8 +75,3 @@ def test_get_table_metadata(create_dolt_test_data_commits):
     expected_columns = sorted(TEST_TABLE_COLUMNS, key=lambda col: col.col_name)
     assert TEST_TABLE_METADATA.name == result.name
     assert all(left.col_name == right.col_name for left, right in zip(expected_columns, result.columns))
-
-
-def server_restart_helpr(repo):
-    repo.stop_server()
-    repo.start_server()

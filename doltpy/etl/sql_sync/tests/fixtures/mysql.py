@@ -15,6 +15,11 @@ MYSQL_PORT = 3306
 
 @pytest.fixture(scope='session')
 def mysql_service_def():
+    """
+    Provides the Docker service definitions for running an instance of MySQL, result is converted to YAML file and then
+    used to create a Docker compose file.
+    :return:
+    """
     environment_dict = dict(MYSQL_ALLOW_EMPTY_PASSWORD='no',
                             MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD,
                             MYSQL_DATABASE=MYSQL_DATABASE,
@@ -30,35 +35,42 @@ def mysql_service_def():
 
 @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
 def get_connection(host, port):
+    """
+    Provides a connection to the MySQL instance running at the specified host/port.
+    :param host:
+    :param port:
+    :return:
+    """
     return connector.connect(host=host, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DATABASE, port=port)
 
 
 @pytest.fixture
 def mysql_connection(docker_ip, docker_services):
+    """
+    Provides a connection to the MySQL instance running on the Docker address provided by the fixture parameters.
+    :param docker_ip:
+    :param docker_services:
+    :return:
+    """
     return get_connection(docker_ip, docker_services.port_for('mysql', MYSQL_PORT))
 
 
 @pytest.fixture
 def mysql_with_table(mysql_connection):
-    # connect to the database and create the table
-    curs1 = mysql_connection.cursor()
-    curs1.execute(CREATE_TEST_TABLE)
+    """
+    Creates a test table inside the MySQL Server pointed at by the connection returned by the mysql_connection fixture
+    parameter.
+    :param mysql_connection:
+    :return:
+    """
+    create_cursor = mysql_connection.cursor()
+    create_cursor.execute(CREATE_TEST_TABLE)
     mysql_connection.commit()
 
     yield mysql_connection, TABLE_NAME
 
     # drop table
-    curs1 = mysql_connection.cursor()
-    curs1.execute(DROP_TEST_TABLE)
+    drop_cursor = mysql_connection.cursor()
+    drop_cursor.execute(DROP_TEST_TABLE)
     mysql_connection.commit()
     mysql_connection.close()
-
-
-@pytest.fixture
-def mysql_with_initial_data(mysql_with_table):
-    conn, table = mysql_with_table
-    write_to_table(TABLE_NAME, conn, TEST_DATA_INITIAL)
-    return conn, table
-
-
-

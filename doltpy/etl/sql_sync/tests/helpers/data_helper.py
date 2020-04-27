@@ -47,16 +47,17 @@ BASE_TEST_DATA_APPEND_MULTIPLE_ROWS = [
      'high_rank': 3,
      'turned_pro': datetime(2011, 1, 1)}
 ]
+BASE_TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = BASE_TEST_DATA_APPEND_MULTIPLE_ROWS[1:]
 BASE_TEST_DATA_APPEND_SINGLE_ROW = [
     {'first_name': 'Andy',
      'last_name': 'Murray',
      'playing_style_desc': 'defensive/baseline',
-     'win_percentage': 77.4,
+     'win_percentage': 77.1,
      'high_rank': 1,
      'turned_pro': datetime(2005, 1, 1)}
 ]
 BASE_TEST_DATA_UPDATE_SINGLE_ROW = [
-    {'first_name': 'Andrew',
+    {'first_name': 'Andy',
      'last_name': 'Murray',
      'playing_style_desc': 'defensive/baseline',
      'win_percentage': 77.4,
@@ -82,6 +83,86 @@ TEST_DATA_APPEND_MULTIPLE_ROWS = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULT
 TEST_DATA_APPEND = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULTIPLE_ROWS)
 TEST_DATA_APPEND_SINGLE_ROW = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_SINGLE_ROW)
 TEST_DATA_UPDATE_SINGLE_ROW = _row_dicts_to_tuples(BASE_TEST_DATA_UPDATE_SINGLE_ROW)
+TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE)
+
+
+FIRST_UPDATE, SECOND_UPDATE, THIRD_UPDATE, FOURTH_UPDATE, FIFTH_UPDATE = tuple(range(5))
+ALL_UPDATES = (FIRST_UPDATE, SECOND_UPDATE, THIRD_UPDATE, FOURTH_UPDATE, FIFTH_UPDATE)
+
+
+def get_expected_dolt_diffs(update_num: int):
+    """
+    The fixture fixtures.dolt.create_dolt_test_data_with_commits writes writes a sequence of four updates, this function
+    returns the expected results at each of those updates.
+    :return:
+    """
+    assert update_num in ALL_UPDATES, 'update must be one of {}'.format(update_num)
+
+    diffs = {
+        FIRST_UPDATE: ([], TEST_DATA_INITIAL),
+        SECOND_UPDATE: ([], TEST_DATA_APPEND_SINGLE_ROW),
+        THIRD_UPDATE: ([], TEST_DATA_APPEND_MULTIPLE_ROWS),
+        FOURTH_UPDATE: ([], TEST_DATA_UPDATE_SINGLE_ROW),
+        FIFTH_UPDATE: ([('Stefanos', 'Tsitsipas')], [])
+    }
+
+    return diffs[update_num]
+
+
+def get_expected_data(update_num: int):
+    """
+    The fixture fixtures.dolt.create_dolt_test_data_with_commits writes writes a sequence of four updates, this function
+    returns the expected results at each of those updates.
+    :return:
+    """
+    assert update_num in ALL_UPDATES, 'update must be one of {}'.format(update_num)
+
+    cumulative = {
+        FIRST_UPDATE: ([], TEST_DATA_INITIAL),
+        SECOND_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW),
+        THIRD_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW + TEST_DATA_APPEND_MULTIPLE_ROWS),
+        FOURTH_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS + TEST_DATA_UPDATE_SINGLE_ROW),
+        FIFTH_UPDATE:
+            ([('Stefanos', 'Tsitsipas')], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE + TEST_DATA_UPDATE_SINGLE_ROW)
+    }
+
+    return cumulative[update_num]
+
+
+def get_dolt_update_row_query():
+    """
+    Helper function used to form a update query for building test data.
+    :return:
+    """
+    update = BASE_TEST_DATA_UPDATE_SINGLE_ROW[0]
+    update_col = 'win_percentage'
+    update_val = update[update_col]
+    query = '''
+        UPDATE
+            {table_name} 
+        SET 
+            {update_col} = {update_val} 
+        WHERE 
+            first_name = "{first_name}" AND last_name = "{last_name}"'''.format(table_name=TABLE_NAME,
+                                                                                update_col=update_col,
+                                                                                update_val=update_val,
+                                                                                first_name=update['first_name'],
+                                                                                last_name=update['last_name'])
+    return query
+
+
+def get_dolt_drop_pk_query():
+    """
+    Helper function used to form a delete query for building test data.
+    :return:
+    """
+    first_name, last_name = 'Stefanos', 'Tsitsipas'
+    return '''
+        DELETE FROM
+            {table_name}
+        WHERE
+            first_name = '{first_name}' AND last_name = '{last_name}'
+    '''.format(table_name=TABLE_NAME, first_name=first_name, last_name=last_name)
 
 
 def get_data_for_comparison(conn):
