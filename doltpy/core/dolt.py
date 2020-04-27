@@ -225,16 +225,17 @@ class Dolt(object):
         res = _execute(['dolt', 'status'], self.repo_dir())
         return 'clean' in str(res)
 
-    def query_server(self, query: str):
+    def query_server(self, query: str, connection: connector.connection):
         """
         Execute the specified query against the MySQL Server instance running on port 3306.
         :param query: the query to execute
+        :param connection: connection to use
         :return:
         """
         if self.server is None:
             raise Exception("never started.")
 
-        cursor = self.cnx.cursor()
+        cursor = connection.cursor()
         cursor.execute(query)
 
         return cursor
