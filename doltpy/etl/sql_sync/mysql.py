@@ -1,16 +1,12 @@
-from typing import Mapping, List, Iterable, Tuple
-from doltpy.etl.sql_sync.tools import TargetWriter, SourceReader, DatabaseUpdate, TableMetadata, Column
+from typing import List, Tuple
+from doltpy.etl.sql_sync.tools import TargetWriter, DatabaseUpdate, TableMetadata, Column
 from mysql.connector import connection
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def get_source_reader() -> SourceReader:
-    raise NotImplemented()
-
-
-def get_target_writer(conn: connection, update_on_duplicate : bool = True) -> TargetWriter:
+def get_target_writer(conn: connection, update_on_duplicate: bool = True) -> TargetWriter:
     """
     Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
     apply the table update. A table update consists of primary key values to drop, and data to insert/update.

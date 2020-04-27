@@ -44,8 +44,8 @@ def _build_sync_at_commit(dolt_repo: Dolt,
                           commit_ref: str,
                           target_writer,
                           table_mapping: Mapping[str, str]) -> DoltSync:
-    source_reader = get_table_reader_diffs(commit_ref)
-    return DoltSync(get_source_reader(dolt_repo, source_reader), target_writer, table_mapping)
+    table_reader = get_table_reader_diffs(commit_ref)
+    return DoltSync(get_source_reader(dolt_repo, table_reader), target_writer, table_mapping)
 
 
 def _assert_sync_success(dolt_repo: Dolt, table: str, commit_ref: str, conn):

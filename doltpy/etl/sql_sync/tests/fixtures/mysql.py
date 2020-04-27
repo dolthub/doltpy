@@ -3,7 +3,6 @@ import pytest
 from retry import retry
 from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE, TEST_DATA_INITIAL
 from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
-from doltpy.etl.sql_sync.mysql import write_to_table
 
 MYSQL_ROOT_PASSWORD = 'test'
 MYSQL_USER = 'MYSQL_USER'
