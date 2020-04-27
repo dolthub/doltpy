@@ -34,11 +34,19 @@ def create_test_table(init_empty_test_repo, create_test_data) -> Tuple[Dolt, str
 
 
 @pytest.fixture
-def run_serve_mode(init_empty_test_repo):
+def run_serve_mode(request, init_empty_test_repo):
     repo = init_empty_test_repo
     repo.start_server()
-    yield
-    repo.stop_server()
+    connection = repo.get_connection()
+
+    def finalize():
+        if connection:
+            connection.close()
+        if repo.server:
+            repo.stop_server()
+
+    request.addfinalizer(finalize)
+    return connection
 
 
 def test_init_new_repo(tmp_path):
@@ -52,9 +60,9 @@ def test_init_new_repo(tmp_path):
 def test_commit(create_test_table):
     repo, test_table = create_test_table
     repo.add_table_to_next_commit(test_table)
-    before_commit_count = len(list(repo.get_commits()))
+    before_commit_count = len(repo.get_commits())
     repo.commit('Julianna, the very serious intellectual')
-    assert repo.repo_is_clean() and len(list(repo.get_commits())) == before_commit_count + 1
+    assert repo.repo_is_clean() and len(repo.get_commits()) == before_commit_count + 1
 
 
 def test_get_dirty_tables(create_test_table):
@@ -116,7 +124,8 @@ def test_clean_local(create_test_table):
 # TODO test datetime types here
 def test_sql_server(create_test_table, run_serve_mode):
     repo, test_table = create_test_table
-    data = repo.pandas_read_sql('SELECT * FROM {}'.format(test_table))
+    connection = run_serve_mode
+    data = repo.pandas_read_sql('SELECT * FROM {}'.format(test_table), connection)
     assert list(data['id']) == [1, 2]
 
 

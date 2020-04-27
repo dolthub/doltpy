@@ -7,6 +7,7 @@ from retry import retry
 import tempfile
 import io
 from mysql import connector
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -187,22 +188,32 @@ class Dolt(object):
         very alpha, as it doesn't yet support specifying the port.
         """
         if self.server is not None:
-            raise Exception("already running")
+            logger.warning('Server already running')
 
         args = ['dolt', 'sql-server', '-t', '0', '--loglevel', 'debug']
-        proc = Popen(args=args, cwd=self.repo_dir(), stdout=open('/Users/oscarbatori/Documents/doltpy/server_log', 'w'), stderr=STDOUT)
-
-        # make sure the thread has started, this is a bit hacky
-        @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
-        def get_connection():
-            database = str(self.repo_dir()).split('/')[-1]
-            return connector.connect(host='127.0.0.1', user='root', database=database, port=3306)
-
-        cnx = get_connection()
-
+        proc = Popen(args=args, cwd=self.repo_dir(), stdout=PIPE, stderr=STDOUT)
         self.server = proc
-        self.cnx = cnx
-        return cnx
+
+    def stop_server(self):
+        """
+        Stop the MySQL Server instance running on port 3306, returns an error if the server is not running at on that
+        port.
+        :return:
+        """
+        if self.server is None:
+            logger.warning("Server is not running")
+            return
+
+        self.server.kill()
+        self.server = None
+
+    @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
+    def get_connection(self, host: str = None):
+        database = str(self.repo_dir()).split('/')[-1]
+        host = host or '127.0.0.1'
+        if self.server is None:
+            raise Exception('Server is not running, run repo.start_server() on your instance of Dolt')
+        return connector.connect(host=host, user='root', database=database, port=3306)
 
     def repo_is_clean(self):
         """
@@ -212,21 +223,6 @@ class Dolt(object):
         """
         res = _execute(['dolt', 'status'], self.repo_dir())
         return 'clean' in str(res)
-
-    def stop_server(self):
-        """
-        Stop the MySQL Server instance running on port 3306, returns an error if the server is not running at on that
-        port.
-        :return:
-        """
-        if self.server is None:
-            raise Exception("never started.")
-
-        self.cnx.close()
-        self.cnx = None
-
-        self.server.kill()
-        self.server = None
 
     def query_server(self, query: str):
         """
@@ -252,17 +248,18 @@ class Dolt(object):
         logger.info('Executing the following SQL statement via CLI:\n{}\n'.format(stmt))
         _execute(['dolt', 'sql', '-q', stmt], cwd=self.repo_dir())
 
-    def pandas_read_sql(self, query: str):
+    def pandas_read_sql(self, query: str, connection: connector.connection):
         """
         Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
         `DataFrame` object. This is a higher level version of `query_server` where the object returned i
         :param query:
+        :param connection:
         :return:
         """
         if self.server is None:
             raise Exception("never started.")
 
-        return pd.read_sql(query, con=self.cnx)
+        return pd.read_sql(query, con=connection)
 
     def read_table(self, table_name: str, delimiter: str = ',') -> pd.DataFrame:
         """
@@ -281,11 +278,11 @@ class Dolt(object):
                   table_name: str,
                   data: pd.DataFrame,
                   primary_keys: List[str],
-                  import_mode: str = CREATE):
+                  import_mode: str = None):
         """
         Imports the given DataFrame object to the specified table, dropping records that are duplicates on primary key
         (in order, preserving the first record, something we might want to allow the user to sepcify), subject to
-        given import mode.
+        given import mode. Import mode defaults to CREATE if the table does not exist, and UPDATE otherwise.
         :param table_name:
         :param data:
         :param primary_keys:
@@ -302,11 +299,12 @@ class Dolt(object):
                     table_name: str,
                     data: io.StringIO,
                     primary_keys: List[str],
-                    import_mode: str) -> None:
+                    import_mode: str = None) -> None:
         """
         This takes a file like object representing a CSV and imports it to the table specified. Note that you must
         specify the primary key, and the import mode. The import mode is one of the keys of IMPORT_MODES_TO_FLAGS.
-        Choosing the wrong import mode will throw an error, for example `CREATE` on an existing table.
+        Choosing the wrong import mode will throw an error, for example `CREATE` on an existing table. Import mode
+        defaults to CREATE if the table does not exist, and UPDATE otherwise.
         :param table_name:
         :param data:
         :param primary_keys:
@@ -325,12 +323,20 @@ class Dolt(object):
                        primary_keys: List[str],
                        import_mode: str) -> None:
         import_modes = IMPORT_MODES_TO_FLAGS.keys()
-        assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
-        import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
+        if import_mode is not None:
+            assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
+        else:
+            if table_name in self.get_existing_tables():
+                logger.info('No import mode specified, table exists, using "{}"'.format(UPDATE))
+                import_mode = UPDATE
+            else:
+                logger.info('No import mode specified, table exists, using "{}"'.format(CREATE))
+                import_mode = CREATE
 
+        import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
         logger.info('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
-                                                                                                    self.repo_dir(),
-                                                                                                    import_mode))
+                                                                                                   self.repo_dir(),
+                                                                                                   import_mode))
         fp = tempfile.NamedTemporaryFile(suffix='.csv')
         write_import_file(fp.name)
         args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
@@ -371,7 +377,7 @@ class Dolt(object):
     def pull(self, remote: str = 'origin'):
         _execute(['dolt', 'pull', remote], self.repo_dir())
 
-    def get_commits(self) -> List[DoltCommitSummary]:
+    def get_commits(self) -> Mapping[str, DoltCommitSummary]:
         """
         Returns a list of `DoltCommitSummary`, representing the list of commits on the currently checked out branch,
         ordered by the timestamp associated with the commit.
@@ -379,6 +385,7 @@ class Dolt(object):
         """
         output = _execute(['dolt', 'log'], self.repo_dir()).split('\n')
         current_commit, author, date = None, None, None
+        result = OrderedDict()
         for line in output:
             if line.startswith('commit'):
                 current_commit = line.split(' ')[1]
@@ -388,10 +395,12 @@ class Dolt(object):
                 date = datetime.strptime(line.split(':', maxsplit=1)[1].lstrip(), '%a %b %d %H:%M:%S %z %Y')
             elif current_commit is not None:
                 assert current_commit is not None and date is not None and author is not None
-                yield DoltCommitSummary(current_commit, date, author)
+                result[current_commit] = DoltCommitSummary(current_commit, date, author)
                 current_commit = None
             else:
                 pass
+
+        return result
 
     def get_dirty_tables(self) -> Tuple[Mapping[str, bool], Mapping[str, bool]]:
         """

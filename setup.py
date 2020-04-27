@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.0.10'
+VERSION = '0.1.0'
 
 setup(name='doltpy',
       version=VERSION,
       packages=find_packages(),
-      install_requires=['pandas>=0.25.0', 'mysql-connector-python==8.0.17', 'retry>=0.9.2'],
+      install_requires=['pandas>=1.0.3', 'mysql-connector-python==8.0.17', 'retry>=0.9.2'],
       tests_require=['pytest-docker>=0.7.2', 'yaml', 'pytest'],
       author='Liquidata',
       author_email='oscar@liquidata.co',
