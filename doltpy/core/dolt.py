@@ -103,7 +103,8 @@ class Dolt(object):
     of state information this object stores are the repo path and a connection to the MySQL Server (if it is running).
 
     In the docstrings for the various functions "this repository" or "this database" refers to Dolt repo that exists at
-    the directory returned by `self.repo_dir()`. Most of the functions on this object will throw a
+    the directory returned by `self.repo_dir()`. All functions on an instance of the class will error out if called
+    on an instance that does not correspond to an actual Dolt repo.
 
     Note, it is not reccomended to recycle objects, as this could lead to peculiar results. For example if you have Dolt
     databases in `~/db1` and `~/db2` the following will be strange:
@@ -251,7 +252,8 @@ class Dolt(object):
     def pandas_read_sql(self, query: str, connection: connector.connection):
         """
         Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
-        `DataFrame` object. This is a higher level version of `query_server` where the object returned i
+        `DataFrame` object. This is a higher level version of `query_server` where the object returned is the cursor
+        associated with query executed.
         :param query:
         :param connection:
         :return:
