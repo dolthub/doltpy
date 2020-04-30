@@ -1,7 +1,7 @@
 import mysql.connector as connector
 import pytest
 from retry import retry
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE, TEST_DATA_INITIAL
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE
 from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
 
 MYSQL_ROOT_PASSWORD = 'test'
