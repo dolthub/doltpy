@@ -22,10 +22,9 @@ jobs:
         dolt config --global --add user.email bojack@horseman.com
         dolt config --global --add user.name "Bojack Horseman"
         python -m pip install --upgrade pip
-        pip install .[test]
     - name: Execute pytest
       run: |
-        pytest
+        python setup.py pytest
 
   # Publish all pushes to Test PyPi, publish only tags to PyPi
   publish:
