@@ -211,7 +211,7 @@ class Dolt(object):
         self.server.kill()
         self.server = None
 
-    @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
+    @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=20)
     def get_connection(self, host: str = None):
         database = str(self.repo_dir()).split('/')[-1]
         host = host or '127.0.0.1'
