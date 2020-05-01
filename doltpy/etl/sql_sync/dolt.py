@@ -1,6 +1,15 @@
 from doltpy.core import Dolt
-from doltpy.etl.sql_sync.tools import TargetWriter, SourceReader, DatabaseUpdate, TableUpdate, TableMetadata
-from doltpy.etl.sql_sync.mysql import write_to_table as write_to_mysql_table, get_table_metadata
+from doltpy.etl.sql_sync.tools import (DoltAsTargetWriter,
+                                       DoltTableUpdate,
+                                       DoltAsTargetUpdate,
+                                       DoltAsSourceReader,
+                                       DoltAsSourceUpdate,
+                                       TableMetadata)
+from doltpy.etl.sql_sync.mysql import (write_to_table as write_to_mysql_table,
+                                       get_table_metadata,
+                                       drop_primary_keys,
+                                       get_filters)
+
 import logging
 from typing import List, Mapping, Callable, Tuple
 from mysql.connector.connection import MySQLConnection
@@ -9,7 +18,68 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], TableUpdate]) -> SourceReader:
+def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
+    """
+
+    :param repo:
+    :param branch:
+    :param commit:
+    :param message:
+    :return:
+    """
+    def inner(table_data_map: DoltAsTargetUpdate):
+        if branch and branch != repo.get_current_branch():
+            repo.checkout(branch)
+
+        conn = repo.get_connection()
+
+        for table, table_update in table_data_map.items():
+            table_metadata = get_table_metadata(table, conn)
+            data = table_update
+            drop_missing_pks(conn, table_metadata, list(data))
+            conn.close()
+            write_to_table(repo, table, list(data), False)
+
+        conn.close()
+
+        if commit:
+            for table, _ in table_data_map.items():
+                repo.add_table_to_next_commit(table)
+            commit_message = message or 'Execute write for sync to Dolt'
+            repo.commit(commit_message)
+
+    return inner
+
+
+def drop_missing_pks(conn: MySQLConnection, table_metadata: TableMetadata, data: List[tuple]):
+    """
+    This a very basic n-squared implementation for dropping the primary keys present in Dolt that have been dropped in
+    the target database.
+    :param conn:
+    :param table_metadata:
+    :param data:
+    :return:
+    """
+    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
+    pk_cols = sorted([pk_col_name for pk_col_name in pk_cols_to_index.keys()])
+    existing_pks = get_existing_pks(conn, table_metadata, pk_cols)
+    proposed_pks = [tuple(proposed_row[i] for _, i in pk_cols_to_index.items()) for proposed_row in data]
+    pks_to_drop = [existing_pk for existing_pk in existing_pks if existing_pk not in proposed_pks]
+    drop_primary_keys(conn, table_metadata, pks_to_drop)
+
+
+def get_existing_pks(conn: MySQLConnection, table_metadata: TableMetadata, pks: List[str]):
+    query = '''
+    
+        SELECT
+            {pk_list}
+        FROM
+            {table_name}
+    '''.format(pk_list=','.join(pks), table_name=table_metadata.name)
+    return _query_helper(conn, query)
+
+
+def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]) -> DoltAsSourceReader:
     """
     Returns a function that takes a list of tables and returns a mapping from the table name to the data returned by
     the passed reader. The reader is generally one of `get_table_reader_diffs` or `get_table_reader`, but it would
@@ -18,7 +88,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], TableUpdate]) ->
     :param reader:
     :return:
     """
-    def inner(tables: List[str]) -> Mapping[str, DatabaseUpdate]:
+    def inner(tables: List[str]) -> DoltAsSourceUpdate:
         result = {}
         repo_tables = repo.get_existing_tables()
         missing_tables = [table for table in tables if table not in repo_tables]
@@ -27,7 +97,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], TableUpdate]) ->
             raise ValueError('Missing tables {}'.format(missing_tables))
 
         for table in tables:
-            logger.info('Syncing tables: {}'.format(tables))
+            logger.info('Reading tables: {}'.format(tables))
             result[table] = reader(table, repo)
 
         return result
@@ -35,7 +105,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], TableUpdate]) ->
     return inner
 
 
-def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], TableUpdate]:
+def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the diff from a commit and/or branch, defaults to the HEAD of the current branch if
     neither are provided.
@@ -43,7 +113,7 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
     :param branch
     :return:
     """
-    def inner(table_name: str, repo: Dolt) -> TableUpdate:
+    def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
         if branch and branch != repo.get_current_branch():
             repo.checkout(branch)
 
@@ -110,14 +180,14 @@ def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, 
     return commits[commit_ref_index + 1], commits[commit_ref_index]
 
 
-def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], TableUpdate]:
+def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the entire table at a commit and/or branch, and returns the data.
     :param commit_ref:
     :param branch:
     :return:
     """
-    def inner(table_name: str, repo: Dolt) -> TableUpdate:
+    def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
         if branch and branch != repo.get_current_branch():
             repo.checkout(branch)
 
@@ -170,22 +240,82 @@ def _query_helper(conn, query):
     return [tup for tup in cursor]
 
 
-def write_to_table(repo: Dolt, table: str, data: List[tuple], commit: bool = False, message: str = None):
+def write_to_table(repo: Dolt,
+                   table_name: str,
+                   data: List[tuple],
+                   commit: bool = False,
+                   message: str = None):
     """
     Given a repo, table, and data, will try and use the repo's MySQL Server instance to write the provided data to the
-    table.
+    table. Since Dolt does not yet support ON DUPLICATE KEY clause to INSERT statements we also have to separate
+    updates from inserts and run sets of statements.
     :param repo:
-    :param table:
+    :param table_name:
     :param data:
     :param commit:
     :param message:
     :return:
     """
     connection = repo.get_connection()
-    table_metadata = get_table_metadata(table, connection)
-    write_to_mysql_table(table_metadata, connection, data, update_on_duplicate=False)
+    table_metadata = get_table_metadata(table_name, connection)
+    inserts, updates = get_inserts_and_updates(connection, table_metadata, data)
+    if inserts:
+        logger.info('Inserting {} rows'.format(len(inserts)))
+        write_to_mysql_table(table_metadata, connection, inserts, update_on_duplicate=False)
+    if updates:
+        logger.info('Updating {} rows'.format(len(updates)))
+        update_rows(connection, table_metadata, updates)
     connection.close()
     if commit:
-        repo.add_table_to_next_commit(table)
+        repo.add_table_to_next_commit(table_metadata.name)
         message = message or 'Inserting {} records at '.format(len(data), datetime.now())
         repo.commit(message)
+
+
+def get_inserts_and_updates(connection: MySQLConnection,
+                            table_metadata: TableMetadata,
+                            data: List[tuple]) -> Tuple[List[tuple], List[tuple]]:
+    existing_pks = get_existing_pks(connection,
+                                    table_metadata,
+                                    sorted(col.col_name for col in table_metadata.columns if col.key))
+    if not existing_pks:
+        return data, []
+
+    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
+    inserts, updates = [], []
+    for row in data:
+        row_pk = tuple(row[i] for _, i in pk_cols_to_index.items())
+        if row_pk in existing_pks:
+            updates.append(row)
+        else:
+            inserts.append(row)
+
+    return inserts, updates
+
+
+def update_rows(connection: MySQLConnection, table_metadata: TableMetadata,  data: List[tuple]):
+    query_template = '''
+        UPDATE
+            {table_name}
+        SET
+            {update_assignments}
+        WHERE
+            {pk_filter}
+    '''
+    update_assignments = ','.join('{} = %s'.format(col.col_name) for col in table_metadata.columns if not col.key)
+    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
+
+    pk_filter = get_filters(list(pk_cols_to_index.keys()))
+    query = query_template.format(table_name=table_metadata.name,
+                                  update_assignments=update_assignments,
+                                  pk_filter=pk_filter)
+
+    rows_with_pks = []
+    non_pk_cols_to_index = [i for i, col in enumerate(table_metadata.columns) if not col.key]
+    for row in data:
+        combined = tuple([row[i] for i in non_pk_cols_to_index] + [row[i] for _, i in pk_cols_to_index.items()])
+        rows_with_pks.append(combined)
+
+    cursor = connection.cursor()
+    cursor.executemany(query, rows_with_pks)
+    connection.commit()

@@ -6,6 +6,7 @@ import logging
 from retry import retry
 import tempfile
 import io
+import os
 from mysql import connector
 from collections import OrderedDict
 
@@ -126,7 +127,6 @@ class Dolt(object):
         """
         self._repo_dir = repo_dir
         self.server = None
-        self.cnx = None
 
     def repo_dir(self) -> str:
         return self._repo_dir
@@ -191,8 +191,11 @@ class Dolt(object):
         if self.server is not None:
             logger.warning('Server already running')
 
-        args = ['dolt', 'sql-server', '-t', '0', '--loglevel', 'debug']
-        proc = Popen(args=args, cwd=self.repo_dir(), stdout=PIPE, stderr=STDOUT)
+        args = ['dolt', 'sql-server', '-t', '0', '--loglevel', 'info']
+        proc = Popen(args=args,
+                     cwd=self.repo_dir(),
+                     stdout=open(os.path.join(self.repo_dir(), 'mysql_server.log'), 'w'),
+                     stderr=STDOUT)
         self.server = proc
 
     def stop_server(self):

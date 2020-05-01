@@ -50,6 +50,11 @@ def test_write_to_table(mysql_with_table):
     _write_and_diff_helper(TEST_DATA_UPDATE_SINGLE_ROW, FOURTH_UPDATE)
 
 
+def test_get_table_reader():
+    # test that correct values are returned
+    pass
+
+
 def test_drop_primary_keys(mysql_with_table):
     """
     Verify that dropping a primary key from using drop_primary_keys leaves MySQL Server in the correct state.
