@@ -9,7 +9,7 @@ MYSQL_USER = 'MYSQL_USER'
 MYSQL_PASSWORD = 'mysql_password'
 MYSQL_DATABASE = 'test_db'
 MYSQL_CONTAINER_NAME = 'test_mysql'
-MYSQL_PORT = 3306
+MYSQL_PORT = 3307
 
 
 @pytest.fixture(scope='session')
