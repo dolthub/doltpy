@@ -11,7 +11,7 @@ from doltpy.etl.sql_sync.mysql import (write_to_table as write_to_mysql_table,
                                        get_filters)
 
 import logging
-from typing import List, Mapping, Callable, Tuple
+from typing import List, Callable, Tuple
 from mysql.connector.connection import MySQLConnection
 from datetime import datetime
 

@@ -62,7 +62,7 @@ def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
 
 
 class Column:
-    def __init__(self, col_name: str, col_type: str, key: str = None):
+    def __init__(self, col_name: str, col_type: str, key: bool = False ):
         """
 
         :param col_name:

@@ -65,8 +65,8 @@ BASE_TEST_DATA_UPDATE_SINGLE_ROW = [
      'turned_pro': datetime(2005, 1, 1)}
 ]
 
-TEST_TABLE_COLUMNS = [Column('first_name', 'VARCHAR(256)', 'PRI'),
-                      Column('last_name', 'VARCHAR(256)', 'PRI'),
+TEST_TABLE_COLUMNS = [Column('first_name', 'VARCHAR(256)', True),
+                      Column('last_name', 'VARCHAR(256)', True),
                       Column('playing_style_desc', 'LONGTEXT'),
                       Column('win_percentage', 'DECIMAL'),
                       Column('high_rank', 'INT'),
