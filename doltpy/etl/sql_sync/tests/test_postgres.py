@@ -1,42 +1,35 @@
 from doltpy.etl.sql_sync.postgres import get_table_metadata, get_insert_query
-from doltpy.etl.sql_sync.db_tools import write_to_table
-from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
-                                                           TEST_TABLE_METADATA,
-                                                           TEST_DATA_INITIAL,
-                                                           TEST_DATA_APPEND_SINGLE_ROW,
-                                                           TEST_DATA_APPEND_MULTIPLE_ROWS,
-                                                           TEST_DATA_UPDATE_SINGLE_ROW,
-                                                           get_data_for_comparison,
-                                                           assert_tuple_array_equality,
-                                                           FIRST_UPDATE,
-                                                           SECOND_UPDATE,
-                                                           THIRD_UPDATE,
-                                                           FOURTH_UPDATE,
-                                                           get_expected_data)
-
-
-def test_write_to_table(postgres_with_table):
-    conn, table = postgres_with_table
-    table_metadata = get_table_metadata(table, conn)
-    write_to_table(conn, table_metadata, get_insert_query, TEST_DATA_INITIAL)
-
-    def _write_and_diff_helper(data, update_num):
-        write_to_table(conn, table_metadata, get_insert_query, data)
-        result = get_data_for_comparison(conn)
-        _, expected_data = get_expected_data(update_num)
-        assert_tuple_array_equality(expected_data, result)
-
-    _write_and_diff_helper(TEST_DATA_INITIAL, FIRST_UPDATE)
-    _write_and_diff_helper(TEST_DATA_APPEND_SINGLE_ROW, SECOND_UPDATE)
-    _write_and_diff_helper(TEST_DATA_APPEND_MULTIPLE_ROWS, THIRD_UPDATE)
-    _write_and_diff_helper(TEST_DATA_UPDATE_SINGLE_ROW, FOURTH_UPDATE)
+from doltpy.etl.sql_sync.tests.helpers.tools import (validate_get_table_metadata,
+                                                     validate_write_to_table,
+                                                     validate_drop_primary_keys)
 
 
 def test_get_table_metadata(postgres_with_table):
+    """
+    Verify that get_table_metadata correctly constructs the metadata associated with the test table. We manually build
+    that metadata in helpers/data_helper.py to verify this.
+    :param postgres_with_table:
+    :return:
+    """
     conn, table = postgres_with_table
-    result = get_table_metadata(table, conn)
-    expected_columns = sorted(TEST_TABLE_COLUMNS, key=lambda col: col.col_name)
-    assert TEST_TABLE_METADATA.name == result.name
-    assert len(TEST_TABLE_METADATA.columns) == len(result.columns)
-    assert all(left.col_name == right.col_name and left.key == right.key
-               for left, right in zip(expected_columns, result.columns))
+    validate_get_table_metadata(conn, table, get_table_metadata)
+
+
+def test_write_to_table(postgres_with_table):
+    """
+    Ensure that writes using our write wrapper correctly show up in MySQL Server.
+    :param postgres_with_table:
+    :return:
+    """
+    conn, table = postgres_with_table
+    validate_write_to_table(conn, table, get_table_metadata, get_insert_query)
+
+
+def test_drop_primary_keys(postgres_with_table):
+    """
+    Verify that dropping a primary key from using drop_primary_keys leaves MySQL Server in the correct state.
+    :param postgres_with_table:
+    :return:
+    """
+    conn, table = postgres_with_table
+    validate_drop_primary_keys(conn, table, get_table_metadata, get_insert_query)

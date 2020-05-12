@@ -12,6 +12,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            TEST_DATA_APPEND_MULTIPLE_ROWS,
                                                            TEST_DATA_APPEND_SINGLE_ROW,
                                                            TEST_DATA_UPDATE_SINGLE_ROW)
+from doltpy.etl.sql_sync.tests.helpers.tools import validate_get_table_metadata
 from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
 from doltpy.etl.sql_sync.mysql import get_table_metadata
 from doltpy.core.dolt import Dolt
@@ -114,8 +115,4 @@ def test_get_table_metadata(create_dolt_test_data_commits):
     """
     repo, table = create_dolt_test_data_commits
     conn = repo.get_connection()
-    result = get_table_metadata(table, conn)
-    conn.close()
-    expected_columns = sorted(TEST_TABLE_COLUMNS, key=lambda col: col.col_name)
-    assert TEST_TABLE_METADATA.name == result.name
-    assert all(left.col_name == right.col_name for left, right in zip(expected_columns, result.columns))
+    validate_get_table_metadata(conn, table, get_table_metadata)
