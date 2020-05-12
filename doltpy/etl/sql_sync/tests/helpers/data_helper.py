@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from doltpy.etl.sql_sync.tools import TableMetadata, Column
+from doltpy.etl.sql_sync.db_tools import TableMetadata, Column
 from decimal import Decimal
 from typing import List
 

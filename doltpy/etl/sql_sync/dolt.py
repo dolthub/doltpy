@@ -1,15 +1,15 @@
 from doltpy.core import Dolt
-from doltpy.etl.sql_sync.tools import (DoltAsTargetWriter,
-                                       DoltTableUpdate,
-                                       DoltAsTargetUpdate,
-                                       DoltAsSourceReader,
-                                       DoltAsSourceUpdate,
-                                       TableMetadata)
-from doltpy.etl.sql_sync.mysql import (write_to_table as write_to_mysql_table,
-                                       get_table_metadata,
-                                       drop_primary_keys,
-                                       get_filters)
-
+from doltpy.etl.sql_sync.db_tools import (write_to_table as write_to_table_helper,
+                                          drop_primary_keys,
+                                          get_filters,
+                                          DoltAsTargetWriter,
+                                          TableMetadata,
+                                          DoltTableUpdate,
+                                          DoltAsSourceReader,
+                                          DoltAsSourceUpdate,
+                                          DoltAsTargetUpdate)
+from doltpy.etl.sql_sync.mysql import (get_table_metadata as get_mysql_table_metadata,
+                                       get_insert_query as get_mysql_insert_query)
 import logging
 from typing import List, Callable, Tuple
 from mysql.connector.connection import MySQLConnection
@@ -34,7 +34,7 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
         conn = repo.get_connection()
 
         for table, table_update in table_data_map.items():
-            table_metadata = get_table_metadata(table, conn)
+            table_metadata = get_mysql_table_metadata(table, conn)
             data = table_update
             drop_missing_pks(conn, table_metadata, list(data))
             conn.close()
@@ -119,7 +119,7 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
         connection = repo.get_connection()
-        table_metadata = get_table_metadata(table_name, connection)
+        table_metadata = get_mysql_table_metadata(table_name, connection)
         pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
         result = _read_from_dolt_diff(table_metadata, connection, from_commit, to_commit)
         connection.close()
@@ -193,7 +193,7 @@ def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[st
 
         connection = repo.get_connection()
         query_commit = commit_ref or list(repo.get_commits().keys())[0]
-        table_metadata = get_table_metadata(table_name, connection)
+        table_metadata = get_mysql_table_metadata(table_name, connection)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
         pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
         result = _read_from_dolt_history(table_metadata, connection, query_commit)
@@ -257,11 +257,11 @@ def write_to_table(repo: Dolt,
     :return:
     """
     connection = repo.get_connection()
-    table_metadata = get_table_metadata(table_name, connection)
+    table_metadata = get_mysql_table_metadata(table_name, connection)
     inserts, updates = get_inserts_and_updates(connection, table_metadata, data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
-        write_to_mysql_table(table_metadata, connection, inserts, update_on_duplicate=False)
+        write_to_table_helper(connection, table_metadata, get_mysql_insert_query, inserts, update_on_duplicate=False)
     if updates:
         logger.info('Updating {} rows'.format(len(updates)))
         update_rows(connection, table_metadata, updates)

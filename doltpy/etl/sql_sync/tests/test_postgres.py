@@ -1,4 +1,5 @@
-from doltpy.etl.sql_sync.postgres import get_table_metadata, write_to_table
+from doltpy.etl.sql_sync.postgres import get_table_metadata, get_insert_query
+from doltpy.etl.sql_sync.db_tools import write_to_table
 from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            TEST_TABLE_METADATA,
                                                            TEST_DATA_INITIAL,
@@ -16,10 +17,11 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
 
 def test_write_to_table(postgres_with_table):
     conn, table = postgres_with_table
-    write_to_table(table, conn, TEST_DATA_INITIAL)
+    table_metadata = get_table_metadata(table, conn)
+    write_to_table(conn, table_metadata, get_insert_query, TEST_DATA_INITIAL)
 
     def _write_and_diff_helper(data, update_num):
-        write_to_table(table, conn, data)
+        write_to_table(conn, table_metadata, get_insert_query, data)
         result = get_data_for_comparison(conn)
         _, expected_data = get_expected_data(update_num)
         assert_tuple_array_equality(expected_data, result)

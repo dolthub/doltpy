@@ -1,4 +1,5 @@
-from doltpy.etl.sql_sync.mysql import get_table_metadata, write_to_table, drop_primary_keys
+from doltpy.etl.sql_sync.mysql import get_table_metadata, get_insert_query
+from doltpy.etl.sql_sync.db_tools import write_to_table, drop_primary_keys
 from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            TEST_TABLE_METADATA,
                                                            TEST_DATA_INITIAL,
@@ -39,7 +40,7 @@ def test_write_to_table(mysql_with_table):
     table_metadata = get_table_metadata(table, conn)
 
     def _write_and_diff_helper(data, update_num):
-        write_to_table(table_metadata, conn, data)
+        write_to_table(conn, table_metadata, get_insert_query, data)
         result = get_data_for_comparison(conn)
         _, expected_data = get_expected_data(update_num)
         assert_tuple_array_equality(expected_data, result)
@@ -64,7 +65,7 @@ def test_drop_primary_keys(mysql_with_table):
     conn, table = mysql_with_table
     table_metadata = get_table_metadata(table, conn)
 
-    write_to_table(table_metadata, conn, TEST_DATA_APPEND_MULTIPLE_ROWS)
+    write_to_table(conn, table_metadata,get_insert_query, TEST_DATA_APPEND_MULTIPLE_ROWS)
     pks_to_drop = [('Stefanos', 'Tsitsipas')]
     drop_primary_keys(conn, table_metadata, pks_to_drop)
     result = get_data_for_comparison(conn)

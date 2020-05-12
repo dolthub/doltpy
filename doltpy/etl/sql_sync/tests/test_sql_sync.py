@@ -8,7 +8,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (get_data_for_comparis
                                                            TEST_DATA_APPEND_SINGLE_ROW,
                                                            TEST_DATA_UPDATE_SINGLE_ROW)
 from doltpy.etl.sql_sync.mysql import (get_target_writer as get_mysql_target_writer,
-                                       write_to_table as write_to_mysql_table,
+                                       get_insert_query as get_mysql_insert_query,
                                        get_table_metadata as get_mysql_table_metadata,
                                        get_source_reader as get_mysql_source_reader,
                                        get_table_reader as get_mysql_table_reader)
@@ -20,8 +20,8 @@ from doltpy.etl.sql_sync.postgres import (get_table_metadata as get_postgres_tab
                                           get_source_reader as get_postgres_source_reader,
                                           get_target_writer as get_postgres_target_writer,
                                           get_table_reader as get_postgres_table_reader,
-                                          write_to_table as write_to_postgres_table)
-
+                                          get_insert_query as get_postgres_insert_query)
+from doltpy.etl.sql_sync.db_tools import write_to_table
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,8 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
         the write match what is expected.
         """
         _, dolt_data = get_dolt_table_reader(commit)(dolt_table, dolt_repo)
-        mysql_data = get_mysql_table_reader()(mysql_table, mysql_conn)
+        mysql_table_metadata = get_mysql_table_metadata(mysql_table, mysql_conn)
+        mysql_data = get_mysql_table_reader()(mysql_conn, mysql_table_metadata)
         assert_tuple_array_equality(list(dolt_data), mysql_data)
 
         _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(dolt_table, dolt_repo)
@@ -84,7 +85,7 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
     ]
 
     for update_data in update_sequence:
-        write_to_mysql_table(mysql_table_metadata, mysql_conn, update_data)
+        write_to_table(mysql_conn, mysql_table_metadata, get_mysql_insert_query, update_data)
         sync_to_dolt_helper()
         latest_commit = list(dolt_repo.get_commits().keys())[0]
         assertion_helper(latest_commit, update_data)
@@ -101,7 +102,8 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
     sync_to_dolt_helper()
     latest_commit = list(dolt_repo.get_commits().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(dolt_table, dolt_repo)
-    mysql_data = get_mysql_table_reader()(mysql_table, mysql_conn)
+    mysql_table_metadata = get_mysql_table_metadata(mysql_table, mysql_conn)
+    mysql_data = get_mysql_table_reader()(mysql_conn, mysql_table_metadata)
     assert_tuple_array_equality(list(dolt_data), mysql_data)
     dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(dolt_table, dolt_repo)
     assert dropped_pks == [('Novak', 'Djokovic')]
@@ -132,15 +134,15 @@ def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
 
 
 def test_postgres_to_dolt(postgres_with_table, repo_with_table):
-    postgres_conn, post_grestable = postgres_with_table
+    postgres_conn, postgres_table = postgres_with_table
     dolt_repo, dolt_table = repo_with_table
 
-    post_grestable_metadata = get_postgres_table_metadata(post_grestable, postgres_conn)
+    post_grestable_metadata = get_postgres_table_metadata(postgres_table, postgres_conn)
 
     def sync_to_dolt_helper():
-        source_reader = get_postgres_source_reader(postgres_conn, 'public', get_postgres_table_reader())
+        source_reader = get_postgres_source_reader(postgres_conn, get_postgres_table_reader())
         target_writer = get_dolt_target_writer(dolt_repo, commit=True)
-        sync_to_dolt(source_reader, target_writer, {post_grestable: dolt_table})
+        sync_to_dolt(source_reader, target_writer, {postgres_table: dolt_table})
 
     def assertion_helper(commit: str, expected_diff: List[tuple]):
         """
@@ -148,7 +150,8 @@ def test_postgres_to_dolt(postgres_with_table, repo_with_table):
         the write match what is expected.
         """
         _, dolt_data = get_dolt_table_reader(commit)(dolt_table, dolt_repo)
-        postgres_data = get_postgres_table_reader()(post_grestable, postgres_conn)
+        postgres_table_metadata = get_postgres_table_metadata(postgres_table, postgres_conn)
+        postgres_data = get_postgres_table_reader()(postgres_conn, postgres_table_metadata)
         assert_tuple_array_equality(list(dolt_data), postgres_data)
 
         _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(dolt_table, dolt_repo)
@@ -162,7 +165,7 @@ def test_postgres_to_dolt(postgres_with_table, repo_with_table):
     ]
 
     for update_data in update_sequence:
-        write_to_postgres_table(post_grestable_metadata, postgres_conn, update_data)
+        write_to_table(postgres_conn, post_grestable_metadata, get_postgres_insert_query, update_data)
         sync_to_dolt_helper()
         latest_commit = list(dolt_repo.get_commits().keys())[0]
         assertion_helper(latest_commit, update_data)
@@ -172,14 +175,15 @@ def test_postgres_to_dolt(postgres_with_table, repo_with_table):
             {table_name}
         WHERE
             first_name = 'Novak'
-    '''.format(table_name=post_grestable)
+    '''.format(table_name=postgres_table)
     cursor = postgres_conn.cursor()
     cursor.execute(delete_query)
     postgres_conn.commit()
     sync_to_dolt_helper()
     latest_commit = list(dolt_repo.get_commits().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(dolt_table, dolt_repo)
-    postgres_data = get_postgres_table_reader()(post_grestable, postgres_conn)
+    postgres_table_metadata = get_postgres_table_metadata(postgres_table, postgres_conn)
+    postgres_data = get_postgres_table_reader()(postgres_conn, postgres_table_metadata)
     assert_tuple_array_equality(list(dolt_data), postgres_data)
     dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(dolt_table, dolt_repo)
     assert dropped_pks == [('Novak', 'Djokovic')]

@@ -3,7 +3,8 @@ import psycopg2
 from retry import retry
 from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE, TEST_DATA_INITIAL
 from doltpy.etl.sql_sync.tests.helpers.postgres import CREATE_TEST_TABLE
-from doltpy.etl.sql_sync.postgres import write_to_table
+from doltpy.etl.sql_sync.postgres import get_insert_query
+from doltpy.etl.sql_sync.db_tools import write_to_table
 
 POSTGRES_CONTAINER_NAME = 'TEST_POSTGRES'
 POSTGRES_DB = 'test_db'
@@ -60,4 +61,4 @@ def postgres_with_table(postgres_connection):
 @pytest.fixture
 def postgres_with_initial_data(postgres_with_table):
     conn, table = postgres_with_table
-    write_to_table(TABLE_NAME, conn, TEST_DATA_INITIAL)
+    write_to_table(conn, TABLE_NAME, get_insert_query, TEST_DATA_INITIAL)
