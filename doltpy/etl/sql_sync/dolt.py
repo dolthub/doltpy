@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
     """
-
+    Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
+    message or generates a standard one.
     :param repo:
     :param branch:
     :param commit:

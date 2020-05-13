@@ -33,12 +33,13 @@ def validate_get_table_metadata(db_conn, db_table, table_metadata_builder):
     result = table_metadata_builder(db_table, db_conn)
     expected_columns = sorted(TEST_TABLE_COLUMNS, key=lambda col: col.col_name)
     assert TEST_TABLE_METADATA.name == result.name
+    assert len(expected_columns) == len(result.columns)
     assert all(left.col_name == right.col_name for left, right in zip(expected_columns, result.columns))
 
 
 def validate_write_to_table(db_conn, db_table, table_metadata_builder, insert_query_builder):
     """
-    Ensure that writes using our write wrapper correctly show up in MySQL Server.
+    Ensure that writes using our write wrapper correctly show up in a relational database server.
     :param db_conn:
     :param db_table:
     :param table_metadata_builder:
@@ -61,7 +62,7 @@ def validate_write_to_table(db_conn, db_table, table_metadata_builder, insert_qu
 
 def validate_drop_primary_keys(db_conn, db_table, table_metadata_builder, insert_query_builder):
     """
-    Verify that dropping a primary key from using drop_primary_keys leaves MySQL Server in the correct state.
+    Verify that dropping a primary key from using drop_primary_keys leaves a relational database in the required state.
     :param db_conn:
     :param db_table:
     :param table_metadata_builder:
@@ -86,7 +87,10 @@ def validate_dolt_as_target(db_conn,
                             dolt_repo,
                             dolt_table):
     """
-
+    Validates syncing from a relational database, so far MySQL and Postgres, to Dolt. Work by making a series of writes
+    to the relational database (running in a Docker container provided by a fixture), executing a sync, and then
+    validating the HEAD of master of the Dolt repo has the expected values. It also validates that the Dolt history is
+    correct after every write. Finally validates that deletes flow through to Dolt.
     :param db_conn:
     :param db_table:
     :param get_db_table_metadata:
@@ -153,7 +157,8 @@ def validate_dolt_as_source(db_conn, db_table, get_db_target_writer, dolt_repo, 
     """
     Verifies that given a Dolt repository that has a a series of updates applied to it (defined in the fixture
     create_dolt_test_data_commits) that after syncing at each of the commits, the Dolt repository and the target
-    MySQL server instance contain the same data. Tests creates, updates, and deletes.
+    relational database, so far MySQL or Postgres server instance contain the same data. Tests creates, updates, and
+    deletes.
     :param db_conn:
     :param db_table:
     :param get_db_target_writer:
