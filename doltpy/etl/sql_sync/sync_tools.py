@@ -1,22 +1,5 @@
-from typing import List, Mapping, Tuple
-import logging
-from typing import Iterable, Callable
-
-logger = logging.getLogger(__name__)
-
-# Types that reflect the different nature of the syncs
-DoltTableUpdate = Tuple[Iterable[tuple], Iterable[tuple]]
-TableUpdate = Iterable[tuple]
-
-# For using Dolt as the target
-DoltAsTargetUpdate = Mapping[str, TableUpdate]
-DoltAsTargetReader = Callable[[List[str]], DoltAsTargetUpdate]
-DoltAsTargetWriter = Callable[[DoltAsTargetUpdate], None]
-
-# For using Dolt as the source
-DoltAsSourceUpdate = Mapping[str, DoltTableUpdate]
-DoltAsSourceReader = Callable[[List[str]], DoltAsSourceUpdate]
-DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
+from typing import Mapping
+from doltpy.etl.sql_sync.db_tools import DoltAsTargetReader, DoltAsTargetWriter, DoltAsSourceReader, DoltAsSourceWriter
 
 
 def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetWriter, table_map: Mapping[str, str]):
@@ -59,23 +42,3 @@ def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
     to_sync = source_reader(list(table_map.keys()))
     remapped = {table_map[source_table]: source_data for source_table, source_data in to_sync.items()}
     target_writer(remapped)
-
-
-class Column:
-    def __init__(self, col_name: str, col_type: str, key: str = None):
-        """
-
-        :param col_name:
-        :param col_type:
-        :param key:
-        """
-        self.col_name = col_name
-        self.col_type = col_type
-        self.key = key
-
-
-class TableMetadata:
-    def __init__(self, name: str, columns: List[Column]):
-        self.name = name
-        self.columns = sorted(columns, key=lambda col: col.col_name)
-

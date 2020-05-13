@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from doltpy.etl.sql_sync.tools import TableMetadata, Column
+from doltpy.etl.sql_sync.db_tools import TableMetadata, Column
 from decimal import Decimal
 from typing import List
 
@@ -65,8 +65,8 @@ BASE_TEST_DATA_UPDATE_SINGLE_ROW = [
      'turned_pro': datetime(2005, 1, 1)}
 ]
 
-TEST_TABLE_COLUMNS = [Column('first_name', 'VARCHAR(256)', 'PRI'),
-                      Column('last_name', 'VARCHAR(256)', 'PRI'),
+TEST_TABLE_COLUMNS = [Column('first_name', 'VARCHAR(256)', True),
+                      Column('last_name', 'VARCHAR(256)', True),
                       Column('playing_style_desc', 'LONGTEXT'),
                       Column('win_percentage', 'DECIMAL'),
                       Column('high_rank', 'INT'),
@@ -123,7 +123,8 @@ def get_expected_data(update_num: int):
         THIRD_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW + TEST_DATA_APPEND_MULTIPLE_ROWS),
         FOURTH_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS + TEST_DATA_UPDATE_SINGLE_ROW),
         FIFTH_UPDATE:
-            ([('Stefanos', 'Tsitsipas')], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE + TEST_DATA_UPDATE_SINGLE_ROW)
+            ([('Stefanos', 'Tsitsipas')],
+             TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE + TEST_DATA_UPDATE_SINGLE_ROW)
     }
 
     return cumulative[update_num]
