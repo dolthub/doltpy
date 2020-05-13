@@ -19,19 +19,20 @@ DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
 
 
 class Column:
+    """
+    A thin wrapper for database columns so we can access named attributes rather than tuples representing column
+    metadata.
+    """
     def __init__(self, col_name: str, col_type: str, key: bool = False ):
-        """
-
-        :param col_name:
-        :param col_type:
-        :param key:
-        """
         self.col_name = col_name
         self.col_type = col_type
         self.key = key
 
 
 class TableMetadata:
+    """
+    A thin wrapper for database tables so we can store a name and column rather than a tuple.
+    """
     def __init__(self, name: str, columns: List[Column]):
         self.name = name
         self.columns = sorted(columns, key=lambda col: col.col_name)
@@ -41,6 +42,15 @@ def build_target_writer(conn,
                         table_meta_data_builder: Callable[[str, Any], TableMetadata],
                         insert_query_builder: Callable[[TableMetadata, bool], str],
                         update_on_duplicate: bool = True) -> DoltAsSourceWriter:
+    """
+    Given a connection, basically defined by having a cursor/transaction interface, executes a write to a target
+    database that corresponds to the conn parameter.
+    :param conn:
+    :param table_meta_data_builder:
+    :param insert_query_builder:
+    :param update_on_duplicate:
+    :return:
+    """
     def inner(table_data_map: Mapping[str, Iterable[tuple]]):
         for table, table_update in table_data_map.items():
             table_metadata = table_meta_data_builder(table, conn)
@@ -81,8 +91,8 @@ def build_source_reader(conn,
 
 def get_table_reader():
     """
-    When syncing from a relational database such as MySQL the database has only a single concept of state, that is the
-    current state. We simply capture this state by reading out all the data in the database.
+    When syncing from a relational database, currently  MySQL or Postgres, the database has only a single concept of
+    state, that is the current state. We simply capture this state by reading out all the data in the database.
     :return:
     """
     def inner(conn: Any, table_metadata: TableMetadata):
@@ -104,6 +114,17 @@ def write_to_table(conn,
                    insert_query_builder: Callable[[TableMetadata, bool], str],
                    data: List[tuple],
                    update_on_duplicate: bool = True):
+    """
+    Uses the standard cursor/transaction interface that connectors for both MySQL and Postgres provide to execute write.
+    Takes a parameter for building an insert query since different database implementations have different syntax for
+    performing upserts.
+    :param conn:
+    :param table_metadata:
+    :param insert_query_builder:
+    :param data:
+    :param update_on_duplicate:
+    :return:
+    """
     insert_query = insert_query_builder(table_metadata, update_on_duplicate)
     cursor = conn.cursor()
     cursor.executemany(insert_query, data)
@@ -138,6 +159,11 @@ def drop_primary_keys(conn, table_metadata: TableMetadata, primary_key_values: L
 
 
 def get_filters(cols: List[str]):
+    """
+    Returns a set of filters for generic ANSII SQL queries.
+    :param cols:
+    :return:
+    """
     if len(cols) == 1:
         delete_clause = '{col} = %s'.format(col=cols[0])
     else:
@@ -149,6 +175,13 @@ def get_filters(cols: List[str]):
 
 
 def get_insertion_lists(table_metadata: TableMetadata) -> Tuple[List[str], List[str]]:
+    """
+    Returns set of assignments for upserts in standard ANSII SQL update statements. Dolt tracks state, and when we want
+    to sync an update to an existing primary key in a target relational database these provides the list of assignments
+    from wildcard to table schema.
+    :param table_metadata:
+    :return:
+    """
     col_list, wildcard_list = [], []
 
     for col in table_metadata.columns:

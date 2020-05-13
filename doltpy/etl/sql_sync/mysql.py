@@ -57,13 +57,13 @@ def get_table_metadata(table_name: str, conn: MySQLConnection) -> TableMetadata:
     return TableMetadata(table_name, columns)
 
 
-def get_tables(conn: MySQLConnection) -> List[str]:
-    cursor = conn.cursor()
-    cursor.execute('SHOW TABLES')
-    return [tup[0] for tup in cursor]
-
-
 def get_insert_query(table_metadata: TableMetadata, update_on_duplicate: bool = True) -> str:
+    """
+    Provides MySQL specific insert statement which is conditionally upsert based on the value of update_on_duplicate.
+    :param table_metadata:
+    :param update_on_duplicate:
+    :return:
+    """
     col_list, wildcard_list = get_insertion_lists(table_metadata)
     base_query = '''
         INSERT INTO {table_name} (

@@ -17,9 +17,7 @@ logger = logging.getLogger(__name__)
 # TODO this needs to include record deletion to make sure we are capturing deletes
 def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     """
-    Verifies that given a Dolt repository that has a a series of updates applied to it (defined in the fixture
-    create_dolt_test_data_commits) that after syncing at each of the commits, the Dolt repository and the target
-    MySQL server instance contain the same data. Tests creates, updates, and deletes.
+    Tests Dolt to MySQL, see validate_dolt_as_source for details.
     :param mysql_with_table:
     :param create_dolt_test_data_commits:
     :return:
@@ -30,6 +28,12 @@ def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
 
 
 def test_mysql_to_dolt(mysql_with_table, repo_with_table):
+    """
+    Tests MySQL to Dolt, see validate_dolt_as_source for details.
+    :param mysql_with_table:
+    :param repo_with_table:
+    :return:
+    """
     mysql_conn, mysql_table = mysql_with_table
     dolt_repo, dolt_table = repo_with_table
     validate_dolt_as_target(mysql_conn,
@@ -44,7 +48,7 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
 
 def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     """
-
+    Tests Dolt to Postgres, see validate_dolt_as_source for details.
     :param postgres_with_table:
     :param create_dolt_test_data_commits:
     :return:
@@ -55,6 +59,12 @@ def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
 
 
 def test_postgres_to_dolt(postgres_with_table, repo_with_table):
+    """
+    Tests Postgres to Dolt, see validate_dolt_as_source for details.
+    :param postgres_with_table:
+    :param repo_with_table:
+    :return:
+    """
     postgres_conn, postgres_table = postgres_with_table
     dolt_repo, dolt_table = repo_with_table
     validate_dolt_as_target(postgres_conn,

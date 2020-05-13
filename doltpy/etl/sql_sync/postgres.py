@@ -1,4 +1,4 @@
-from typing import List, Any, Callable
+from typing import List, Any, Callable, Tuple
 from doltpy.etl.sql_sync.db_tools import (TableMetadata,
                                           Column,
                                           DoltAsSourceWriter,
@@ -15,9 +15,11 @@ logger = logging.getLogger(__name__)
 
 def get_target_writer(conn, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
     """
-
-    :param conn:
-    :param update_on_duplicate:
+    Given a psycopg2 connection returns a function that takes a map of tables names (optionally schema prefixed) to
+    list of tuples and writes the list of tuples to the table in question. Each tuple must have the data in the order of
+    the target tables columns sorted lexicographically.
+    :param conn: database connection.
+    :param update_on_duplicate: perform upserts instead of failing on duplicate primary keys
     :return:
     """
     return build_target_writer(conn, get_table_metadata, get_insert_query, update_on_duplicate)
@@ -25,10 +27,9 @@ def get_target_writer(conn, update_on_duplicate: bool = True) -> DoltAsSourceWri
 
 def get_source_reader(conn, reader: Callable[[str, Any], TableUpdate] = None) -> DoltAsTargetReader:
     """
-    Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
-    the contents of each of the tables.
+    Given a connection and a reader provides a function returns a mapping from table names as keys to lists of tuples
+    representing the data in the table corresponding the key.
     :param conn:
-    :param schema:
     :param reader:
     :return:
     """
@@ -36,22 +37,14 @@ def get_source_reader(conn, reader: Callable[[str, Any], TableUpdate] = None) ->
     return build_source_reader(conn, get_table_metadata, reader_function)
 
 
-def get_tables(conn, schema: str = None):
-    query = '''
-        SELECT
-            tablename
-        FROM
-            pg_catalog.pg_tables
-        WHERE
-            schemaname = '{schema}';
-    '''.format(schema=schema or 'public')
-    
-    cursor = conn.cursor()
-    cursor.execute(query)
-    return [tup[0] for tup in cursor]
-
-
 def get_table_metadata(table_name: str, conn) -> TableMetadata:
+    """
+    Given a connection to a Postgres instance and table name
+    :param table_name:
+    :param conn:
+    :return:
+    """
+    schema, table = _get_schema_and_table(table_name)
     query = '''
         SELECT
             column_name, data_type
@@ -59,7 +52,8 @@ def get_table_metadata(table_name: str, conn) -> TableMetadata:
             information_schema.columns
         WHERE
             table_name = '{table}'
-    '''.format(table=table_name)
+            AND table_schema = '{schema}'  
+    '''.format(table=table, schema=schema)
     cursor = conn.cursor()
     cursor.execute(query)
     pks = _get_primary_key_cols(table_name, conn)
@@ -68,6 +62,7 @@ def get_table_metadata(table_name: str, conn) -> TableMetadata:
 
 
 def _get_primary_key_cols(table_name: str, conn) -> List[str]:
+    schema, table = _get_schema_and_table(table_name)
     query = '''
     SELECT
         a.attname
@@ -77,9 +72,9 @@ def _get_primary_key_cols(table_name: str, conn) -> List[str]:
         pg_attribute a ON a.attrelid = i.indrelid
         AND a.attnum = ANY(i.indkey)
     WHERE
-        i.indrelid = '{table_name}'::regclass
+        i.indrelid = '{schema}.{table}'::regclass
         AND i.indisprimary
-    '''.format(table_name=table_name)
+    '''.format(table=table, schema=schema)
     cursor = conn.cursor()
     cursor.execute(query)
     return [tup[0] for tup in cursor]
@@ -105,3 +100,12 @@ def get_insert_query(table_metadata: TableMetadata, update_on_duplicate: bool = 
     else:
         return base_query
 
+
+def _get_schema_and_table(table_name: str) -> Tuple[str, str]:
+    split = table_name.split('.')
+    if len(split) == 1:
+        return 'public', table_name
+    elif len(split) == 2:
+        return split[0], split[1]
+    else:
+        raise ValueError('Postgres tables must be referred by <schema>.<name> syntax')
