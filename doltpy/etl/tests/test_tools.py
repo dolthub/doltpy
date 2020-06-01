@@ -1,7 +1,9 @@
 import io
 import pytest
 import pandas as pd
-from doltpy.core.dolt import Dolt, CREATE, UPDATE
+from doltpy.core.dolt import Dolt
+from doltpy.core.write import CREATE, UPDATE
+from doltpy.core.read import read_table
 from doltpy.etl import (get_df_table_writer,
                         insert_unique_key,
                         get_unique_key_table_writer,
@@ -48,8 +50,8 @@ def update_test_data(initial_test_data):
 
 
 def get_raw_data(repo: Dolt):
-    return pd.concat([repo.read_table(MENS_MAJOR_COUNT).assign(gender='mens'),
-                      repo.read_table(WOMENS_MAJOR_COUNT).assign(gender='womens')])
+    return pd.concat([read_table(repo, MENS_MAJOR_COUNT).assign(gender='mens'),
+                      read_table(repo, WOMENS_MAJOR_COUNT).assign(gender='womens')])
 
 
 def averager(df: pd.DataFrame) -> pd.DataFrame:
@@ -70,7 +72,7 @@ def update_derived_data(initial_derived_data):
 def test_dataframe_table_loader_create(initial_test_data):
     repo = initial_test_data
 
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert womens_data.iloc[0]['name'] == 'Serena'
     assert mens_data.iloc[0]['name'] == 'Roger'
 
@@ -78,21 +80,21 @@ def test_dataframe_table_loader_create(initial_test_data):
 def test_dataframe_table_loader_update(update_test_data):
     repo = update_test_data
 
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' in list(womens_data['name'])
     assert 'Rafael' in list(mens_data['name'])
 
 
 def test_table_transfomer_create(initial_derived_data):
     repo = initial_derived_data
-    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT)
+    avg_df = read_table(repo, AVERAGE_MAJOR_COUNT)
     assert avg_df.loc[avg_df['gender'] == 'mens', 'average'].iloc[0] == 20
     assert avg_df.loc[avg_df['gender'] == 'womens', 'average'].iloc[0] == 23
 
 
 def test_table_transfomer_update(update_derived_data):
     repo = update_derived_data
-    avg_df = repo.read_table(AVERAGE_MAJOR_COUNT)
+    avg_df = read_table(repo, AVERAGE_MAJOR_COUNT)
     assert avg_df.loc[avg_df['gender'] == 'mens', 'average'].iloc[0] == (20 + 19) / 2
     assert avg_df.loc[avg_df['gender'] == 'womens', 'average'].iloc[0] == (23 + 24) / 2
 
@@ -107,7 +109,7 @@ def test_insert_unique_key(init_empty_test_repo):
     get_dolt_loader([get_df_table_writer(test_table, generate_data, ['hash_id'], transformers=[insert_unique_key])],
                     True,
                     'Updating test data')(repo)
-    result = repo.read_table(test_table)
+    result = read_table(repo, test_table)
     assert result.loc[result['id'] == 1, 'count'].iloc[0] == 2 and 'hash_id' in result.columns
 
 
@@ -136,7 +138,7 @@ def test_get_unique_key_update_writer(init_empty_test_repo):
                     'Create test data')(repo)
 
     # Test that we have what we expect
-    data = repo.read_table(test_table)
+    data = read_table(repo, test_table)
     assert [data.loc[data['name'] == player, 'count'].iloc[0] == 1 for player in ['Roger', 'Novak']]
     assert data.loc[data['name'] == 'Rafael', 'count'].iloc[0] == 2
 
@@ -148,24 +150,25 @@ def test_get_unique_key_update_writer(init_empty_test_repo):
         ])
 
     get_dolt_loader([get_unique_key_table_writer(test_table, generate_updated_data)], True, 'Updating data')(repo)
-    data = repo.read_table(test_table)
+    data = read_table(repo, test_table)
     assert [data.loc[data['name'] == player, 'count'].iloc[0] == 1 for player in ['Rafael', 'Novak', 'Andy']]
 
 
 def test_branching(initial_test_data):
     repo = initial_test_data
     test_branch = 'new-branch'
-    repo.create_branch(test_branch)
+    repo.branch(branch_name=test_branch)
     repo.checkout(test_branch)
     _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
 
-    assert repo.get_current_branch() == test_branch
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    current_branch, _ = repo.branch()
+    assert current_branch.name == test_branch
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' in list(womens_data['name'])
     assert 'Rafael' in list(mens_data['name'])
 
     repo.checkout('master')
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' not in list(womens_data['name'])
     assert 'Rafael' not in list(mens_data['name'])
 
@@ -222,7 +225,7 @@ def test_get_bulk_table_loader(init_empty_test_repo):
         return output
 
     get_bulk_table_writer(table, get_data, ['player_name'], import_mode=CREATE, transformers=[cleaner])(repo)
-    actual = repo.read_table(table)
+    actual = read_table(repo, table)
     expected = io.StringIO(CLEANED_CSV)
     headers = [col.rstrip() for col in expected.readline().split(',')]
     assert all(headers == actual.columns)
@@ -238,17 +241,19 @@ def test_load_to_dolt_new_branch(initial_test_data):
     test_branch = 'new-branch'
 
     # check we have only the expected branches in the sample data
-    assert repo.get_branch_list() == ['master']
+    _, branches = repo.branch()
+    assert [b.name for b in branches] == ['master']
 
     # load some data to a new branch
     _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
 
     # check that we are still on the branch we started on
-    assert repo.get_current_branch() == 'master' and repo.get_branch_list() == ['master', test_branch]
+    current_branch, current_branches = repo.branch()
+    assert current_branch.name == 'master' and [b.name for b in current_branches] == ['master', test_branch]
 
     # check out our new branch and confirm our data is present
     repo.checkout(test_branch)
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' in list(womens_data['name']) and 'Rafael' in list(mens_data['name'])
 
 
@@ -259,23 +264,25 @@ def test_multi_branch_load(initial_test_data):
     _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, first_branch)
     _populate_test_data_helper(repo, SECOND_UPDATE_MENS, SECOND_UPDATE_WOMENS, second_branch)
 
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' not in list(womens_data['name']) and 'Rafael' not in list(mens_data['name'])
     assert 'Steffi' not in list(womens_data['name']) and 'Novak' not in list(mens_data['name'])
 
     repo.checkout(first_branch)
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' in list(womens_data['name']) and 'Rafael' in list(mens_data['name'])
 
     repo.checkout(second_branch)
-    womens_data, mens_data = repo.read_table(WOMENS_MAJOR_COUNT), repo.read_table(MENS_MAJOR_COUNT)
+    womens_data, mens_data = read_table(repo, WOMENS_MAJOR_COUNT), read_table(repo, MENS_MAJOR_COUNT)
     assert 'Steffi' in list(womens_data['name']) and 'Novak' in list(mens_data['name'])
 
 
 def test_branch_creator(initial_test_data):
     repo = initial_test_data
     new_branch = 'new-branch'
-    assert repo.get_branch_list() == ['master']
+    _, branches = repo.branch()
+    assert [b.name for b in branches] == ['master']
     branch_name = get_branch_creator(new_branch)(repo)
     assert branch_name == new_branch
-    assert new_branch in repo.get_branch_list()
+    _, branches = repo.branch()
+    assert new_branch in [branch.name for branch in branches]

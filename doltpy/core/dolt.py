@@ -1,22 +1,13 @@
-import pandas as pd
-from typing import List, Tuple, Callable, Mapping
-from subprocess import Popen, PIPE, STDOUT
+from typing import List, Union, Mapping, Tuple
 from datetime import datetime
-import logging
-from retry import retry
-import tempfile
-import io
+from subprocess import Popen, PIPE, STDOUT
 import os
-from mysql import connector
+import logging
 from collections import OrderedDict
+from retry import retry
+from mysql import connector
 
 logger = logging.getLogger(__name__)
-
-CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
-IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
-                         FORCE_CREATE: ['-f', '-c'],
-                         REPLACE: ['-r'],
-                         UPDATE: ['-u']}
 
 
 class DoltException(Exception):
@@ -30,39 +21,41 @@ class DoltException(Exception):
         self.exitcode = exitcode
 
 
-def init_new_repo(repo_dir: str) -> 'Dolt':
-    """
-    Creates a new repository in the directory specified, creating the directory if `create_dir` is passed, and returns
-    a `Dolt` object representing the newly created repo.
-    :return:
-    """
-    logger.info("Initializing a new repository in {}".format(repo_dir))
-    args = ["dolt", "init"]
+def _execute(args: List[str], cwd: str):
+    _args = ['dolt'] + args
+    proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
+    out, err = proc.communicate()
+    exitcode = proc.returncode
 
-    _execute(args=args, cwd=repo_dir)
+    if exitcode != 0:
+        raise DoltException(_args, out, err, exitcode)
 
-    return Dolt(repo_dir)
+    return out.decode('utf-8')
 
 
-# TODO we need to sort out where stuff gets cloned and ensure that clone actually takes an argument correctly. The
-# function should return a Dolt object tied to the repo that was just cloned
-def clone_repo(repo_url: str, repo_dir: str) -> 'Dolt':
-    """
-    Clones a repository into the repository specified, currently only supports DoltHub as a remote.
-    :return:
-    """
-    args = ["dolt", "clone", repo_url, repo_dir]
+class DoltStatus:
 
-    _execute(args=args, cwd='.')
-
-    return Dolt(repo_dir)
+    def __init__(self, is_clean: bool, modified_tables: Mapping[str, bool], added_tables: Mapping[str, bool]):
+        self.is_clean = is_clean
+        self.modified_tables = modified_tables
+        self.added_tables = added_tables
 
 
-class DoltCommitSummary:
+class DoltTable:
+
+    def __init__(self, name: str, table_hash: str = None, rows: int = None, system: bool = False):
+        self.name = name
+        self.table_hash = table_hash
+        self.rows = rows
+        self.system = system
+
+
+class DoltCommit:
     """
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
+
     def __init__(self, ref: str, ts: datetime, author: str):
         self.hash = ref
         self.ts = ts
@@ -72,144 +65,215 @@ class DoltCommitSummary:
         return '{}: {} @ {}'.format(self.hash, self.author, self.ts)
 
 
-# For now Doltpy works by dispatching into the shell. We will change this in an upcoming release, but these functions
-# wrap calls to Popen, the main Python API for launching a subprocess.
-def _execute(args, cwd):
-    proc = Popen(args=args, cwd=cwd, stdout=PIPE, stderr=PIPE)
-    out, err = proc.communicate()
-    exitcode = proc.returncode
+class DoltKeyPair:
 
-    if exitcode != 0:
-        raise DoltException(args, out, err, exitcode)
-
-    return out.decode('utf-8')
+    def __init__(self, public_key: str, key_id: str, active: bool):
+        self.public_key = public_key
+        self.key_id = key_id
+        self.active = active
 
 
-def _execute_restart_serve_if_needed(dlt, args):
-    was_serving = False
-    if dlt.server is not None:
-        was_serving = True
-        dlt.stop_server()
+class DoltBranch:
 
-    _execute(args=args, cwd=dlt.repo_dir())
-
-    if was_serving:
-        dlt.start_server()
+    def __init__(self, name: str, commit_id: str):
+        self.name = name
+        self.commit_id = commit_id
 
 
-class Dolt(object):
+class DoltRemote:
+
+    def __init__(self, name: str, url: str):
+        self.name = name
+        self.url = url
+
+
+class Dolt:
     """
-    This the top level object for interacting with a Dolt database. A Dolt database lives at a path in the file system
-    and there should be a 1:1 mapping between Dolt objects and repositories you want to interact with. There two pieces
-    of state information this object stores are the repo path and a connection to the MySQL Server (if it is running).
-
-    In the docstrings for the various functions "this repository" or "this database" refers to Dolt repo that exists at
-    the directory returned by `self.repo_dir()`. All functions on an instance of the class will error out if called
-    on an instance that does not correspond to an actual Dolt repo.
-
-    Note, it is not reccomended to recycle objects, as this could lead to peculiar results. For example if you have Dolt
-    databases in `~/db1` and `~/db2` the following will be strange:
-    ```
-    >>> from doltpy.core import Dolt
-    >>> db = Dolt('~/db1')
-    >>> db.start_server()
-    >>> db._repo_dir = '~/db2'
-    ```
-    In this case calls to db that use the SQL server, for example `pandas_read_sql(...)` will reference the Dolt repo
-    in `~/db1`, and calls that use the CLI will reference `~/db2`.
-
-    Instead simply create a separate objects for each Dolt database to avoid this confusion.
+    This class wraps the Dolt command line interface, mimicking functionality exactly to the extent that is possible.
+    Some commands simply do not translate to Python, such as `dolt sql` (with no arguments) since that command
+    launches an interactive shell.
     """
-    def __init__(self, repo_dir):
-        """
 
-        :param repo_dir:
-        """
+    def __init__(self, repo_dir: str):
         self._repo_dir = repo_dir
         self.server = None
 
-    def repo_dir(self) -> str:
+    def repo_dir(self):
         return self._repo_dir
 
-    def config(self, is_global: bool, user_name: str, user_email: str):
+    def execute(self, args: List[str], print_output: bool = True) -> List[str]:
+        output = _execute(args, self.repo_dir())
+
+        if print_output:# TODO configure outpu
+            print(output)
+
+        return output.split('\n')
+
+    @staticmethod
+    def init(repo_dir: str = None) -> 'Dolt':
         """
-        Exposes a way to set the user name and email to be associated with commit messages. Can be either global, or
-        local to this repo.
-        :param is_global:
-        :param user_name:
-        :param user_email:
+        Creates a new repository in the directory specified, creating the directory if `create_dir` is passed, and returns
+        a `Dolt` object representing the newly created repo.
         :return:
         """
-        args = ["dolt", "config", "add"]
-        if is_global:
-            args.append("--global")
+        if not repo_dir:
+            repo_dir = os.getcwd()
 
-        name_args = args
-        email_args = args.copy()
-
-        name_args.extend(["user.name", user_name])
-        email_args.extend(["user.email", user_email])
-
-        if is_global:
-            _execute(args=name_args, cwd=None)
-            _execute(args=email_args, cwd=None)
-
+        if os.path.exists(repo_dir):
+            logger.info('Dolt repo in existing dir {}'.format(repo_dir))
         else:
-            _execute(args=name_args, cwd=self.repo_dir())
-            _execute(args=email_args, cwd=self.repo_dir())
+            try:
+                logger.info('Creating directory {}'.format(repo_dir))
+            except Exception as e:
+                raise e
 
-    def create_branch(self, branch_name: str, commit_ref: str = None):
-        """
-        Creates a new branch in this repo with the name branch_name. If commit_ref is None the ref is the HEAD of the
-        currently checked out branch.
-        :param branch_name:
-        :param commit_ref:
-        :return:
-        """
-        args = ["dolt", "branch", branch_name]
+        output = _execute(['init'], cwd=repo_dir)
+        print(output)
+        return Dolt(repo_dir)
 
-        if commit_ref is not None:
-            args.append(commit_ref)
+    def status(self) -> DoltStatus:
+        new_tables, changes = {}, {}
 
-        _execute(args=args, cwd=self.repo_dir())
+        output = self.execute(['status'], print_output=False)
 
-    def checkout(self, branch_name: str):
-        """
-        Check out the repo in `self.repo_dir()` at the specified branch.
-        :param branch_name: the branch to checkout at
-        :return:
-        """
-        assert branch_name in self.get_branch_list(), 'Cannot checkout of non-existent branch {}'.format(branch_name)
-        args = ["dolt", "checkout", branch_name]
-        _execute_restart_serve_if_needed(self, args)
+        if 'clean' in str('\n'.join(output)):
+            return DoltStatus(True, changes, new_tables)
+        else:
+            staged = False
+            for line in output:
+                _line = line.lstrip()
+                if _line.startswith('Changes to be committed'):
+                    staged = True
+                elif _line.startswith('Changes not staged for commit'):
+                    staged = False
+                elif _line.startswith('Untracked files'):
+                    staged = False
+                elif _line.startswith('modified'):
+                    changes[_line.split(':')[1].lstrip()] = staged
+                elif _line.startswith('new table'):
+                    new_tables[_line.split(':')[1].lstrip()] = staged
+                else:
+                    pass
 
-    def start_server(self):
-        """
-        Start a MySQL Server instance for the Dolt repo in `self.repo_dir()` running on port 3306. Note this function is
-        very alpha, as it doesn't yet support specifying the port.
-        """
-        if self.server is not None:
-            logger.warning('Server already running')
+        return DoltStatus(False, changes, new_tables)
 
-        args = ['dolt', 'sql-server', '-t', '0', '--loglevel', 'info']
-        proc = Popen(args=args,
-                     cwd=self.repo_dir(),
-                     stdout=open(os.path.join(self.repo_dir(), 'mysql_server.log'), 'w'),
-                     stderr=STDOUT)
-        self.server = proc
+    def add(self, table_or_tables: Union[str, List[str]]):
+        if type(table_or_tables) == str:
+            to_add = [table_or_tables]
+        else:
+            to_add = table_or_tables
+        self.execute(["add"] + to_add)
+        return self.status()
 
-    def stop_server(self):
-        """
-        Stop the MySQL Server instance running on port 3306, returns an error if the server is not running at on that
-        port.
-        :return:
-        """
-        if self.server is None:
-            logger.warning("Server is not running")
-            return
+    def reset(self, table_or_tables: Union[str, List[str]], hard: bool = False, soft: bool = False):
+        if type(table_or_tables) == str:
+            to_reset = [table_or_tables]
+        else:
+            to_reset = table_or_tables
 
-        self.server.kill()
-        self.server = None
+        args = ['reset']
+
+        assert not(hard and soft), 'Cannot reset hard and soft'
+
+        if hard:
+            args.append('--hard')
+        if soft:
+            args.append('--soft')
+
+        self.execute(args + to_reset)
+
+    def commit(self, message: str = None, allow_empty: bool = False, date: datetime = None):
+        args = ['commit', '-m', message]
+
+        if allow_empty:
+            args.append('--allow-empty')
+
+        if date:
+            # TODO format properly
+            args.extend(['--date', str(date)])
+
+        self.execute(args)
+
+    def sql(self,
+            query: str = None,
+            result_format: str = None,
+            execute: str = False,
+            save: str = None,
+            message: str = None,
+            list_saved: bool = False,
+            batch: bool = False,
+            multi_db_dir: str = None):
+        args = ['sql']
+
+        if list_saved:
+            assert not any([query, result_format, save, message, batch, multi_db_dir])
+            args.append('--list-saved')
+            self.execute(args)
+
+        if execute:
+            assert not any([query, save, message, list_saved, batch, multi_db_dir])
+            args.extend(['--execute', execute])
+
+        if multi_db_dir:
+            args.extend(['--multi-db-dir', multi_db_dir])
+
+        if batch:
+            args.append('--batch')
+
+        if save:
+            args.extend(['--save', save])
+            if message:
+                args.extend(['--message', message])
+
+        args.extend(['--query', query])
+        self.execute(args)
+
+    def sql_server(self,
+                   config: str = None,
+                   host: str = None,
+                   port: str = None,
+                   user: str = None,
+                   password: str = None,
+                   timeout: int = None,
+                   readonly: bool = False,
+                   loglevel: str = 'info',
+                   multi_db_dir: str = None,
+                   no_auto_commit: str = None):
+        def start_server(server_args):
+            if self.server is not None:
+                logger.warning('Server already running')
+
+            proc = Popen(args=['dolt'] + server_args,
+                         cwd=self.repo_dir(),
+                         stdout=open(os.path.join(self.repo_dir(), 'mysql_server.log'), 'w'),
+                         stderr=STDOUT)
+            self.server = proc
+
+        args = ['sql-server']
+
+        if config:
+            args.extend(['--config', config])
+        else:
+            if host:
+                args.extend(['--host', host])
+            if port:
+                args.extend(['--port', port])
+            if user:
+                args.extend(['--user', user])
+            if password:
+                args.extend(['--password', password])
+            if timeout:
+                args.extend(['--timeout', timeout])
+            if readonly:
+                args.extend(['--readonly'])
+            if loglevel:
+                args.extend(['--loglevel', loglevel])
+            if multi_db_dir:
+                args.extend(['--multi-db-dir', multi_db_dir])
+            if no_auto_commit:
+                args.extend(['--no-auto-commit', no_auto_commit])
+
+        start_server(args)
 
     @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
     def get_connection(self, host: str = None):
@@ -219,177 +283,23 @@ class Dolt(object):
             raise Exception('Server is not running, run repo.start_server() on your instance of Dolt')
         return connector.connect(host=host, user='root', database=database, port=3306)
 
-    def repo_is_clean(self):
-        """
-        Returns true if the repo is clean, which is to say the working set has no changes, and false otherwise. This
-        is directly analogous to the Git concept of "clean".
-        :return:
-        """
-        res = _execute(['dolt', 'status'], self.repo_dir())
-        return 'clean' in str(res)
-
-    def query_server(self, query: str, connection: connector.connection):
-        """
-        Execute the specified query against the MySQL Server instance running on port 3306.
-        :param query: the query to execute
-        :param connection: connection to use
-        :return:
-        """
+    def sql_server_stop(self):
         if self.server is None:
-            raise Exception("never started.")
+            logger.warning("Server is not running")
+            return
 
-        cursor = connection.cursor()
-        cursor.execute(query)
+        self.server.kill()
+        self.server = None
 
-        return cursor
+    def log(self, number: int = None, commit: str = None) -> OrderedDict:
+        args = ['log']
 
-    def execute_sql_stmt(self, stmt: str):
-        """
-        Execute the specified query via the `dolt sql -q` command line interface. This function will be deprecated in
-        an upcoming release as the MySQL Server supports all statements that can be executed via the client.
-        :param stmt: the
-        :return:
-        """
-        logger.info('Executing the following SQL statement via CLI:\n{}\n'.format(stmt))
-        _execute(['dolt', 'sql', '-q', stmt], cwd=self.repo_dir())
+        if number:
+            args.extend(['--number', number])
+        if commit:
+            raise NotImplementedError()
 
-    def pandas_read_sql(self, query: str, connection: connector.connection):
-        """
-        Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
-        `DataFrame` object. This is a higher level version of `query_server` where the object returned is the cursor
-        associated with query executed.
-        :param query:
-        :param connection:
-        :return:
-        """
-        if self.server is None:
-            raise Exception("never started.")
-
-        return pd.read_sql(query, con=connection)
-
-    def read_table(self, table_name: str, delimiter: str = ',') -> pd.DataFrame:
-        """
-        Reads the contents of a table and returns it as a Pandas `DataFrame`. Under the hood this uses export and the
-        filesystem, in short order we are likley to replace this with use of the MySQL Server.
-        :param table_name:
-        :param delimiter:
-        :return:
-        """
-        fp = tempfile.NamedTemporaryFile(suffix='.csv')
-        _execute(['dolt', 'table', 'export', table_name, fp.name, '-f'], self.repo_dir())
-        result = pd.read_csv(fp.name, delimiter=delimiter)
-        return result
-
-    def import_df(self,
-                  table_name: str,
-                  data: pd.DataFrame,
-                  primary_keys: List[str],
-                  import_mode: str = None):
-        """
-        Imports the given DataFrame object to the specified table, dropping records that are duplicates on primary key
-        (in order, preserving the first record, something we might want to allow the user to sepcify), subject to
-        given import mode. Import mode defaults to CREATE if the table does not exist, and UPDATE otherwise.
-        :param table_name:
-        :param data:
-        :param primary_keys:
-        :param import_mode:
-        :return:
-        """
-        def writer(filepath: str):
-            clean = data.dropna(subset=primary_keys)
-            clean.to_csv(filepath, index=False)
-
-        self._import_helper(table_name, writer, primary_keys, import_mode)
-
-    def bulk_import(self,
-                    table_name: str,
-                    data: io.StringIO,
-                    primary_keys: List[str],
-                    import_mode: str = None) -> None:
-        """
-        This takes a file like object representing a CSV and imports it to the table specified. Note that you must
-        specify the primary key, and the import mode. The import mode is one of the keys of IMPORT_MODES_TO_FLAGS.
-        Choosing the wrong import mode will throw an error, for example `CREATE` on an existing table. Import mode
-        defaults to CREATE if the table does not exist, and UPDATE otherwise.
-        :param table_name:
-        :param data:
-        :param primary_keys:
-        :param import_mode:
-        :return:
-        """
-        def writer(filepath: str):
-            with open(filepath, 'w') as f:
-                f.writelines(data.readlines())
-
-        self._import_helper(table_name, writer, primary_keys, import_mode)
-
-    def _import_helper(self,
-                       table_name: str,
-                       write_import_file: Callable[[str], None],
-                       primary_keys: List[str],
-                       import_mode: str) -> None:
-        import_modes = IMPORT_MODES_TO_FLAGS.keys()
-        if import_mode is not None:
-            assert import_mode in import_modes, 'update_mode must be one of: {}'.format(import_modes)
-        else:
-            if table_name in self.get_existing_tables():
-                logger.info('No import mode specified, table exists, using "{}"'.format(UPDATE))
-                import_mode = UPDATE
-            else:
-                logger.info('No import mode specified, table exists, using "{}"'.format(CREATE))
-                import_mode = CREATE
-
-        import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
-        logger.info('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
-                                                                                                   self.repo_dir(),
-                                                                                                   import_mode))
-        fp = tempfile.NamedTemporaryFile(suffix='.csv')
-        write_import_file(fp.name)
-        args = ['dolt', 'table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
-        _execute(args + [fp.name], self.repo_dir())
-
-    def add_table_to_next_commit(self, *table_names: str):
-        """
-        Stage the tables specified in table_names to be committed.
-        :param table_names:
-        :return:
-        """
-        _execute_restart_serve_if_needed(self, ["dolt", "add"] + list(table_names))
-
-    def commit(self, commit_message):
-        """
-        Create a commit from the current working set the HEAD of the checked out branch to the value of the commit hash.
-        :param commit_message:
-        :return:
-        """
-        _execute_restart_serve_if_needed(self, ["dolt", "commit", "-m", commit_message])
-
-    def push(self, remote: str, branch: str):
-        """
-        Push to the remote specified. If either the branch or the remote do not exist then an `AssertionError` will be
-        thrown.
-        :param remote:
-        :param branch:
-        :return:
-        """
-        def _assertion_helper(name: str, required: str, existing: List[str]):
-            assert required in existing, 'cannot push to {} that does not exist, {} not in {}'.format(name,
-                                                                                                      required,
-                                                                                                      existing)
-        _assertion_helper('branch', branch, self.get_branch_list())
-        _assertion_helper('remote', remote, self.get_remote_list())
-        _execute_restart_serve_if_needed(self, ['dolt', 'push', remote, branch])
-
-    def pull(self, remote: str = 'origin'):
-        _execute(['dolt', 'pull', remote], self.repo_dir())
-
-    def get_commits(self) -> Mapping[str, DoltCommitSummary]:
-        """
-        Returns a list of `DoltCommitSummary`, representing the list of commits on the currently checked out branch,
-        ordered by the timestamp associated with the commit.
-        :return:
-        """
-        output = _execute(['dolt', 'log'], self.repo_dir()).split('\n')
+        output = self.execute(args, print_output=False)
         current_commit, author, date = None, None, None
         result = OrderedDict()
         for line in output:
@@ -401,107 +311,570 @@ class Dolt(object):
                 date = datetime.strptime(line.split(':', maxsplit=1)[1].lstrip(), '%a %b %d %H:%M:%S %z %Y')
             elif current_commit is not None:
                 assert current_commit is not None and date is not None and author is not None
-                result[current_commit] = DoltCommitSummary(current_commit, date, author)
+                result[current_commit] = DoltCommit(current_commit, date, author)
                 current_commit = None
             else:
                 pass
 
         return result
 
-    def get_dirty_tables(self) -> Tuple[Mapping[str, bool], Mapping[str, bool]]:
-        """
-        Returns a tuple of maps, the first element is a map keyed on the names of newly created tables, and a second
-        is keyed on modified tables, with the values being boolean flags to indicate whether changes have been stage for
-        commit.
-        :return:
-        """
-        new_tables, changes = {}, {}
+    # returns a table-like structure
+    def diff(self,
+             commit: str = None,
+             other_commit: str = None,
+             table_or_tables: Union[str, List[str]] = None,
+             data: bool = False,
+             schema: bool = False, # can we even support this?
+             summary: bool = False,
+             sql: bool = False,
+             where: str = None,
+             limit: int = None):
+        switch_count = [el for el in [data, schema, summary] if el]
+        assert len(switch_count) <= 1, 'At most one of delete, copy, move can be set to True'
 
-        if not self.repo_is_clean():
-            output = [line.lstrip() for line in _execute(['dolt', 'status'], self.repo_dir()).split('\n')]
-            staged = False
+        if type(table_or_tables) == str:
+            tables = [table_or_tables]
+        else:
+            tables = table_or_tables
+
+        args = ['diff']
+
+        if data:
+            if where:
+                args.extend(['--where', where])
+            if limit:
+                args.extend(['--limit', limit])
+
+        if summary:
+            args.append('--summary')
+
+        if schema:
+            args.extend('--schema')
+
+        if sql:
+            args.append('--sql')
+
+        if commit:
+            args.append(commit)
+        if other_commit:
+            args.append(other_commit)
+
+        if tables:
+            args.append(' '.join(tables))
+
+        self.execute(args)
+
+    def blame(self, table_name: str, rev: str = None):
+        args = ['blame']
+
+        if rev:
+            args.append(rev)
+
+        args.append(table_name)
+        self.execute(args)
+
+    def branch(self,
+               branch_name: str = None,
+               start_point: str = None,
+               new_branch: str = None,
+               force: bool = False,
+               delete: bool = False,
+               copy: bool = False,
+               move: bool = False):
+        switch_count = [el for el in [delete, copy, move] if el]
+        assert len(switch_count) <= 1, 'At most one of delete, copy, move can be set to True'
+
+        if not any([branch_name, delete, copy, move]):
+            assert not force, 'force is not valid without providing a new branch name, or copy, move, or delete being true'
+            return self._get_branches()
+
+        args = ['branch']
+        if force:
+            args.append('--force')
+
+        if branch_name and not(delete and copy and move):
+            args.append(branch_name)
+            if start_point:
+                args.append(start_point)
+            _execute(args, self.repo_dir())
+            return self._get_branches()
+
+        if copy:
+            assert new_branch, 'must provide new_branch when copying a branch'
+            args.append('--copy')
+            if branch_name:
+                args.append(branch_name)
+            args.extend(new_branch)
+            self.execute(args)
+
+        if delete:
+            assert branch_name, 'must provide branch_name when deleting'
+            args.extend(['--delete', branch_name])
+            self.execute(args)
+
+        if move:
+            assert new_branch, 'must provide new_branch when moving a branch'
+            args.append('--move')
+            if branch_name:
+                args.append(branch_name)
+            args.extend(new_branch)
+            self.execute(args)
+
+        if branch_name:
+            args.extend(branch_name)
+            if start_point:
+                args.append(start_point)
+            self.execute(args)
+
+        return self._get_branches()
+
+    def _get_branches(self) -> Tuple[DoltBranch, List[DoltBranch]]:
+        args = ['branch', '--list', '--verbose']
+        output = self.execute(args)
+        branches, active_branch = [], None
+        for line in output:
+            if not line:
+                break
+            elif line.startswith('*'):
+                split = line.lstrip()[1:].split()
+                branch, commit = split[0], split[1]
+                active_branch = DoltBranch(branch, commit)
+                branches.append(active_branch)
+            else:
+                split = line.lstrip().split()
+                branch, commit = split[0], split[1]
+                branches.append(DoltBranch(branch, commit))
+
+        return active_branch, branches
+
+    def checkout(self,
+                 branch: str = None,
+                 table_or_tables: Union[str, List[str]] = None,
+                 checkout_branch: bool = False,
+                 start_point: str = None):
+        args = ['checkout']
+
+        if type(table_or_tables) == str:
+            tables = [table_or_tables]
+        else:
+            tables = table_or_tables
+
+        if branch:
+            assert not table_or_tables, 'No table_or_tables '
+            if checkout_branch:
+                args.append('-b')
+                if start_point:
+                    args.append(start_point)
+            args.append(branch)
+
+        if tables:
+            assert not branch, 'Passing a branch not compatible with tables'
+            args.append(' '.join(tables))
+
+        self.execute(args)
+
+    # TODO
+    # esoteric options to add
+    def remote(self, add: bool = False, name: str = None, url: str = None, remove: bool = None):
+        args = ['remote', '--verbose']
+
+        if not(add or remove):
+            output = self.execute(args, print_output=False)
+
+            remotes = []
             for line in output:
-                if line.startswith('Changes to be committed'):
-                    staged = True
-                elif line.startswith('Changes not staged for commit'):
-                    staged = False
-                elif line.startswith('Untracked files'):
-                    staged = False
-                elif line.startswith('modified'):
-                    changes[line.split(':')[1].lstrip()] = staged
-                elif line.startswith('new table'):
-                    new_tables[line.split(':')[1].lstrip()] = staged
-                else:
+                if not line:
+                    break
+
+                split = line.lstrip().split()
+                remotes.append(DoltRemote(split[0], split[1]))
+
+            return remotes
+
+        if remove:
+            assert not add, 'add and remove are not comptaibe '
+            assert name, 'Must provide the name of a remote to move'
+            args.extend(['remove', name])
+
+        if add:
+            assert name and url, 'Must provide name and url to add'
+            args.extend(['add', name, url])
+
+        self.execute(args)
+
+    def push(self, remote: str, refspec: str = None, set_upstream: str = None, force: bool = False):
+        args = ['push']
+
+        if set_upstream:
+            args.append('--set-upstream')
+
+        if force:
+            args.append('--force')
+
+        args.append(remote)
+        if refspec:
+            args.append(refspec)
+
+        # just print the output
+        output = _execute(args, self.repo_dir()).split('\n')
+        self._print_output(output)
+
+    def pull(self, remote: str):
+        args = ['pull', remote]
+
+        output = _execute(args, self.repo_dir()).split('\n')
+
+        self._print_output(output)
+
+    def fetch(self, remote: str = 'origin', refspec_or_refspecs: Union[str, List[str]] = None, force: bool = False):
+        args = ['fetch']
+
+        if type(refspec_or_refspecs) == str:
+            refspecs = [refspec_or_refspecs]
+        else:
+            refspecs = refspec_or_refspecs
+
+        if force:
+            args.append('--force')
+        if remote:
+            args.append(remote)
+        if refspec_or_refspecs:
+            args.extend(refspecs)
+
+        output = _execute(args, self.repo_dir()).split('\n')
+
+        self._print_output(output)
+
+    @staticmethod
+    def clone(remote_url: str, new_dir: str = None, remote: str = None, branch: str = None):
+        """
+        Clones a repository into the repository specified, currently only supports DoltHub as a remote.
+        :return:
+        """
+        args = ["dolt", "clone", remote_url]
+
+        if remote:
+            args.extend(['--remote', remote])
+
+        if branch:
+            args.extend(['--branch', branch])
+
+        if not new_dir:
+            split = remote_url.split('/')
+            new_dir = os.path.join(os.getcwd(), split[-1])
+
+        if new_dir:
+            args.append(new_dir)
+
+        _execute(args, cwd=new_dir)
+
+        return Dolt(new_dir)
+
+    def creds_new(self) -> bool:
+        args = ['creds', 'new']
+
+        output = _execute(args, self.repo_dir())
+
+        if len(output) == 2:
+            for out in output:
+                logger.info(out)
+        else:
+            raise ValueError('Unexpected output: \n{}'.format('\n'.join(output)))
+
+        return True
+
+    def creds_rm(self, public_key: str) -> bool:
+        args = ['creds', 'rm', public_key]
+
+        output = _execute(args, self.repo_dir())
+
+        if output[0].startswith('failed'):
+            logger.error(output[0])
+            raise DoltException('Tried to remove non-existent creds')
+
+        return True
+
+    def creds_ls(self) -> List[DoltKeyPair]:
+        args = ['creds', 'ls', '--verbose']
+
+        output = _execute(args, self.repo_dir())
+
+        creds = []
+        for line in output:
+            if line.startswith('*'):
+                active = True
+                split = line[1:].lstrip().split(' ')
+            else:
+                active = False
+                split = line.lstrip().splity(' ')
+
+            creds.append(DoltKeyPair(split[0], split[1], active))
+
+        return creds
+
+
+    def creds_check(self, endpoint: str = None, creds: str = None) -> bool:
+        args = ['dolt', 'creds', 'check']
+
+        if endpoint:
+            args.extend(['--endpoint', endpoint])
+        if creds:
+            args.extend(['--creds', creds])
+
+        output = _execute(args, self.repo_dir())
+
+        if output[3].startswith('error'):
+            logger.error('\n'.join(output[3:]))
+            return False
+
+        return True
+
+    def creds_use(self, public_key_id: str) -> bool:
+        args = ['creds', 'use', public_key_id]
+
+        output = _execute(args, self.repo_dir())
+
+        if output[0].startswith('error'):
+            logger.error('\n'.join(output[3:]))
+            raise DoltException('Bad public key')
+
+        return True
+
+    def creds_import(self, jwk_filename: str, no_profile: str):
+        raise NotImplementedError()
+
+    def config(self,
+               name: str = None,
+               value: str = None,
+               add: bool = False,
+               list: bool = False,
+               get: bool = False,
+               unset: bool = False):
+        switch_count = [el for el in [add, list, get, unset] if el]
+        assert len(switch_count) == 1, 'Exactly one of add, list, get, unset must be True'
+
+        args = ['config']
+
+        if add:
+            assert name and value, 'For add, name and value must be set'
+            args.extend(['--add', '--name', name, '--value', value])
+        if list:
+            assert not(name or value), 'For list, no name and value provided'
+            args.append('--list')
+        if get:
+            assert name and not value, 'For get, only name is provided'
+            args.extend(['--get', '--name', name])
+        if unset:
+            assert name and not value, 'For get, only name is provided'
+            args.extend(['--unset', '--name', name])
+
+        # TODO something with the output
+        output = _execute(args, self.repo_dir()).split('\n')
+        self._print_output(output)
+
+    def ls(self, system: bool = False, all: bool = False) -> List[DoltTable]:
+        args = ['ls', '--verbose']
+
+        if all:
+            args.append('--all')
+
+        if system:
+            args.append('--system')
+
+        output = self.execute(args, print_output=False)
+        tables = []
+        system_pos = None
+
+        for i, line in enumerate(output):
+            if line.startswith('Tables') or not line:
+                pass
+            elif line.startswith('System'):
+                system_pos = i
+                break
+            else:
+                if not line:
                     pass
+                split = line.lstrip().split()
+                tables.append(DoltTable(split[0], split[1], split[2]))
 
-        return new_tables, changes
+        if system_pos:
+            for line in output[system_pos:]:
+                if line.startswith('System'):
+                    pass
+                else:
+                    tables.append(DoltTable(line.strip(), system=True))
 
-    def clean_local(self) -> None:
-        """
-        Wipes out the un-commited tables in the working set, useful for scripting "all or nothing" data imports.
-        :return:
-        """
-        new_tables, changes = self.get_dirty_tables()
+        return tables
 
-        for table in [table for table, is_staged in list(new_tables.items()) + list(changes.items()) if is_staged]:
-            logger.info('Resetting table {}'.format(table))
-            _execute(['dolt', 'reset', table], self.repo_dir())
+    def schema_export(self, table: str, filename: str = None):
+        args = ['schema', 'export', table]
 
-        for table in new_tables.keys():
-            logger.info('Removing newly created table {}'.format(table))
-            _execute(['dolt', 'table', 'rm', table], self.repo_dir())
+        if filename:
+            args.extend(['--filename', filename])
+            _execute(args, self.repo_dir())
+            return True
+        else:
+            output = _execute(args, self.repo_dir())
+            logger.info('\n'.join(output))
+            return True
 
-        for table in changes.keys():
-            logger.info('Discarding local changes to table {}'.format(table))
-            _execute(['dolt', 'checkout', table], self.repo_dir())
+    def schema_import(self,
+                      table: str,
+                      filename: str,
+                      create: bool = False,
+                      update: bool = False,
+                      replace: bool = False,
+                      dry_run: bool = False,
+                      keep_types: bool = False,
+                      file_type: bool = False,
+                      pks: List[str] = None,
+                      map: str = None,
+                      float_threshold: float = None,
+                      delim: str = None):
+        switch_count = [el for el in [create, update, replace] if el]
+        assert len(switch_count) == 1, 'Exactly one of create, update, replace must be True'
 
-        assert self.repo_is_clean(), 'Something went wrong, repo is not clean'
+        args = ['schema', 'import']
 
-    def get_existing_tables(self) -> List[str]:
-        """
-        Get the list of tables in the the working set.
-        :return:
-        """
-        return [line.lstrip() for line in _execute(['dolt', 'ls'], self.repo_dir()).split('\n')[1:] if line]
+        if create:
+            args.append('--create')
+            assert pks, 'When create is set to True, pks must be provided'
+        if update:
+            args.append('--update')
+        if replace:
+            args.append('--replace')
+            assert pks, 'When replace is set to True, pks must be provided'
+        if dry_run:
+            args.append('--dry-run')
+        if keep_types:
+            args.append('--keep-types')
+        if file_type:
+            args.extend(['--file_type', file_type])
+        if pks:
+            args.extend(['--pks', ','.join(pks)])
+        if map:
+            args.extend(['--map', map])
+        if float_threshold:
+            args.extend(['--float-threshold', float_threshold])
+        if delim:
+            args.extend(['--delim', delim])
 
-    def get_last_commit_time(self) -> datetime:
-        """
-        Returns the time stamp associated with the ref corresponding to HEAD on the currently checked out branch.
-        :return:
-        """
-        return max([commit.ts for commit in self.get_commits()])
+        args.extend([table, filename])
 
-    def get_branch_list(self) -> List[str]:
-        """
-        Returns a list of branches in the repository in directory returned by `self.repo_dir()`
-        :return:
-        """
-        return [line.replace('*', '').lstrip().rstrip()
-                for line in _execute(['dolt', 'branch'], self.repo_dir()).split('\n') if line]
+        self.execute(args)
 
-    def get_remote_list(self) -> List[str]:
-        """
-        Returns a list of remotes that have been added to the repository corresponding to self.
-        :return: list of remotes
-        """
-        return [line.rstrip() for line in _execute(['dolt', 'remote'], self._repo_dir).split('\n') if line]
+    def schema_show(self, table_or_tables: Union[str, List[str]], commit: str = None):
+        if type(table_or_tables) == str:
+            to_show = [table_or_tables]
+        else:
+            to_show = table_or_tables
 
-    def get_current_branch(self) -> str:
-        """
-        Returns the currently checked out branch of the Dolt repository corresping to self.
-        :return: the checked out branch
-        """
-        for line in _execute(['dolt', 'branch'], self._repo_dir).split('\n'):
-            if line.lstrip().startswith('*'):
-                return line.replace('*', '').lstrip().rstrip()
+        args = ['schema', 'show']
 
-    def schema_import_create(self, table: str, pks: List[str], path: str):
-        """
-        Surfaces a simple version of the schema import tool the CLI exposes for creating tables.
-        :param table:
-        :param pks:
-        :param path:
-        :return:
-        """
-        args = ['dolt', 'schema',  'import', '-c', '--pks', ','.join(pks), table, path]
-        return _execute(args, self.repo_dir())
+        if commit:
+            args.append(commit)
+
+        args.extend(to_show)
+
+        self.execute(args)
+
+    def table_rm(self, table_or_tables: Union[str, List[str]]):
+        if type(table_or_tables) == str:
+            tables = [table_or_tables]
+        else:
+            tables = table_or_tables
+
+        self.execute(['rm', ' '.join(tables)])
+
+    def table_import(self,
+                     table: str,
+                     filename: str,
+                     create_table: bool = False,
+                     update_table: bool = False,
+                     force: bool = False,
+                     mapping_file: str = None,
+                     pk: List[str] = None,
+                     replace_table: bool = False,
+                     file_type: bool = None,
+                     continue_importing: bool = False,
+                     delim: bool = None):
+        switch_count = [el for el in [create_table, update_table, replace_table] if el]
+        assert len(switch_count) == 1, 'Exactly one of create, update, replace must be True'
+
+        args = ['table', 'import']
+
+        if create_table:
+            args.append('--create')
+            assert pk, 'When create is set to True, pks must be provided'
+        if update_table:
+            args.append('--update')
+        if replace_table:
+            args.append('--replace')
+            assert pk, 'When replace is set to True, pks must be provided'
+        if file_type:
+            args.extend(['--file_type', file_type])
+        if pk:
+            args.extend(['--pks', ','.join(pk)])
+        if mapping_file:
+            args.extend(['--map', mapping_file])
+        if delim:
+            args.extend(['--delim', delim])
+        if continue_importing:
+            args.extend('--continue')
+
+        args.extend([table, filename])
+        self.execute(args)
+
+    def table_export(self,
+                     table: str,
+                     filename: str,
+                     force: bool = False,
+                     schema: str = None,
+                     mapping_file: str = None,
+                     pk: List[str] = None,
+                     file_type: str = None,
+                     continue_exporting: bool = False):
+        args = ['table', 'export']
+
+        if force:
+            args.append('--force')
+
+        if continue_exporting:
+            args.append('--continue')
+
+        if schema:
+            args.extend(['--schema', schema])
+
+        if mapping_file:
+            args.extend(['--map', mapping_file])
+
+        if pk:
+            args.extend(['--pk', ','.join(pk)])
+
+        if file_type:
+            args.extend(['--file-type', file_type])
+
+        args.extend([table, filename])
+        self.execute(args)
+
+
+    def table_mv(self, old_table: str, new_table: str, force: bool = False):
+        args = ['table', 'mv']
+
+        if force:
+            args.append('--force')
+
+        args.extend([old_table, new_table])
+        self.execute(args)
+
+    def table_cp(self, old_table: str, new_table: str, commit: str = None, force: bool = False):
+        args = ['table', 'cp']
+
+        if force:
+            args.append('--force')
+
+        if commit:
+            args.append(commit)
+
+        args.extend([old_table, new_table])
+        self.execute(args)
