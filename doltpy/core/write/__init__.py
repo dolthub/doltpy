@@ -3,4 +3,6 @@ from .write import (CREATE,
                     REPLACE,
                     UPDATE,
                     import_df,
-                    bulk_import)
+                    bulk_import,
+                    import_dict,
+                    import_list)
