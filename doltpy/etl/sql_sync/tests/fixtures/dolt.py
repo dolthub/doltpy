@@ -23,7 +23,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
     :return:
     """
     repo = init_empty_test_repo
-    repo.start_server()
+    repo.sql_server()
     connection = repo.get_connection()
     create_curs = connection.cursor()
     create_curs.execute(CREATE_TEST_TABLE)
@@ -32,7 +32,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
 
     def finalize():
         if repo.server:
-            repo.stop_server()
+            repo.sql_server_stop()
 
     request.addfinalizer(finalize)
 
@@ -66,7 +66,7 @@ def _query_helper(repo, query, message):
     cursor.execute(query)
     conn.commit()
     conn.close()
-    repo.add_table_to_next_commit(TABLE_NAME)
+    repo.add(TABLE_NAME)
     repo.commit(message)
 
 

@@ -15,7 +15,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
 from doltpy.etl.sql_sync.tests.helpers.tools import validate_get_table_metadata
 from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
 from doltpy.etl.sql_sync.mysql import get_table_metadata
-from doltpy.core.dolt_old import Dolt
+from doltpy.core.dolt import Dolt
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def test_get_table_reader_diffs(create_dolt_test_data_commits):
     :return:
     """
     repo, table = create_dolt_test_data_commits
-    commits = list(repo.get_commits().keys())
+    commits = list(repo.log().keys())
     update_to_commit = {
         FIRST_UPDATE: commits[4],
         SECOND_UPDATE: commits[3],
@@ -52,7 +52,7 @@ def test_get_table_reader(create_dolt_test_data_commits):
     :return:
     """
     repo, table = create_dolt_test_data_commits
-    commits = list(repo.get_commits().keys())
+    commits = list(repo.log().keys())
     update_to_commit = {
         FIRST_UPDATE: commits[4],
         SECOND_UPDATE: commits[3],

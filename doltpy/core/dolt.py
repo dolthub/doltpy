@@ -116,18 +116,30 @@ class Dolt:
         """
         return self._repo_dir
 
-    def execute(self, args: List[str], print_output: bool = True) -> List[str]:
+    def execute(self, args: List[str], print_output: bool = True, restart_server: bool = False) -> List[str]:
         """
         Manages executing a dolt command, pass all commands, sub-commands, and arguments as they would appear on the
         command line.
         :param args:
         :param print_output:
+        :param restart_server:
         :return:
         """
+        was_serving = False
+        if restart_server and self.server is not None:
+            was_serving = True
+            self.sql_server_stop()
+
         output = _execute(args, self.repo_dir())
 
-        if print_output:# TODO configure outpu
+        if print_output:
             print(output)
+
+        if was_serving:
+            # TODO:
+            #   this is a a problem because we restart with different parameters, solution is to
+            #   to store a config object on the repo
+            self.sql_server()
 
         return output.split('\n')
 
@@ -193,7 +205,7 @@ class Dolt:
             to_add = [table_or_tables]
         else:
             to_add = table_or_tables
-        self.execute(["add"] + to_add)
+        self.execute(["add"] + to_add, restart_server=True)
         return self.status()
 
     def reset(self, table_or_tables: Union[str, List[str]], hard: bool = False, soft: bool = False):
@@ -238,7 +250,7 @@ class Dolt:
             # TODO format properly
             args.extend(['--date', str(date)])
 
-        self.execute(args)
+        self.execute(args, restart_server=True)
 
     def sql(self,
             query: str = None,
@@ -600,7 +612,7 @@ class Dolt:
             assert not branch, 'Passing a branch not compatible with tables'
             args.append(' '.join(tables))
 
-        self.execute(args)
+        self.execute(args, restart_server=True)
 
     def remote(self, add: bool = False, name: str = None, url: str = None, remove: bool = None):
         """
@@ -661,7 +673,7 @@ class Dolt:
             args.append(refspec)
 
         # just print the output
-        self.execute(args)
+        self.execute(args, restart_server=True)
 
     def pull(self, remote: str):
         """
@@ -669,7 +681,7 @@ class Dolt:
         :param remote:
         :return:
         """
-        self.execute(['pull', remote])
+        self.execute(['pull', remote], restart_server=True)
 
     def fetch(self, remote: str = 'origin', refspec_or_refspecs: Union[str, List[str]] = None, force: bool = False):
         """
