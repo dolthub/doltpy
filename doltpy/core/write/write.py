@@ -177,9 +177,11 @@ def _create_table_inferred(repo: Dolt,
 
 def _get_col_type(sample_value: Any, values: Any):
     if type(sample_value) == str:
-        return 'VARCHAR({})'.format(max(len(val) for val in values))
+        return 'VARCHAR({})'.format(2 * max(len(val) for val in values))
     elif type(sample_value) == int:
         return 'INT'
+    elif type(sample_value) == float:
+        return 'F'
     elif type(sample_value) == datetime:
         return 'DATETIME'
     else:
@@ -221,13 +223,13 @@ def import_list(repo: Dolt,
 
     Now
     >>> list_of_dicts = [{'id': 1, 'name': 'Roger'}, {'id': 2, 'name': 'Rafael'}]
-    >>> repo.import_list('players', list_of_dicts, import_mode='update')
+    >>> import_list(repo, 'players', list_of_dicts, import_mode='update')
 
     Note that since we get the column names, and we can infer the types from the values (cast to common parent), then we can also use this for create mode, passing priamry key:
-    >>> repo.import_list('players', list_of_dicts, ['id'], import_mode='create')
+    >>> import_list(repo, 'players', list_of_dicts, ['id'], import_mode='create')
 
     Assertions
-        - all elements of the outter list are dictionaries with the same keys
+        - all elements of the outer list are dictionaries with the same keys
         - all values across all dictionaries that are the elements of th outter list cast to a common super type that can be cast to the type of the column the particular key is the the name of
     """
     assert data, 'Cannot provide empty dict'
