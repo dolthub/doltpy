@@ -210,7 +210,7 @@ class Dolt:
 
     def reset(self, table_or_tables: Union[str, List[str]], hard: bool = False, soft: bool = False):
         """
-        Reset a tabnle or set of tables that have changes in the working set to their value at the tip of the current
+        Reset a table or set of tables that have changes in the working set to their value at the tip of the current
         branch.
         :param table_or_tables:
         :param hard:
@@ -311,7 +311,7 @@ class Dolt:
                    no_auto_commit: str = None):
         """
         Start a MySQL Server process on local host using the parameters to configure behavior. The parameters are
-        self-explanatory, byt the config is a way to provide them as a YAML file rather than as function
+        self-explanatory, but the config is a way to provide them as a YAML file rather than as function
         arguments.
         :param config:
         :param host:

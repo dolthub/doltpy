@@ -195,7 +195,7 @@ def _get_create_table_helper(table_name: str, cols_with_types: Mapping[str, str]
             PRIMARY KEY ({pks})
         )   
     '''.format(table_name=table_name,
-               cols=','.join(['{col_name} {col_type}'.format(col_name=col_name, col_type=col_type)
+               cols=','.join(['`{col_name}` {col_type}'.format(col_name=col_name, col_type=col_type)
                               for col_name, col_type in cols_with_types.items()]),
                pks=','.join(pks))
 
@@ -205,9 +205,8 @@ def _get_create_table_helper(table_name: str, cols_with_types: Mapping[str, str]
 def _get_insert_statement(table_name: str, cols: List[str]):
     template = 'INSERT INTO {table_name} ({cols}) VALUES ({values})'
     return template.format(table_name=table_name,
-                           cols=','.join(cols),
-                           values=','.join(['%s' for _ in range(len(cols))]))
-
+                           cols=','.join('`{}`'.format(col) for col in cols),
+                           values=','.join('%s' for _ in range(len(cols))))
 
 
 def import_list(repo: Dolt,
