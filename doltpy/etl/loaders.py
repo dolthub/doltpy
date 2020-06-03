@@ -1,6 +1,8 @@
 from typing import Callable, List
 import io
-from doltpy.core.dolt import UPDATE, Dolt
+from doltpy.core.dolt import Dolt
+from doltpy.core.write import import_df, bulk_import, UPDATE
+from doltpy.core.read import read_table
 import pandas as pd
 import hashlib
 import importlib
@@ -91,9 +93,9 @@ def get_bulk_table_writer(table: str,
     :return:
     """
     def inner(repo: Dolt):
-        _import_mode = import_mode or ('create' if table not in repo.get_existing_tables() else 'update')
+        _import_mode = import_mode or ('create' if table not in [t.name for t in repo.ls()] else 'update')
         data_to_load = _apply_file_transformers(get_data(), transformers)
-        repo.bulk_import(table, data_to_load, pk_cols, import_mode=_import_mode)
+        bulk_import(repo, table, data_to_load, pk_cols, import_mode=_import_mode)
         return table
 
     return inner
@@ -117,9 +119,9 @@ def get_df_table_writer(table: str,
     :return:
     """
     def inner(repo: Dolt):
-        _import_mode = import_mode or ('create' if table not in repo.get_existing_tables() else 'update')
+        _import_mode = import_mode or ('create' if table not in [t.name for t in repo.ls()] else 'update')
         data_to_load = _apply_df_transformers(get_data(), transformers)
-        repo.import_df(table, data_to_load, pk_cols, import_mode=_import_mode)
+        import_df(repo, table, data_to_load, pk_cols, import_mode=_import_mode)
         return table
 
     return inner
@@ -143,7 +145,7 @@ def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
     def inner(repo: Dolt):
         input_data = get_data(repo)
         transformed_data = transformer(input_data)
-        repo.import_df(target_table, transformed_data, target_pk_cols, import_mode=import_mode)
+        import_df(repo, target_table, transformed_data, target_pk_cols, import_mode=import_mode)
         return target_table
 
     return inner
@@ -190,11 +192,11 @@ def _get_unique_key_update_writer(table: str,
     def inner(repo: Dolt):
         _transformers = transformers + [insert_unique_key] if transformers else [insert_unique_key]
         data = _apply_df_transformers(get_data(), _transformers)
-        if table not in repo.get_existing_tables():
+        if table not in [t.name for t in repo.ls()]:
             raise ValueError('Missing table')
 
         # Get existing PKs
-        existing = repo.read_table(table)
+        existing = read_table(repo, table)
         existing_pks = existing[INSERTED_ROW_HASH_COL].to_list()
 
         # Get proposed PKs
@@ -212,12 +214,12 @@ def _get_unique_key_update_writer(table: str,
             drop_statement = '''
             DELETE FROM {table} WHERE {pk} in ("{pks_to_drop}")
             '''.format(table=table, pk=INSERTED_ROW_HASH_COL, pks_to_drop='","'.join(batch))
-            repo.execute_sql_stmt(drop_statement)
+            repo.sql(query=drop_statement)
 
         new_data = data[~(data[INSERTED_ROW_HASH_COL].isin(existing_pks))]
         if not new_data.empty:
             logger.info('Importing {} records'.format(len(new_data)))
-            repo.import_df(table, new_data, [INSERTED_ROW_HASH_COL], 'update')
+            import_df(repo, table, new_data, [INSERTED_ROW_HASH_COL], 'update')
 
         return table
 
@@ -241,16 +243,17 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
     :return: the branch written to
     """
     def inner(repo: Dolt):
-        original_branch = repo.get_current_branch()
+        current_branch, current_branch_list = repo.branch()
+        original_branch = current_branch.name
 
         if branch != original_branch and not commit:
             raise ValueError('If writes are to another branch, and commit is not True, writes will be lost')
 
-        if repo.get_current_branch() != branch:
-            logger.info('Current branch is {}, checking out {}'.format(repo.get_current_branch(), branch))
-            if branch not in repo.get_branch_list():
+        if current_branch.name != branch:
+            logger.info('Current branch is {}, checking out {}'.format(current_branch.name, branch))
+            if branch not in [b.name for b in current_branch_list]:
                 logger.info('{} does not exist, creating'.format(branch))
-                repo.create_branch(branch)
+                repo.branch(branch_name=branch)
             repo.checkout(branch)
 
         if transaction_mode:
@@ -259,17 +262,18 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
         tables_updated = [writer(repo) for writer in table_writers]
 
         if commit:
-            if not repo.repo_is_clean():
+            if not repo.status().is_clean:
                 logger.info('Committing to repo located in {} for tables:\n{}'.format(repo.repo_dir, tables_updated))
                 for table in tables_updated:
-                    repo.add_table_to_next_commit(table)
+                    repo.add(table)
                 repo.commit(message)
 
             else:
                 logger.warning('No changes to repo in:\n{}'.format(repo.repo_dir))
 
-        if original_branch != repo.get_current_branch():
-            logger.info('Checked out {} from {}, checking out {} to restore state'.format(repo.get_current_branch(),
+        current_branch, branches = repo.branch()
+        if original_branch != current_branch.name:
+            logger.info('Checked out {} from {}, checking out {} to restore state'.format([b.name for b in branches],
                                                                                           original_branch,
                                                                                           original_branch))
             repo.checkout(original_branch)
@@ -287,11 +291,13 @@ def get_branch_creator(new_branch_name: str, refspec: str = None):
     :return:
     """
     def inner(repo: Dolt):
-        assert new_branch_name not in repo.get_branch_list(), 'Branch {} already exists'.format(new_branch_name)
+        _, current_branches = repo.branch()
+        branches = [branch.name for branch in current_branches]
+        assert new_branch_name not in branches, 'Branch {} already exists'.format(new_branch_name)
         logger.info('Creating new branch on repo in {} named {} at refspec {}'.format(repo.repo_dir,
                                                                                       new_branch_name,
                                                                                       refspec))
-        repo.create_branch(new_branch_name, refspec)
+        repo.branch(new_branch_name)
 
         return new_branch_name
 
@@ -356,9 +362,9 @@ def _create_table_from_schema_import_helper(repo: Dolt,
         transformed.to_csv(fp.name, index=False)
         path = fp.name
 
-    repo.schema_import_create(table, pks, path)
+    repo.schema_import(table=table, pks=pks, filename=path, create=True)
 
     if commit:
         message = commit_message or 'Creating table {}'.format(table)
-        repo.add_table_to_next_commit(table)
+        repo.add(table)
         repo.commit(message)

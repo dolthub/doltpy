@@ -29,7 +29,8 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
     :return:
     """
     def inner(table_data_map: DoltAsTargetUpdate):
-        if branch and branch != repo.get_current_branch():
+        current_branch, _ = repo.branch()
+        if branch and branch != current_branch:
             repo.checkout(branch)
 
         conn = repo.get_connection()
@@ -45,7 +46,7 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
 
         if commit:
             for table, _ in table_data_map.items():
-                repo.add_table_to_next_commit(table)
+                repo.add(table)
             commit_message = message or 'Execute write for sync to Dolt'
             repo.commit(commit_message)
 
@@ -91,7 +92,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]
     """
     def inner(tables: List[str]) -> DoltAsSourceUpdate:
         result = {}
-        repo_tables = repo.get_existing_tables()
+        repo_tables = [table.name for table in repo.ls()]
         missing_tables = [table for table in tables if table not in repo_tables]
         if missing_tables:
             logger.error('The following tables are missign, exiting:\n{}'.format(missing_tables))
@@ -115,7 +116,8 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
-        if branch and branch != repo.get_current_branch():
+        current_branch, _ = repo.branch()
+        if branch and branch != current_branch:
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
@@ -168,7 +170,7 @@ def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, 
     :param commit_ref:
     :return:
     """
-    commits = list(repo.get_commits().keys())
+    commits = list(repo.log().keys())
     commit_ref_index = None
     if not commit_ref:
         commit_ref_index = 0
@@ -189,11 +191,11 @@ def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[st
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
-        if branch and branch != repo.get_current_branch():
+        if branch and branch != repo.log():
             repo.checkout(branch)
 
         connection = repo.get_connection()
-        query_commit = commit_ref or list(repo.get_commits().keys())[0]
+        query_commit = commit_ref or list(repo.log().keys())[0]
         table_metadata = get_mysql_table_metadata(table_name, connection)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
         pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
@@ -268,7 +270,7 @@ def write_to_table(repo: Dolt,
         update_rows(connection, table_metadata, updates)
     connection.close()
     if commit:
-        repo.add_table_to_next_commit(table_metadata.name)
+        repo.add(table_metadata.name)
         message = message or 'Inserting {} records at '.format(len(data), datetime.now())
         repo.commit(message)
 
