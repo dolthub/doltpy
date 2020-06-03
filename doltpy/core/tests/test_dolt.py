@@ -1,5 +1,7 @@
 import pytest
-from doltpy.core.dolt import init_new_repo, Dolt, _execute, DoltException, UPDATE
+from doltpy.core.dolt import Dolt, _execute, DoltException
+from doltpy.core.write import UPDATE, import_df
+from doltpy.core.read import pandas_read_sql, read_table
 import shutil
 import pandas as pd
 import uuid
@@ -19,50 +21,50 @@ def create_test_data(tmp_path) -> str:
 @pytest.fixture
 def create_test_table(init_empty_test_repo, create_test_data) -> Tuple[Dolt, str]:
     repo, test_data_path = init_empty_test_repo, create_test_data
-    repo.execute_sql_stmt('''
+    repo.sql(query='''
         CREATE TABLE `test_players` (
             `name` LONGTEXT NOT NULL COMMENT 'tag:0',
             `id` BIGINT NOT NULL COMMENT 'tag:1',
             PRIMARY KEY (`id`)
         );
     ''')
-    repo.import_df('test_players', pd.read_csv(test_data_path), ['id'], UPDATE)
+    import_df(repo, 'test_players', pd.read_csv(test_data_path), ['id'], UPDATE)
     yield repo, 'test_players'
 
-    if 'test_players' in repo.get_existing_tables():
-        _execute(['dolt', 'table', 'rm', 'test_players'], repo.repo_dir())
+    if 'test_players' in [table.name for table in repo.ls()]:
+        _execute(['table', 'rm', 'test_players'], repo.repo_dir())
 
 
 @pytest.fixture
 def run_serve_mode(request, init_empty_test_repo):
     repo = init_empty_test_repo
-    repo.start_server()
+    repo.sql_server()
     connection = repo.get_connection()
 
     def finalize():
         if connection:
             connection.close()
         if repo.server:
-            repo.stop_server()
+            repo.sql_server_stop()
 
     request.addfinalizer(finalize)
     return connection
 
 
-def test_init_new_repo(tmp_path):
+def test_init(tmp_path):
     repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
     assert not os.path.exists(repo_data_dir)
-    init_new_repo(repo_path)
+    Dolt.init(repo_path)
     assert os.path.exists(repo_data_dir)
     shutil.rmtree(repo_data_dir)
 
 
 def test_commit(create_test_table):
     repo, test_table = create_test_table
-    repo.add_table_to_next_commit(test_table)
-    before_commit_count = len(repo.get_commits())
+    repo.add(test_table)
+    before_commit_count = len(repo.log())
     repo.commit('Julianna, the very serious intellectual')
-    assert repo.repo_is_clean() and len(repo.get_commits()) == before_commit_count + 1
+    assert repo.status().is_clean and len(repo.log()) == before_commit_count + 1
 
 
 def test_get_dirty_tables(create_test_table):
@@ -74,76 +76,82 @@ def test_get_dirty_tables(create_test_table):
     appended_row = pd.DataFrame({'name': ['Serena'], 'id': [2], 'role': ['Runner-up']})
 
     def _insert_row_helper(repo, table, row):
-        repo.import_df(table, row, ['id'], import_mode=UPDATE)
+        import_df(repo, table, row, ['id'], import_mode=UPDATE)
 
     # existing, not modified
-    repo.add_table_to_next_commit(test_table)
+    repo.add(test_table)
     repo.commit(message)
 
     # existing, modified, staged
     modified_staged = 'modified_staged'
-    repo.import_df(modified_staged, initial, ['id'])
-    repo.add_table_to_next_commit(modified_staged)
+    import_df(repo, modified_staged, initial, ['id'])
+    repo.add(modified_staged)
 
     # existing, modified, unstaged
     modified_unstaged = 'modified_unstaged'
-    repo.import_df(modified_unstaged, initial, ['id'])
-    repo.add_table_to_next_commit(modified_unstaged)
+    import_df(repo, modified_unstaged, initial, ['id'])
+    repo.add(modified_unstaged)
 
     # Commit and modify data
     repo.commit(message)
     _insert_row_helper(repo, modified_staged, appended_row)
-    repo.import_df(modified_staged, appended_row, ['id'], UPDATE)
-    repo.add_table_to_next_commit(modified_staged)
-    repo.import_df(modified_unstaged, appended_row, ['id'], UPDATE)
+    import_df(repo, modified_staged, appended_row, ['id'], UPDATE)
+    repo.add(modified_staged)
+    import_df(repo, modified_unstaged, appended_row, ['id'], UPDATE)
 
     # created, staged
     created_staged = 'created_staged'
-    repo.import_df(created_staged, initial, ['id'])
-    repo.add_table_to_next_commit(created_staged)
+    import_df(repo, created_staged, initial, ['id'])
+    repo.add(created_staged)
 
     # created, unstaged
     created_unstaged = 'created_unstaged'
-    repo.import_df(created_unstaged, initial, ['id'])
+    import_df(repo, created_unstaged, initial, ['id'])
 
-    new_tables, changes = repo.get_dirty_tables()
+    status = repo.status()
 
     expected_new_tables = {'created_staged': True, 'created_unstaged': False}
     expected_changes = {'modified_staged': True, 'modified_unstaged': False}
 
-    assert new_tables == expected_new_tables
-    assert expected_changes == expected_changes
+    assert status.added_tables == expected_new_tables
+    assert status.modified_tables == expected_changes
 
 
-def test_clean_local(create_test_table):
+def test_checkout_with_tables(create_test_table):
     repo, test_table = create_test_table
-    repo.clean_local()
-    assert repo.repo_is_clean()
+    repo.checkout(table_or_tables=test_table)
+    assert repo.status().is_clean
 
 
 # TODO test datetime types here
 def test_sql_server(create_test_table, run_serve_mode):
     repo, test_table = create_test_table
     connection = run_serve_mode
-    data = repo.pandas_read_sql('SELECT * FROM {}'.format(test_table), connection)
+    data = pandas_read_sql(repo, 'SELECT * FROM {}'.format(test_table), connection)
     assert list(data['id']) == [1, 2]
 
 
-def test_branch_list(create_test_table):
+def test_branch(create_test_table):
     repo, _ = create_test_table
-    assert repo.get_branch_list() == [repo.get_current_branch()] == ['master']
-    repo.create_branch('dosac')
-    assert set(repo.get_branch_list()) == {'master', 'dosac'} and repo.get_current_branch() == 'master'
+    active_branch, branches = repo.branch()
+    assert [active_branch.name] == [branch.name for branch in branches] == ['master']
+
+    repo.checkout('dosac', checkout_branch=True)
+    repo.checkout('master')
+    next_active_branch, next_branches = repo.branch()
+    assert set(branch.name for branch in next_branches) == {'master', 'dosac'} and next_active_branch.name == 'master'
+
     repo.checkout('dosac')
-    assert repo.get_current_branch() == 'dosac'
+    different_active_branch, _ = repo.branch()
+    assert different_active_branch.name == 'dosac'
 
 
 def test_remote_list(create_test_table):
     repo, _ = create_test_table
-    _execute(['dolt', 'remote', 'add', 'origin', 'blah-blah'], repo.repo_dir())
-    assert repo.get_remote_list() == ['origin']
-    _execute(['dolt', 'remote', 'add', 'another-origin', 'la-la-land'], repo.repo_dir())
-    assert set(repo.get_remote_list()) == {'origin', 'another-origin'}
+    repo.remote(add=True, name='origin', url='blah-blah')
+    assert repo.remote()[0].name == 'origin'
+    repo.remote(add=True, name='another-origin', url='blah-blah')
+    assert set([remote.name for remote in repo.remote()]) == {'origin', 'another-origin'}
 
 
 def test_checkout_non_existent_branch(create_test_table):
@@ -152,20 +160,20 @@ def test_checkout_non_existent_branch(create_test_table):
         repo.checkout('master')
 
 
-def test_get_existing_tables(create_test_table):
+def test_ls(create_test_table):
     repo, test_table = create_test_table
-    assert repo.get_existing_tables() == [test_table]
+    assert [table.name for table in repo.ls()] == [test_table]
 
 
-def test_execute_sql_stmt(create_test_table):
+def test_sql(create_test_table):
     repo, test_table = create_test_table
     sql = '''
         INSERT INTO {table} (name, id)
         VALUES ('Roger', 3)
     '''.format(table=test_table)
-    repo.execute_sql_stmt(sql)
+    repo.sql(query=sql)
 
-    test_data = repo.read_table(test_table)
+    test_data = read_table(repo, test_table)
     assert 'Roger' in test_data['name'].to_list()
 
 
@@ -182,7 +190,6 @@ def test_schema_import_create(init_empty_test_repo, tmp_path):
     test_file = tmp_path / 'test_data.csv'
     with open(test_file, 'w') as f:
         f.writelines(TEST_IMPORT_FILE_DATA)
-    repo.schema_import_create(table, ['id'], test_file)
+    repo.schema_import(table=table, create=True, pks=['id'], filename=test_file)
 
-    new_tables, _ = repo.get_dirty_tables()
-    assert new_tables == {table: False}
+    assert repo.status().added_tables == {table: False}

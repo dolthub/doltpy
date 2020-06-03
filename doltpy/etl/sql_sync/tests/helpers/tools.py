@@ -132,7 +132,7 @@ def validate_dolt_as_target(db_conn,
     for update_data in update_sequence:
         write_to_table(db_conn, db_table_metadata, get_db_insert_query, update_data)
         sync_to_dolt_helper()
-        latest_commit = list(dolt_repo.get_commits().keys())[0]
+        latest_commit = list(dolt_repo.log().keys())[0]
         assertion_helper(latest_commit, update_data)
 
     delete_query = '''
@@ -145,7 +145,7 @@ def validate_dolt_as_target(db_conn,
     cursor.execute(delete_query)
     db_conn.commit()
     sync_to_dolt_helper()
-    latest_commit = list(dolt_repo.get_commits().keys())[0]
+    latest_commit = list(dolt_repo.log().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(dolt_table, dolt_repo)
     db_data = get_db_table_reader()(db_conn, db_table_metadata)
     assert_tuple_array_equality(list(dolt_data), db_data)
@@ -169,7 +169,7 @@ def validate_dolt_as_source(db_conn, db_table, get_db_target_writer, dolt_repo, 
     target_writer = get_db_target_writer(db_conn, True)
     table_mapping = {dolt_table: db_table}
 
-    commits = list(dolt_repo.get_commits().keys())
+    commits = list(dolt_repo.log().keys())
     commits_to_check = [commits[0], commits[1], commits[2], commits[3], commits[4]]
     commits_to_check.reverse()
 
