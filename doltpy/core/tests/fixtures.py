@@ -13,3 +13,19 @@ def init_empty_test_repo(tmp_path) -> Dolt:
     yield repo
     if os.path.exists(repo_data_dir):
         shutil.rmtree(repo_data_dir)
+
+
+@pytest.fixture
+def run_serve_mode(request, init_empty_test_repo):
+    repo = init_empty_test_repo
+    repo.sql_server()
+    connection = repo.get_connection()
+
+    def finalize():
+        if connection:
+            connection.close()
+        if repo.server:
+            repo.sql_server_stop()
+
+    request.addfinalizer(finalize)
+    return connection
