@@ -717,7 +717,7 @@ class Dolt:
         :param branch:
         :return:
         """
-        args = ["dolt", "clone", remote_url]
+        args = ["clone", remote_url]
 
         if remote:
             args.extend(['--remote', remote])
