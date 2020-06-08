@@ -94,9 +94,11 @@ def import_dict(repo: Dolt,
                 primary_keys: List[str] = None,
                 import_mode: str = None):
     """
-    COLUMN MAJOR (note this sort of takes care of list of list column major since user would have to provide such a function with column information anyway)
+    COLUMN MAJOR (note this sort of takes care of list of list column major since user would have to provide such a
+    function with column information anyway)
 
-    Import a dict mapping keys to lists of values for the rows. All lists must be of identical length. Suppose we have a table as follows:
+    Import a dict mapping keys to lists of values for the rows. All lists must be of identical length. Suppose we have a
+    table as follows:
         CREATE TABLE players (id INT, name VARCHAR(16), PRIMARY KEY (id))
 
     >>> dict_of_lists = {'id': [1, 2], 'name': ['Roger', 'Rafael']}
@@ -106,7 +108,8 @@ def import_dict(repo: Dolt,
 
     Assertions:
         - all list values are of equal length
-        - each list value has elements that can be cast to a common supertype that can be cast to the type of the column whose name the key to the list value
+        - each list value has elements that can be cast to a common supertype that can be cast to the type of the column
+          whose name the key to the list value
 
     """
     assert import_mode in [UPDATE, CREATE]
@@ -217,19 +220,22 @@ def import_list(repo: Dolt,
     """
     ROW MAJOR
 
-    Suppose we have alist element of the list is a dict mapping column names to values. Again we have a table created by:
+    Suppose we have a list element of the list is a dict mapping column names to values. Again we have a table created
+    by:
         CREATE TABLE players (id INT, name VARCHAR(16), PRIMARY KEY (id))
 
     Now
     >>> list_of_dicts = [{'id': 1, 'name': 'Roger'}, {'id': 2, 'name': 'Rafael'}]
     >>> import_list(repo, 'players', list_of_dicts, import_mode='update')
 
-    Note that since we get the column names, and we can infer the types from the values (cast to common parent), then we can also use this for create mode, passing priamry key:
+    Note that since we get the column names, and we can infer the types from the values (cast to common parent), then we
+    can also use this for create mode, passing priamry key:
     >>> import_list(repo, 'players', list_of_dicts, ['id'], import_mode='create')
 
     Assertions
         - all elements of the outer list are dictionaries with the same keys
-        - all values across all dictionaries that are the elements of th outter list cast to a common super type that can be cast to the type of the column the particular key is the the name of
+        - all values across all dictionaries that are the elements of th outter list cast to a common super type that
+          can be cast to the type of the column the particular key is the the name of
     """
     assert data, 'Cannot provide empty dict'
 

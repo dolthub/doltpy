@@ -24,11 +24,12 @@ def pandas_read_sql(repo: Dolt, query: str, connection: connector.connection) ->
     Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
     `DataFrame` object. This is a higher level version of `query_server` where the object returned is the cursor
     associated with query executed.
+    :param repo:
     :param query:
     :param connection:
     :return:
     """
     if repo.server is None:
-        raise Exception("never started.")
+        raise Exception("MySQL server not started.")
 
     return pd.read_sql(query, con=connection)

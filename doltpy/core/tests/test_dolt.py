@@ -35,22 +35,6 @@ def create_test_table(init_empty_test_repo, create_test_data) -> Tuple[Dolt, str
         _execute(['table', 'rm', 'test_players'], repo.repo_dir())
 
 
-@pytest.fixture
-def run_serve_mode(request, init_empty_test_repo):
-    repo = init_empty_test_repo
-    repo.sql_server()
-    connection = repo.get_connection()
-
-    def finalize():
-        if connection:
-            connection.close()
-        if repo.server:
-            repo.sql_server_stop()
-
-    request.addfinalizer(finalize)
-    return connection
-
-
 def test_init(tmp_path):
     repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
     assert not os.path.exists(repo_data_dir)
