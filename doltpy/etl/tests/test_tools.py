@@ -7,7 +7,7 @@ from doltpy.core.read import read_table
 from doltpy.etl import (get_df_table_writer,
                         insert_unique_key,
                         get_unique_key_table_writer,
-                        get_table_transfomer,
+                        get_table_transformer,
                         get_bulk_table_writer,
                         get_dolt_loader,
                         get_branch_creator)
@@ -34,7 +34,7 @@ def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFr
 
 
 def _populate_derived_data_helper(repo: Dolt, import_mode: str):
-    table_transfomers = [get_table_transfomer(get_raw_data, AVERAGE_MAJOR_COUNT, ['gender'], averager, import_mode)]
+    table_transfomers = [get_table_transformer(get_raw_data, AVERAGE_MAJOR_COUNT, ['gender'], averager, import_mode)]
     get_dolt_loader(table_transfomers, True, 'Updated {}'.format(AVERAGE_MAJOR_COUNT))(repo)
     return repo
 

@@ -127,11 +127,11 @@ def get_df_table_writer(table: str,
     return inner
 
 
-def get_table_transfomer(get_data: Callable[[Dolt], pd.DataFrame],
-                         target_table: str,
-                         target_pk_cols: List[str],
-                         transformer: DataframeTransformer,
-                         import_mode: str = UPDATE) -> DoltTableWriter:
+def get_table_transformer(get_data: Callable[[Dolt], pd.DataFrame],
+                          target_table: str,
+                          target_pk_cols: List[str],
+                          transformer: DataframeTransformer,
+                          import_mode: str = UPDATE) -> DoltTableWriter:
     """
     A version of get_df_table writer where the input is a Dolt repository. This is used for transforming raw data into
     derived tables.

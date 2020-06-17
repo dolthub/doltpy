@@ -148,9 +148,15 @@ def import_dict(repo: Dolt,
         cursor = conn.cursor()
         chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
         logger.info('Writing chunk of {} rows to Dolt'.format(len(chunk)))
-        cursor.executemany(insert_statement, chunk)
-        conn.commit()
-        conn.close()
+        try:
+            cursor.executemany(insert_statement, chunk)
+            conn.commit()
+            conn.close()
+        except:
+            with open('/Users/oscarbatori/dolt-mysql-error', 'w') as f:
+                f.writelines(cursor.statement)
+
+            raise
 
     if not server_was_running:
         repo.sql_server_stop()
