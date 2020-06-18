@@ -368,7 +368,7 @@ class Dolt:
         :param host:
         :return:
         """
-        database = str(self.repo_dir()).split('/')[-1]
+        database = str(self.repo_dir()).split('/')[-1].replace('-', '_')
         host = host or '127.0.0.1'
         if self.server is None:
             raise Exception('Server is not running, run repo.start_server() on your instance of Dolt')

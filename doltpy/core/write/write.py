@@ -8,6 +8,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_CHUNK_SIZE = 300000
 CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
 IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
                          FORCE_CREATE: ['-f', '-c'],
@@ -92,7 +93,8 @@ def import_dict(repo: Dolt,
                 table_name: str,
                 data: Mapping[str, List[Any]],
                 primary_keys: List[str] = None,
-                import_mode: str = None):
+                import_mode: str = None,
+                chunk_size: int = DEFAULT_CHUNK_SIZE):
     """
     COLUMN MAJOR (note this sort of takes care of list of list column major since user would have to provide such a
     function with column information anyway)
@@ -140,10 +142,15 @@ def import_dict(repo: Dolt,
     insert_statement = _get_insert_statement(table_name, sorted_cols)
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
-    conn = repo.get_connection()
-    cursor = conn.cursor()
-    cursor.executemany(insert_statement, tuple_list)
-    conn.commit()
+
+    for i in range(max(1, int(len(tuple_list) / chunk_size))):
+        conn = repo.get_connection()
+        cursor = conn.cursor()
+        chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
+        logger.info('Writing chunk of {} rows to Dolt'.format(len(chunk)))
+        cursor.executemany(insert_statement, chunk)
+        conn.commit()
+        conn.close()
 
     if not server_was_running:
         repo.sql_server_stop()
@@ -216,7 +223,8 @@ def import_list(repo: Dolt,
                 table_name: str,
                 data: List[Mapping[str, Any]],
                 primary_keys: List[str] = None,
-                import_mode: str = None):
+                import_mode: str = None,
+                chunk_size: int = DEFAULT_CHUNK_SIZE):
     """
     ROW MAJOR
 
@@ -252,4 +260,4 @@ def import_list(repo: Dolt,
             else:
                 reformatted[col_name] = [value]
 
-    import_dict(repo, table_name, reformatted, primary_keys, import_mode)
+    import_dict(repo, table_name, reformatted, primary_keys, import_mode, chunk_size)
