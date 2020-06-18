@@ -34,6 +34,14 @@ def test_import_lists(init_empty_test_repo, run_serve_mode):
     assert df.equals(expected)
 
 
+def test_import_dicts_chunked(init_empty_test_repo, run_serve_mode):
+    repo = init_empty_test_repo
+    import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create', chunk_size=2)
+    df = pandas_read_sql(repo, 'select * from characters', repo.get_connection())
+    expected = pd.DataFrame(LIST_OF_DICTS)
+    assert df.equals(expected)
+
+
 LIST_OF_DICTS_WITH_NULLS = [
     {'name': 'Roger', 'date_of_death': None},
     {'name': 'Rafael', 'date_of_death': None},
@@ -70,3 +78,5 @@ def test_import_lists_uneven(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
     with pytest.raises(AssertionError):
         import_dict(repo, 'players', DICT_OF_LISTS_UNEVEN_LENGTHS, ['name'], 'create')
+
+
