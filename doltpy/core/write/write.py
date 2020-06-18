@@ -5,6 +5,7 @@ import logging
 import io
 import tempfile
 from datetime import datetime
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ def import_dict(repo: Dolt,
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
 
-    for i in range(max(1, int(len(tuple_list) / chunk_size))):
+    for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
         conn = repo.get_connection()
         cursor = conn.cursor()
         chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
