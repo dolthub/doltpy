@@ -1,6 +1,7 @@
 from typing import List, Callable, Any, Mapping
 import pandas as pd
 from doltpy.core.dolt import Dolt
+from mysql.connector.connection import MySQLConnection
 import logging
 import io
 import tempfile
@@ -90,7 +91,7 @@ def _import_helper(repo: Dolt,
     repo.execute(args + [fp.name])
 
 
-def import_dict(repo: Dolt,
+def import_dict(conn: MySQLConnection,
                 table_name: str,
                 data: Mapping[str, List[Any]],
                 primary_keys: List[str] = None,
@@ -105,7 +106,7 @@ def import_dict(repo: Dolt,
         CREATE TABLE players (id INT, name VARCHAR(16), PRIMARY KEY (id))
 
     >>> dict_of_lists = {'id': [1, 2], 'name': ['Roger', 'Rafael']}
-    >>> import_dict(repo, 'players', dict_of_lists, import_mode='update')
+    >>> import_dict(conn, 'players', dict_of_lists, import_mode='update')
 
     Note that we can run this in create mode using the
 
@@ -117,12 +118,6 @@ def import_dict(repo: Dolt,
     """
     assert import_mode in [UPDATE, CREATE]
 
-    server_was_running = False
-    if not repo.server:
-        repo.sql_server()
-    else:
-        server_was_running = True
-
     # Grab some basic information about the data
     assert data, 'Cannot provide an empty dictionary'
     row_count = len(list(data.values())[0])
@@ -131,7 +126,8 @@ def import_dict(repo: Dolt,
 
     # If the table does not exist, create it using type inference to build a create statement
     if import_mode == CREATE:
-        _create_table_inferred(repo, table_name, data, primary_keys)
+        assert primary_keys, 'primary_keys need to be provided when inferring a schema'
+        _create_table_inferred(conn, table_name, data, primary_keys)
 
     # Now transform the data to lists of tuples, where the elements are in the same order as the
     # columns when sorted lexicographically
@@ -145,27 +141,17 @@ def import_dict(repo: Dolt,
                                                                             table_name=table_name))
 
     for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
-        conn = repo.get_connection()
         cursor = conn.cursor()
         chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
         logger.info('Writing chunk of {} rows to Dolt'.format(len(chunk)))
         cursor.executemany(insert_statement, chunk)
         conn.commit()
-        conn.close()
-
-    if not server_was_running:
-        repo.sql_server_stop()
 
 
-def _create_table_inferred(repo: Dolt,
+def _create_table_inferred(conn: MySQLConnection,
                            table_name: str,
                            data: Mapping[str, List[Any]],
                            primary_keys: List[str]):
-    # TODO:
-    #   this sorta sucks, because it requires the Python process to own the server process, which
-    #   may no be the case if the user started it from the shell
-    assert repo.server, 'Server must be running for repo'
-
     # generate and execute a create table statement
     cols_to_types = {}
     for col_name, list_of_values in data.items():
@@ -179,11 +165,9 @@ def _create_table_inferred(repo: Dolt,
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
     query = _get_create_table_helper(table_name, cols_to_types, primary_keys)
-    conn = repo.get_connection()
     cursor = conn.cursor()
     cursor.execute(query)
     conn.commit()
-    conn.close()
 
 
 def _get_col_type(sample_value: Any, values: Any):
@@ -220,7 +204,7 @@ def _get_insert_statement(table_name: str, cols: List[str]):
                            values=','.join('%s' for _ in range(len(cols))))
 
 
-def import_list(repo: Dolt,
+def import_list(conn: MySQLConnection,
                 table_name: str,
                 data: List[Mapping[str, Any]],
                 primary_keys: List[str] = None,
@@ -235,11 +219,11 @@ def import_list(repo: Dolt,
 
     Now
     >>> list_of_dicts = [{'id': 1, 'name': 'Roger'}, {'id': 2, 'name': 'Rafael'}]
-    >>> import_list(repo, 'players', list_of_dicts, import_mode='update')
+    >>> import_list(conn, 'players', list_of_dicts, import_mode='update')
 
     Note that since we get the column names, and we can infer the types from the values (cast to common parent), then we
     can also use this for create mode, passing priamry key:
-    >>> import_list(repo, 'players', list_of_dicts, ['id'], import_mode='create')
+    >>> import_list(conn, 'players', list_of_dicts, ['id'], import_mode='create')
 
     Assertions
         - all elements of the outer list are dictionaries with the same keys
@@ -261,4 +245,4 @@ def import_list(repo: Dolt,
             else:
                 reformatted[col_name] = [value]
 
-    import_dict(repo, table_name, reformatted, primary_keys, import_mode, chunk_size)
+    import_dict(conn, table_name, reformatted, primary_keys, import_mode, chunk_size)
