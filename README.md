@@ -18,19 +18,23 @@ $ pip install doltpy
 ```
 
 ## Overview
-Doltpy is broken up into modules. The most important modules, `doltpy.core`, effectively wraps the Dolt command-line-interface (CLI) that is exposed by the Go binary. 
+Doltpy is broken up into modules. 
 
 ### `doltpy.core`
-
+This is the most important module. It effectively wraps the Dolt command-line-interface (CLI) that is exposed by the Go binary. The CLI is exposed more or less exactly as it is implemented, returning wrapper objects where appropriate.
 
 ### `doltpy.core.read` and `doltpy.core.write`
-
+These modules provide basic read and write interfaces for reading and writing a variety of tabular data formats, including:
+- CSV
+- `pandas.DataFrame`
+- Python dictionaries of lists, i.e. `{'col': [...vals...], ...}`
+- Python lists of dictionaries, i.e. `[{'col': val, ...}, ...]`
 
 ### `doltpy.etl`
-
+This module provides a set of tools for scripting ETL/ELT workflows. At Liquidata we use it internally to push datasets onto DoltHub.
 
 ### `doltpy.etl.sql_sync`
-
+Provides a set of tools for syncing between Dolt and supported relational databases, currently MySQL and Postgres. There is guide on our [documentation site](https://www.dolthub.com/docs/guides/sql-sync/).
 
 
 ## More Information

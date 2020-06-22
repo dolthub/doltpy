@@ -12,7 +12,9 @@ logger = get_logger(__name__)
 
 DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
 
+
 class DoltException(Exception):
+
     """
     A class representing a Dolt exception.
     """
@@ -33,7 +35,6 @@ class DoltWrongServerException(Exception):
 
     def __init__(self, message):
         self.message = message
-
 
 
 def _execute(args: List[str], cwd: str):
