@@ -91,7 +91,7 @@ def _import_helper(repo: Dolt,
     repo.execute(args + [fp.name])
 
 
-def import_dict(conn: MySQLConnection,
+def import_dict(repo: Dolt,
                 table_name: str,
                 data: Mapping[str, List[Any]],
                 primary_keys: List[str] = None,
@@ -127,7 +127,7 @@ def import_dict(conn: MySQLConnection,
     # If the table does not exist, create it using type inference to build a create statement
     if import_mode == CREATE:
         assert primary_keys, 'primary_keys need to be provided when inferring a schema'
-        _create_table_inferred(conn, table_name, data, primary_keys)
+        _create_table_inferred(repo, table_name, data, primary_keys)
 
     # Now transform the data to lists of tuples, where the elements are in the same order as the
     # columns when sorted lexicographically
@@ -140,6 +140,7 @@ def import_dict(conn: MySQLConnection,
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
 
+    conn = repo.get_connection()
     for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
         cursor = conn.cursor()
         chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
@@ -147,8 +148,10 @@ def import_dict(conn: MySQLConnection,
         cursor.executemany(insert_statement, chunk)
         conn.commit()
 
+    conn.close()
 
-def _create_table_inferred(conn: MySQLConnection,
+
+def _create_table_inferred(repo: Dolt,
                            table_name: str,
                            data: Mapping[str, List[Any]],
                            primary_keys: List[str]):
@@ -164,10 +167,12 @@ def _create_table_inferred(conn: MySQLConnection,
             raise ValueError('Cannot provide an empty list, types cannot be inferred')
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
+    conn = repo.get_connection()
     query = _get_create_table_helper(table_name, cols_to_types, primary_keys)
     cursor = conn.cursor()
     cursor.execute(query)
     conn.commit()
+    conn.close()
 
 
 def _get_col_type(sample_value: Any, values: Any):
@@ -204,7 +209,7 @@ def _get_insert_statement(table_name: str, cols: List[str]):
                            values=','.join('%s' for _ in range(len(cols))))
 
 
-def import_list(conn: MySQLConnection,
+def import_list(repo: Dolt,
                 table_name: str,
                 data: List[Mapping[str, Any]],
                 primary_keys: List[str] = None,
@@ -245,4 +250,4 @@ def import_list(conn: MySQLConnection,
             else:
                 reformatted[col_name] = [value]
 
-    import_dict(conn, table_name, reformatted, primary_keys, import_mode, chunk_size)
+    import_dict(repo, table_name, reformatted, primary_keys, import_mode, chunk_size)
