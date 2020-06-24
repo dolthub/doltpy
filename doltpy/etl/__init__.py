@@ -1,3 +1,5 @@
+from .dolthub_loader import loader as dolthub_loader
+from .dolt_loader import loader as dolt_loader
 from .loaders import (get_df_table_writer,
                       get_bulk_table_writer,
                       get_unique_key_table_writer,
