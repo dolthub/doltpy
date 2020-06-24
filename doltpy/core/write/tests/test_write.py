@@ -20,8 +20,7 @@ DICT_OF_LISTS = {
 
 def test_import_dict(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
-    conn = run_serve_mode
-    import_dict(conn, 'characters', DICT_OF_LISTS, ['id'], 'create')
+    import_dict(repo, 'characters', DICT_OF_LISTS, ['id'], 'create')
     df = pandas_read_sql('select * from characters', repo.get_connection())
     expected = pd.DataFrame(DICT_OF_LISTS)
     assert df.equals(expected)
@@ -29,8 +28,7 @@ def test_import_dict(init_empty_test_repo, run_serve_mode):
 
 def test_import_lists(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
-    conn = run_serve_mode
-    import_list(conn, 'characters', LIST_OF_DICTS, ['id'], 'create')
+    import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create')
     df = pandas_read_sql('select * from characters', repo.get_connection())
     expected = pd.DataFrame(LIST_OF_DICTS)
     assert df.equals(expected)
@@ -38,8 +36,7 @@ def test_import_lists(init_empty_test_repo, run_serve_mode):
 
 def test_import_dicts_chunked(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
-    conn = run_serve_mode
-    import_list(conn, 'characters', LIST_OF_DICTS, ['id'], 'create', chunk_size=2)
+    import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create', chunk_size=2)
     df = pandas_read_sql('select * from characters', repo.get_connection())
     expected = pd.DataFrame(LIST_OF_DICTS)
     assert df.equals(expected)
@@ -53,9 +50,9 @@ LIST_OF_DICTS_WITH_NULLS = [
 
 
 def test_import_dict_all_nulls(init_empty_test_repo, run_serve_mode):
-    conn = run_serve_mode
+    repo = init_empty_test_repo
     with pytest.raises(ValueError ):
-        import_list(conn, 'players', LIST_OF_DICTS_WITH_NULLS, ['name'], 'create')
+        import_list(repo, 'players', LIST_OF_DICTS_WITH_NULLS, ['name'], 'create')
 
 
 LIST_OF_DICTS_WITH_MISSING_KEYS = [
@@ -66,9 +63,9 @@ LIST_OF_DICTS_WITH_MISSING_KEYS = [
 
 
 def test_import_list_missing_keys(init_empty_test_repo, run_serve_mode):
-    conn = run_serve_mode
+    repo = init_empty_test_repo
     with pytest.raises(AssertionError):
-        import_list(conn, 'players', LIST_OF_DICTS_WITH_MISSING_KEYS, ['name'], 'create')
+        import_list(repo, 'players', LIST_OF_DICTS_WITH_MISSING_KEYS, ['name'], 'create')
 
 
 DICT_OF_LISTS_UNEVEN_LENGTHS = {
@@ -78,8 +75,8 @@ DICT_OF_LISTS_UNEVEN_LENGTHS = {
 
 
 def test_import_lists_uneven(init_empty_test_repo, run_serve_mode):
-    conn = run_serve_mode
+    repo = init_empty_test_repo
     with pytest.raises(AssertionError):
-        import_dict(conn, 'players', DICT_OF_LISTS_UNEVEN_LENGTHS, ['name'], 'create')
+        import_dict(repo, 'players', DICT_OF_LISTS_UNEVEN_LENGTHS, ['name'], 'create')
 
 

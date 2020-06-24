@@ -1,7 +1,6 @@
 from typing import List, Callable, Any, Mapping
 import pandas as pd
-from doltpy.core.dolt import Dolt
-from mysql.connector.connection import MySQLConnection
+from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
 import logging
 import io
 import tempfile
@@ -96,25 +95,48 @@ def import_dict(repo: Dolt,
                 data: Mapping[str, List[Any]],
                 primary_keys: List[str] = None,
                 import_mode: str = None,
-                chunk_size: int = DEFAULT_CHUNK_SIZE):
+                chunk_size: int = DEFAULT_CHUNK_SIZE,
+                dolt_server_host: str = DEFAULT_HOST,
+                dolt_server_port: int = DEFAULT_PORT):
     """
-    COLUMN MAJOR (note this sort of takes care of list of list column major since user would have to provide such a
-    function with column information anyway)
+    Provides a column major interface for writing Python data structures to Dolt, specifically data should be a dict
+    where the keys are column names and the values are equal length lists of values to be written to Dolt. The lists
+    must consist of:
+        - values that match the type of the table in the schema of the table being written to
+        - values of the same type that can be coalesced to a Python type by the (very limited) type inference logic
+          for generating a schema from a data structure
 
-    Import a dict mapping keys to lists of values for the rows. All lists must be of identical length. Suppose we have a
-    table as follows:
+    Note it is necessary for all list to be of the same length since we must coalesce the lists into rows, and that
+    doesn't really make sense when the lists are not of the same length.
+
+    Let's proceed with the example of creating a simple table and showing how to write some data structures:
         CREATE TABLE players (id INT, name VARCHAR(16), PRIMARY KEY (id))
 
+    Now write in update mode:
     >>> dict_of_lists = {'id': [1, 2], 'name': ['Roger', 'Rafael']}
-    >>> import_dict(conn, 'players', dict_of_lists, import_mode='update')
+    >>> import_dict(repo, 'players', dict_of_lists, import_mode='update')
 
-    Note that we can run this in create mode using the
+    Alternatively we can let the Python code infer a schema:
+    >>> import_dict(repo, 'players', dict_of_lists, ['id'], import_mode='create')
 
     Assertions:
         - all list values are of equal length
-        - each list value has elements that can be cast to a common supertype that can be cast to the type of the column
-          whose name the key to the list value
+        - when inferring a schema each list value has elements of a type that can be mapped to a SQL type, the logic is
+          currently very limited
+        - when inferring a schema
 
+    This function requires the Dolt SQL server to be running on the host and port provided, defaulting to
+    127.0.0.1:3306.
+
+    :param repo:
+    :param table_name:
+    :param data:
+    :param primary_keys:
+    :param import_mode:
+    :param chunk_size:
+    :param dolt_server_host:
+    :param dolt_server_port:
+    :return:
     """
     assert import_mode in [UPDATE, CREATE]
 
@@ -127,7 +149,7 @@ def import_dict(repo: Dolt,
     # If the table does not exist, create it using type inference to build a create statement
     if import_mode == CREATE:
         assert primary_keys, 'primary_keys need to be provided when inferring a schema'
-        _create_table_inferred(repo, table_name, data, primary_keys)
+        _create_table_inferred(repo, table_name, data, primary_keys, dolt_server_host, dolt_server_port)
 
     # Now transform the data to lists of tuples, where the elements are in the same order as the
     # columns when sorted lexicographically
@@ -140,7 +162,7 @@ def import_dict(repo: Dolt,
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
 
-    conn = repo.get_connection()
+    conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
     for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
         cursor = conn.cursor()
         chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
@@ -154,7 +176,9 @@ def import_dict(repo: Dolt,
 def _create_table_inferred(repo: Dolt,
                            table_name: str,
                            data: Mapping[str, List[Any]],
-                           primary_keys: List[str]):
+                           primary_keys: List[str],
+                           dolt_server_host: str,
+                           dolt_server_port: int):
     # generate and execute a create table statement
     cols_to_types = {}
     for col_name, list_of_values in data.items():
@@ -167,7 +191,7 @@ def _create_table_inferred(repo: Dolt,
             raise ValueError('Cannot provide an empty list, types cannot be inferred')
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
-    conn = repo.get_connection()
+    conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
     query = _get_create_table_helper(table_name, cols_to_types, primary_keys)
     cursor = conn.cursor()
     cursor.execute(query)
@@ -214,26 +238,44 @@ def import_list(repo: Dolt,
                 data: List[Mapping[str, Any]],
                 primary_keys: List[str] = None,
                 import_mode: str = None,
-                chunk_size: int = DEFAULT_CHUNK_SIZE):
+                chunk_size: int = DEFAULT_CHUNK_SIZE,
+                dolt_server_host: str = DEFAULT_HOST,
+                dolt_server_port: int = DEFAULT_PORT):
     """
-    ROW MAJOR
+    This provides a write interface for writing row major Python data structures to Dolt. The data parameter should be a
+    list of dicts, where each dict represents a row. Each dict must have the same columns, and:
+        - values that match the type of the table in the schema of the table being written to
+        - values of the same type that can be coalesced to a Python type by the (very limited) type inference logic
+          for generating a schema from a data structure.
 
-    Suppose we have a list element of the list is a dict mapping column names to values. Again we have a table created
-    by:
+    Let's proceed with the example of creating a simple table and showing how to write some data structures:
         CREATE TABLE players (id INT, name VARCHAR(16), PRIMARY KEY (id))
 
-    Now
+    Now write in update mode:
     >>> list_of_dicts = [{'id': 1, 'name': 'Roger'}, {'id': 2, 'name': 'Rafael'}]
-    >>> import_list(conn, 'players', list_of_dicts, import_mode='update')
+    >>> import_list(repo, 'players', list_of_dicts, import_mode='update')
 
-    Note that since we get the column names, and we can infer the types from the values (cast to common parent), then we
-    can also use this for create mode, passing priamry key:
-    >>> import_list(conn, 'players', list_of_dicts, ['id'], import_mode='create')
+    Alternatively we can let the Python code infer a schema
+    >>> import_list(repo, 'players', list_of_dicts, ['id'], import_mode='create')
 
-    Assertions
-        - all elements of the outer list are dictionaries with the same keys
-        - all values across all dictionaries that are the elements of th outter list cast to a common super type that
-          can be cast to the type of the column the particular key is the the name of
+    Note some restrictions (which we should loosen in a future release):
+        - all dicts must have the same set of columns, and they must be a strict subset of the table's columns
+        - when inferring a schema the type inference is very limited, and all values that correspond to a given key
+          must be of the same type
+        - when inferring a schema we cannot have a column of null values since no schema can be inferred
+
+    This function requires the Dolt SQL server to be running on the host and port provided, defaulting to
+    127.0.0.1:3306.
+
+    :param repo:
+    :param table_name:
+    :param data:
+    :param primary_keys:
+    :param import_mode:
+    :param chunk_size:
+    :param dolt_server_host:
+    :param dolt_server_port:
+    :return:
     """
     assert data, 'Cannot provide empty dict'
 
@@ -250,4 +292,11 @@ def import_list(repo: Dolt,
             else:
                 reformatted[col_name] = [value]
 
-    import_dict(repo, table_name, reformatted, primary_keys, import_mode, chunk_size)
+    import_dict(repo,
+                table_name,
+                reformatted,
+                primary_keys,
+                import_mode,
+                chunk_size,
+                dolt_server_host,
+                dolt_server_port)
