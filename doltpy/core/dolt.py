@@ -2,15 +2,19 @@ from typing import List, Union, Mapping, Tuple
 from datetime import datetime
 from subprocess import Popen, PIPE, STDOUT
 import os
-import logging
 from collections import OrderedDict
 from retry import retry
 from mysql import connector
 
-logger = logging.getLogger(__name__)
+from doltpy.core.system_helpers import get_logger
+
+logger = get_logger(__name__)
+
+DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
 
 
 class DoltException(Exception):
+
     """
     A class representing a Dolt exception.
     """
@@ -19,6 +23,18 @@ class DoltException(Exception):
         self.stdout = stdout
         self.stderr = stderr
         self.exitcode = exitcode
+
+
+class DoltServerNotRunningException(Exception):
+
+    def __init__(self, message):
+        self.message = message
+
+
+class DoltWrongServerException(Exception):
+
+    def __init__(self, message):
+        self.message = message
 
 
 def _execute(args: List[str], cwd: str):
@@ -154,7 +170,7 @@ class Dolt:
             repo_dir = os.getcwd()
 
         if os.path.exists(repo_dir):
-            logger.info('Dolt repo in existing dir {}'.format(repo_dir))
+            logger.info('Initializing Dolt repo in existing dir {}'.format(repo_dir))
         else:
             try:
                 logger.info('Creating directory {}'.format(repo_dir))
@@ -301,7 +317,7 @@ class Dolt:
     def sql_server(self,
                    config: str = None,
                    host: str = None,
-                   port: str = None,
+                   port: int = None,
                    user: str = None,
                    password: str = None,
                    timeout: int = None,
@@ -343,13 +359,13 @@ class Dolt:
             if host:
                 args.extend(['--host', host])
             if port:
-                args.extend(['--port', port])
+                args.extend(['--port', str(port)])
             if user:
                 args.extend(['--user', user])
             if password:
                 args.extend(['--password', password])
             if timeout:
-                args.extend(['--timeout', timeout])
+                args.extend(['--timeout', int(timeout)])
             if readonly:
                 args.extend(['--readonly'])
             if loglevel:
@@ -361,18 +377,44 @@ class Dolt:
 
         start_server(args)
 
-    @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
-    def get_connection(self, host: str = None):
+    @property
+    def repo_name(self):
+        return str(self.repo_dir()).split('/')[-1].replace('-', '_')
+
+    def get_connection(self, host: str = None, port: int = None):
         """
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
         :param host:
+        :param port:
         :return:
         """
-        database = str(self.repo_dir()).split('/')[-1].replace('-', '_')
-        host = host or '127.0.0.1'
-        if self.server is None:
-            raise Exception('Server is not running, run repo.start_server() on your instance of Dolt')
-        return connector.connect(host=host, user='root', database=database, port=3306)
+        database = self.repo_name
+        host = host or DEFAULT_HOST
+        port = port or DEFAULT_PORT
+
+        logger.info('Attempting to connect to Dolt MySQL Server instance running on {}:{}'.format(host, port))
+
+        @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
+        def inner():
+            return connector.connect(host=host, user='root', database=database, port=port)
+
+        try:
+            return inner()
+        except connector.errors.DatabaseError as e:
+            if 'database not found' in e.msg:
+                msg = 'The server running on {}:{} does not correspond to the repo in {}'.format(host,
+                                                                                                 port,
+                                                                                                 self.repo_dir())
+                raise DoltWrongServerException(msg)
+            elif "Can't connect to MySQL server" in e.msg:
+                msg = 'There does not appear to be a MySQL Server server running on {}:{} for this repo'.format(host,
+                                                                                                                port)
+                raise DoltServerNotRunningException(msg)
+            else:
+                logger.error('''
+                    Unknown exception occurred after attempting to connect to Dolt MySQL Server runningon on {}:{}
+                '''.format(host, port).lstrip())
+                raise e
 
     def sql_server_stop(self):
         """
@@ -728,6 +770,7 @@ class Dolt:
         if not new_dir:
             split = remote_url.split('/')
             new_dir = os.path.join(os.getcwd(), split[-1])
+            os.mkdir(new_dir)
 
         if new_dir:
             args.append(new_dir)

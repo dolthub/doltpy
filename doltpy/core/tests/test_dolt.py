@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException
+from doltpy.core.dolt import Dolt, _execute, DoltException, DoltServerNotRunningException, DoltWrongServerException
 from doltpy.core.write import UPDATE, import_df
 from doltpy.core.read import pandas_read_sql, read_table
 import shutil
@@ -107,12 +107,70 @@ def test_checkout_with_tables(create_test_table):
     assert repo.status().is_clean
 
 
-# TODO test datetime types here
 def test_sql_server(create_test_table, run_serve_mode):
+    """
+    This test ensures we can round-trip data to the database.
+    :param create_test_table:
+    :param run_serve_mode:
+    :return:
+    """
     repo, test_table = create_test_table
     connection = run_serve_mode
-    data = pandas_read_sql(repo, 'SELECT * FROM {}'.format(test_table), connection)
+    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), connection)
     assert list(data['id']) == [1, 2]
+
+
+def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_test_repo):
+    """
+    This tests that if you fire up SQL server via Python, you get a connection to the SQL server instance that the repo
+    is running, not another repos MySQL server instance.
+    :return:
+    """
+    def get_databases(conn):
+        cursor = conn.cursor()
+        cursor.execute('SHOW DATABASES')
+        res = [tup[0] for tup in cursor]
+        return res
+
+    repo, test_table = create_test_table
+    repo_conn = run_serve_mode
+    other_repo = init_other_empty_test_repo
+    other_repo.sql_server(port=3307)
+    other_repo_conn = other_repo.get_connection(port=3307)
+
+    repo_databases = get_databases(repo_conn)
+    other_repo_databases = get_databases(other_repo_conn)
+
+    assert {'information_schema', repo.repo_name} == set(repo_databases)
+    assert {'information_schema', other_repo.repo_name} == set(other_repo_databases)
+
+
+def test_get_connection_no_server(create_test_table):
+    """
+    Tests that in the event we call get_connection without the server running we get the expected exception.
+    :param create_test_table:
+    :return:
+    """
+    repo, test_table = create_test_table
+    with pytest.raises(DoltServerNotRunningException):
+        repo.get_connection()
+
+
+def test_get_connection_wrong_port(run_serve_mode, init_other_empty_test_repo):
+    """
+    Tests that in the event we call get_connection with the wrong port, we will get the expected exception, that is the
+    library reports to the user they are trying to connect to the wrong database, rather than just spitting out the
+    MySQL Connector error.
+    :param run_serve_mode:
+    :param init_other_empty_test_repo:
+    :return:
+    """
+    _ = run_serve_mode
+    other_repo = init_other_empty_test_repo
+    other_repo.sql_server(port=3307)
+
+    with pytest.raises(DoltWrongServerException):
+        other_repo.get_connection(port=3306)
 
 
 def test_branch(create_test_table):

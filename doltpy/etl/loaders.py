@@ -3,10 +3,10 @@ import io
 from doltpy.core.dolt import Dolt
 from doltpy.core.write import import_df, bulk_import, UPDATE
 from doltpy.core.read import read_table
+from doltpy.core.system_helpers import get_logger
 import pandas as pd
 import hashlib
 import importlib
-import logging
 import itertools
 import tempfile
 
@@ -16,43 +16,10 @@ DoltLoaderBuilder = Callable[[], List[DoltLoader]]
 DataframeTransformer = Callable[[pd.DataFrame], pd.DataFrame]
 FileTransformer = Callable[[io.StringIO], io.StringIO]
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 INSERTED_ROW_HASH_COL = 'hash_id'
 INSERTED_COUNT_COL = 'count'
 
-
-def resolve_function(module_path: str):
-    """
-    Takes a string of the form you.module.member_containing_loaders and returns a list of loaders. It exists to allow
-    commands to be called with arguments that are strings that can be resolved to functions. This is used when
-    specifying function parameters via the command line.
-    :param module_path:
-    :return:
-    """
-    path_els = module_path.split('.')
-    assert len(path_els) >= 2, 'must be a fully qualified path'
-    module_path, member_name = '.'.join(path_els[:-1]), path_els[-1]
-    try:
-        retrieved_module = importlib.import_module(module_path)
-        if hasattr(retrieved_module, member_name):
-            return getattr(retrieved_module, member_name)
-        else:
-            raise ValueError('Module {} does not have member {}'.format(module_path, member_name))
-    except ModuleNotFoundError as e:
-        logger.info('Could not load module {}, ensure that the package is installed'.format(module_path))
-        raise e
-
-
-def resolve_branch(branch: str, module_generator_path: str, default: str):
-    if branch:
-        return_value = branch
-    elif module_generator_path:
-        return_value = resolve_function(module_generator_path)()
-    else:
-        return_value = default
-
-    logger.info('Using branch {}'.format(return_value))
-    return return_value
 
 
 def _apply_df_transformers(data: pd.DataFrame, transformers: List[DataframeTransformer]) -> pd.DataFrame:
