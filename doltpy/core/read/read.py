@@ -2,6 +2,9 @@ from mysql import connector
 from doltpy.core.dolt import Dolt
 import pandas as pd
 import tempfile
+from doltpy.core.system_helpers import get_logger
+
+logger = get_logger(__name__)
 
 
 def read_table(repo: Dolt, table_name: str, delimiter: str = ',') -> pd.DataFrame:
@@ -19,7 +22,7 @@ def read_table(repo: Dolt, table_name: str, delimiter: str = ',') -> pd.DataFram
     return result
 
 
-def pandas_read_sql(repo: Dolt, query: str, connection: connector.connection) -> pd.DataFrame:
+def pandas_read_sql(query: str, connection: connector.connection) -> pd.DataFrame:
     """
     Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
     `DataFrame` object. This is a higher level version of `query_server` where the object returned is the cursor
@@ -29,7 +32,4 @@ def pandas_read_sql(repo: Dolt, query: str, connection: connector.connection) ->
     :param connection:
     :return:
     """
-    if repo.server is None:
-        raise Exception("MySQL server not started.")
-
     return pd.read_sql(query, con=connection)

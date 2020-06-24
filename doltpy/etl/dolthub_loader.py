@@ -1,12 +1,11 @@
-import argparse
 from doltpy.core import Dolt
 import os
 import tempfile
-from doltpy.etl.loaders import resolve_function, DoltLoaderBuilder
-import logging
-from doltpy.etl.cli_logging_config_helper import config_cli_logger
+from doltpy.etl.loaders import DoltLoaderBuilder
+from doltpy.core.system_helpers import get_logger
 
-logger = logging.getLogger(__name__)
+
+logger = get_logger(__name__)
 
 
 def loader(loader_builder: DoltLoaderBuilder,
@@ -57,32 +56,3 @@ def loader(loader_builder: DoltLoaderBuilder,
             if push:
                 logger.info('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
                 repo.push(remote_name, branch)
-
-
-def main():
-    """
-    Used as a function backing shim for surfacing command line tool.
-    :return:
-    """
-    config_cli_logger()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('dolt_load_module', help='Fully qualified path to a module providing a set of loaders')
-    parser.add_argument('--dolt-dir', type=str, help='The directory of the Dolt repo being loaded to')
-    parser.add_argument('--clone', action='store_true', help='Clone the remote to the local machine')
-    parser.add_argument('--remote-url', type=str, help='DoltHub remote being used', required=True)
-    parser.add_argument('--remote-name', type=str, default='origin', help='Alias for remote, default is origin')
-    parser.add_argument('--push', action='store_true', help='Push changes to remote, must specify arg --remote')
-    parser.add_argument('--dry-run', action='store_true', help="Print out parameters, but don't do anything")
-    args = parser.parse_args()
-    logger.info('Resolving loaders for module path {}'.format(args.dolt_load_module))
-    loader(loader_builder=resolve_function(args.dolt_load_module),
-           dolt_dir=args.dolt_dir,
-           clone=args.clone,
-           push=args.push,
-           remote_name=args.remote_name,
-           dry_run=args.dry_run,
-           remote_url=args.remote_url)
-
-
-if __name__ == '__main__':
-    main()

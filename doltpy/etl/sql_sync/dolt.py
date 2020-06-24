@@ -1,4 +1,4 @@
-from doltpy.core import Dolt
+from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
 from doltpy.etl.sql_sync.db_tools import (write_to_table as write_to_table_helper,
                                           drop_primary_keys,
                                           get_filters,
@@ -18,7 +18,12 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
+def get_target_writer(repo: Dolt,
+                      branch: str = None,
+                      commit: bool = True,
+                      message: str = None,
+                      dolt_server_host: str = DEFAULT_HOST,
+                      dolt_server_port: int = DEFAULT_PORT) -> DoltAsTargetWriter:
     """
     Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
     message or generates a standard one.
@@ -26,6 +31,8 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
     :param branch:
     :param commit:
     :param message:
+    :param dolt_server_host:
+    :param dolt_server_port:
     :return:
     """
     def inner(table_data_map: DoltAsTargetUpdate):
@@ -33,7 +40,7 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        conn = repo.get_connection()
+        conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
 
         for table, table_update in table_data_map.items():
             table_metadata = get_mysql_table_metadata(table, conn)
@@ -107,12 +114,17 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]
     return inner
 
 
-def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
+def get_table_reader_diffs(commit_ref: str = None,
+                           branch: str = None,
+                           dolt_server_host: str = DEFAULT_HOST,
+                           dolt_server_port: int = DEFAULT_PORT) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the diff from a commit and/or branch, defaults to the HEAD of the current branch if
     neither are provided.
     :param commit_ref:
-    :param branch
+    :param branch:
+    :param dolt_server_host:
+    :param dolt_server_port:
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
@@ -121,7 +133,7 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        connection = repo.get_connection()
+        connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
         table_metadata = get_mysql_table_metadata(table_name, connection)
         pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
         result = _read_from_dolt_diff(table_metadata, connection, from_commit, to_commit)
@@ -183,18 +195,23 @@ def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, 
     return commits[commit_ref_index + 1], commits[commit_ref_index]
 
 
-def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
+def get_table_reader(commit_ref: str = None,
+                     branch: str = None,
+                     dolt_server_host: str = DEFAULT_HOST,
+                     dolt_server_port: int = DEFAULT_PORT) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the entire table at a commit and/or branch, and returns the data.
     :param commit_ref:
     :param branch:
+    :param dolt_server_host:
+    :param dolt_server_port:
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
         if branch and branch != repo.log():
             repo.checkout(branch)
 
-        connection = repo.get_connection()
+        connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
         query_commit = commit_ref or list(repo.log().keys())[0]
         table_metadata = get_mysql_table_metadata(table_name, connection)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
@@ -247,7 +264,9 @@ def write_to_table(repo: Dolt,
                    table_name: str,
                    data: List[tuple],
                    commit: bool = False,
-                   message: str = None):
+                   message: str = None,
+                   dolt_server_host: str = DEFAULT_HOST,
+                   dolt_server_port: int = DEFAULT_PORT):
     """
     Given a repo, table, and data, will try and use the repo's MySQL Server instance to write the provided data to the
     table. Since Dolt does not yet support ON DUPLICATE KEY clause to INSERT statements we also have to separate
@@ -257,9 +276,11 @@ def write_to_table(repo: Dolt,
     :param data:
     :param commit:
     :param message:
+    :param dolt_server_host:
+    :param dolt_server_port:
     :return:
     """
-    connection = repo.get_connection()
+    connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
     table_metadata = get_mysql_table_metadata(table_name, connection)
     inserts, updates = get_inserts_and_updates(connection, table_metadata, data)
     if inserts:
