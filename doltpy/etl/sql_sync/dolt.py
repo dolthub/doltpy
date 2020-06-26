@@ -84,7 +84,7 @@ def get_existing_pks(conn: MySQLConnection, table_metadata: TableMetadata, pks: 
             {pk_list}
         FROM
             {table_name}
-    '''.format(pk_list=','.join(pks), table_name=table_metadata.name)
+    '''.format(pk_list=','.join('`{}`'.format(pk) for pk in pks), table_name=table_metadata.name)
     return _query_helper(conn, query)
 
 
@@ -163,7 +163,7 @@ def get_dropped_pks(table_metadata: TableMetadata, conn, from_commit: str, to_co
             from_commit = '{from_commit}'
             AND to_commit = '{to_commit}'
             AND diff_type = 'removed'
-    '''.format(pks=','.join(['from_{}'.format(pk) for pk in pks]),
+    '''.format(pks=','.join(['`from_{}`'.format(pk) for pk in pks]),
                table_name=table_metadata.name,
                from_commit=from_commit,
                to_commit=to_commit)
@@ -233,7 +233,7 @@ def _read_from_dolt_diff(table_metadata: TableMetadata, conn: MySQLConnection, f
             from_commit = '{from_commit}'
             AND to_commit = '{to_commit}'
             AND diff_type != 'removed'
-    '''.format(columns=','.join(['to_{}'.format(col.col_name) for col in table_metadata.columns]),
+    '''.format(columns=','.join(['`to_{}`'.format(col.col_name) for col in table_metadata.columns]),
                table_name=table_metadata.name,
                from_commit=from_commit,
                to_commit=to_commit)
@@ -248,7 +248,7 @@ def _read_from_dolt_history(table_metadata: TableMetadata, conn: MySQLConnection
             dolt_history_{table_name}
         WHERE
             commit_hash = '{commit_ref}'
-    '''.format(columns=','.join(col.col_name for col in table_metadata.columns),
+    '''.format(columns=','.join('`{}`'.format(col.col_name) for col in table_metadata.columns),
                table_name=table_metadata.name,
                commit_ref=commit_ref)
     return _query_helper(conn, query)
@@ -326,7 +326,7 @@ def update_rows(connection: MySQLConnection, table_metadata: TableMetadata,  dat
         WHERE
             {pk_filter}
     '''
-    update_assignments = ','.join('{} = %s'.format(col.col_name) for col in table_metadata.columns if not col.key)
+    update_assignments = ','.join('`{}` = %s'.format(col.col_name) for col in table_metadata.columns if not col.key)
     pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
 
     pk_filter = get_filters(list(pk_cols_to_index.keys()))

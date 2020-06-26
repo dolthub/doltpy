@@ -101,7 +101,8 @@ def get_table_reader():
                 {cols}
             FROM
                 {table_name}
-        '''.format(cols=','.join(col.col_name for col in table_metadata.columns), table_name=table_metadata.name)
+        '''.format(cols=','.join('`{}`'.format(col.col_name) for col in table_metadata.columns),
+                   table_name=table_metadata.name)
         cursor = conn.cursor()
         cursor.execute(query)
         return [tup for tup in cursor]
@@ -165,10 +166,10 @@ def get_filters(cols: List[str]):
     :return:
     """
     if len(cols) == 1:
-        delete_clause = '{col} = %s'.format(col=cols[0])
+        delete_clause = '`{col}` = %s'.format(col=cols[0])
     else:
-        base_delete_clause = '{first_col} = %s AND {rest_cols}'
-        rest_cols = 'AND '.join(['{} = %s'.format(col) for col in cols[1:]])
+        base_delete_clause = '`{first_col}` = %s AND {rest_cols}'
+        rest_cols = 'AND '.join(['`{}` = %s'.format(col) for col in cols[1:]])
         delete_clause = base_delete_clause.format(first_col=cols[0], rest_cols=rest_cols)
 
     return delete_clause

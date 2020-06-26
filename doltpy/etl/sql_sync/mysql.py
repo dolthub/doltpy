@@ -70,14 +70,14 @@ def get_insert_query(table_metadata: TableMetadata, update_on_duplicate: bool = 
             {cols}
         ) VALUES ({col_value_wild_cards})
     '''.format(table_name=table_metadata.name,
-               cols=','.join(col_list),
+               cols=','.join('`{}`'.format(col) for col in col_list),
                col_value_wild_cards=','.join(wildcard_list))
 
     if update_on_duplicate:
         update_clause = '''
         ON DUPLICATE KEY UPDATE
             {update_list}
-        '''.format(update_list=','.join(['{} = VALUES({})'.format(col, col) for col in col_list]))
+        '''.format(update_list=','.join(['`{}` = VALUES(`{}`)'.format(col, col) for col in col_list]))
         return base_query + update_clause
     else:
         return base_query
