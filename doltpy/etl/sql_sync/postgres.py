@@ -94,7 +94,7 @@ def get_insert_query(table_metadata: TableMetadata, update_on_duplicate: bool = 
         update_clause = '''
         ON CONFLICT ({pks}) DO UPDATE 
             SET {update_list}
-        '''.format(pks=','.join(col.col_name for col in table_metadata.columns if col.key),
+        '''.format(pks=','.join('`{}`'.format(col.col_name) for col in table_metadata.columns if col.key),
                    update_list=','.join(['{} = excluded.{}'.format(col, col) for col in col_list]))
         return base_query + update_clause
     else:
