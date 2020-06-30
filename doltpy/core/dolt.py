@@ -6,7 +6,7 @@ from collections import OrderedDict
 from retry import retry
 from mysql import connector
 
-from doltpy.core.system_helpers import get_logger
+from doltpy.core.system_helpers import get_logger, SQL_LOG_FILE
 
 logger = get_logger(__name__)
 
@@ -345,10 +345,13 @@ class Dolt:
             if self.server is not None:
                 logger.warning('Server already running')
 
+            log_file = SQL_LOG_FILE or os.path.join(self.repo_dir(), 'mysql_server.log')
+
             proc = Popen(args=['dolt'] + server_args,
                          cwd=self.repo_dir(),
-                         stdout=open(os.path.join(self.repo_dir(), 'mysql_server.log'), 'w'),
+                         stdout=open(log_file, 'w'),
                          stderr=STDOUT)
+
             self.server = proc
 
         args = ['sql-server']
