@@ -6,7 +6,6 @@ from doltpy.core.read import read_table
 from doltpy.core.system_helpers import get_logger
 import pandas as pd
 import hashlib
-import importlib
 import itertools
 import tempfile
 
@@ -19,7 +18,6 @@ FileTransformer = Callable[[io.StringIO], io.StringIO]
 logger = get_logger(__name__)
 INSERTED_ROW_HASH_COL = 'hash_id'
 INSERTED_COUNT_COL = 'count'
-
 
 
 def _apply_df_transformers(data: pd.DataFrame, transformers: List[DataframeTransformer]) -> pd.DataFrame:

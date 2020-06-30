@@ -1,4 +1,5 @@
 from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
+from doltpy.core.system_helpers import get_logger
 from doltpy.etl.sql_sync.db_tools import (write_to_table as write_to_table_helper,
                                           drop_primary_keys,
                                           get_filters,
@@ -10,12 +11,11 @@ from doltpy.etl.sql_sync.db_tools import (write_to_table as write_to_table_helpe
                                           DoltAsTargetUpdate)
 from doltpy.etl.sql_sync.mysql import (get_table_metadata as get_mysql_table_metadata,
                                        get_insert_query as get_mysql_insert_query)
-import logging
 from typing import List, Callable, Tuple
 from mysql.connector.connection import MySQLConnection
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_target_writer(repo: Dolt,

@@ -1,7 +1,7 @@
-import logging
 from typing import Tuple, Iterable, Mapping, Callable, List, Any
+from doltpy.core.system_helpers import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Types that reflect the different nature of the syncs
 DoltTableUpdate = Tuple[Iterable[tuple], Iterable[tuple]]

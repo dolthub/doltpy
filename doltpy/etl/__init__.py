@@ -12,3 +12,6 @@ from .loaders import (get_df_table_writer,
                       DoltTableWriter,
                       DoltLoader,
                       DoltLoaderBuilder)
+from ..core.system_helpers import register_cleanup
+
+register_cleanup()
