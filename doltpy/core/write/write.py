@@ -165,8 +165,10 @@ def import_dict(repo: Dolt,
     conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
     for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
         cursor = conn.cursor()
-        chunk = tuple_list[i*chunk_size:min((i+1)*chunk_size, len(tuple_list))]
-        logger.info('Writing chunk of {} rows to Dolt'.format(len(chunk)))
+        cursor.execute('set profiling = 1')
+        chunk_start, chunk_end = i * chunk_size, min((i+1) * chunk_size, len(tuple_list))
+        chunk = tuple_list[chunk_start:chunk_end]
+        logger.info('Writing records {} through {} of {} rows to Dolt'.format(chunk_start, chunk_end, len(tuple_list)))
         cursor.executemany(insert_statement, chunk)
         conn.commit()
 

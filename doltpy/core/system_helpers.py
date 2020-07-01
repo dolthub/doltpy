@@ -4,6 +4,7 @@ import psutil
 
 LOG_LEVEL = logging.INFO
 HANDLERS = []
+SQL_LOG_FILE = None
 
 logging.basicConfig(level=LOG_LEVEL,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',

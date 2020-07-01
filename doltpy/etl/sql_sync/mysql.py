@@ -1,6 +1,5 @@
-from typing import List, Callable
+from typing import Callable
 from mysql.connector.connection import MySQLConnection
-import logging
 from doltpy.etl.sql_sync.db_tools import (TableMetadata,
                                           Column,
                                           DoltAsSourceWriter,
@@ -10,8 +9,9 @@ from doltpy.etl.sql_sync.db_tools import (TableMetadata,
                                           build_source_reader,
                                           get_table_reader,
                                           get_insertion_lists)
+from doltpy.core.system_helpers import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_target_writer(conn: MySQLConnection, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
