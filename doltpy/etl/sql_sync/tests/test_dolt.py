@@ -1,6 +1,4 @@
-from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
-                                                           TEST_TABLE_METADATA,
-                                                           assert_tuple_array_equality,
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (assert_tuple_array_equality,
                                                            get_expected_data,
                                                            get_expected_dolt_diffs,
                                                            FIRST_UPDATE,
@@ -14,7 +12,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            TEST_DATA_UPDATE_SINGLE_ROW)
 from doltpy.etl.sql_sync.tests.helpers.tools import validate_get_table_metadata
 from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
-from doltpy.etl.sql_sync.mysql import get_table_metadata
+from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from doltpy.core.dolt import Dolt
 import logging
 
@@ -92,19 +90,11 @@ def test_get_target_writer(repo_with_table):
 
 
 def _dolt_table_read_helper(repo: Dolt, table_name: str):
-    conn = repo.get_connection()
-    table_metadata = get_table_metadata(table_name, conn)
-    cursor = conn.cursor()
-    query = '''
-        SELECT
-            {cols}
-        FROM
-            {table_name}
-    '''.format(cols=','.join(col.col_name for col in table_metadata.columns), table_name=table_name)
-    cursor.execute(query)
-    result = [tup for tup in cursor]
-    conn.close()
-    return result
+    engine = repo.get_connection()
+    table = get_table_metadata(engine, table_name)
+    with engine.connect() as conn:
+        result = conn.execute(table.select())
+        return [row for row in result]
 
 
 def test_get_table_metadata(create_dolt_test_data_commits):

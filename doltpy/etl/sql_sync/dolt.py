@@ -1,19 +1,16 @@
 from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
 from doltpy.core.system_helpers import get_logger
-from doltpy.etl.sql_sync.db_tools import (write_to_table as write_to_table_helper,
-                                          drop_primary_keys,
-                                          get_filters,
+from doltpy.etl.sql_sync.db_tools import (get_table_metadata,
                                           DoltAsTargetWriter,
-                                          TableMetadata,
                                           DoltTableUpdate,
                                           DoltAsSourceReader,
                                           DoltAsSourceUpdate,
                                           DoltAsTargetUpdate)
-from doltpy.etl.sql_sync.mysql import (get_table_metadata as get_mysql_table_metadata,
-                                       get_insert_query as get_mysql_insert_query)
 from typing import List, Callable, Tuple
 from mysql.connector.connection import MySQLConnection
 from datetime import datetime
+from sqlalchemy.engine import Engine
+from sqlalchemy import Table, MetaData, update
 
 logger = get_logger(__name__)
 
@@ -40,16 +37,13 @@ def get_target_writer(repo: Dolt,
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
 
-        for table, table_update in table_data_map.items():
-            table_metadata = get_mysql_table_metadata(table, conn)
+        for table_name, table_update in table_data_map.items():
+            table = get_table_metadata(engine, table_name)
             data = table_update
-            drop_missing_pks(conn, table_metadata, list(data))
-            conn.close()
+            drop_missing_pks(engine, table, list(data))
             write_to_table(repo, table, list(data), False)
-
-        conn.close()
 
         if commit:
             for table, _ in table_data_map.items():
@@ -60,32 +54,27 @@ def get_target_writer(repo: Dolt,
     return inner
 
 
-def drop_missing_pks(conn: MySQLConnection, table_metadata: TableMetadata, data: List[tuple]):
+def drop_missing_pks(engine: Engine, table: Table, data: List[dict]):
     """
     This a very basic n-squared implementation for dropping the primary keys present in Dolt that have been dropped in
     the target database.
-    :param conn:
-    :param table_metadata:
+    :param engine:
+    :param table:
     :param data:
     :return:
     """
-    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
-    pk_cols = sorted([pk_col_name for pk_col_name in pk_cols_to_index.keys()])
-    existing_pks = get_existing_pks(conn, table_metadata, pk_cols)
-    proposed_pks = [tuple(proposed_row[i] for _, i in pk_cols_to_index.items()) for proposed_row in data]
+    existing_pks = get_existing_pks(engine, table)
+    pk_cols = [col.name for col in table.columns if col.primary_key]
+    proposed_pks = set({pk_col: row[pk_col] for pk_col in pk_cols} for row in data)
     pks_to_drop = [existing_pk for existing_pk in existing_pks if existing_pk not in proposed_pks]
-    drop_primary_keys(conn, table_metadata, pks_to_drop)
+    with engine.connect() as conn:
+        conn.execute(table.delete(), pks_to_drop)
 
 
-def get_existing_pks(conn: MySQLConnection, table_metadata: TableMetadata, pks: List[str]):
-    query = '''
-    
-        SELECT
-            {pk_list}
-        FROM
-            {table_name}
-    '''.format(pk_list=','.join('`{}`'.format(pk) for pk in pks), table_name=table_metadata.name)
-    return _query_helper(conn, query)
+def get_existing_pks(engine: Engine, table: Table) -> List[dict]:
+    with engine.connect() as conn:
+        result = conn.execute(table.select(columns=[col.name for col in table.columns if col.primary_key]))
+        return result
 
 
 def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]) -> DoltAsSourceReader:
@@ -133,27 +122,26 @@ def get_table_reader_diffs(commit_ref: str = None,
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
-        table_metadata = get_mysql_table_metadata(table_name, connection)
-        pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
-        result = _read_from_dolt_diff(table_metadata, connection, from_commit, to_commit)
-        connection.close()
+        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        table_metadata = get_table_metadata(engine, table_name)
+        pks_to_drop = get_dropped_pks(engine, table_metadata, from_commit, to_commit)
+        result = _read_from_dolt_diff(engine, table_metadata, from_commit, to_commit)
         return pks_to_drop, result
 
     return inner
 
 
-def get_dropped_pks(table_metadata: TableMetadata, conn, from_commit: str, to_commit: str) -> List[tuple]:
+def get_dropped_pks(engine: Engine, table: Table, from_commit: str, to_commit: str) -> List[dict]:
     """
     Given table_metadata, a connection, and a pair of commits, will return the list of pks that were dropped between
     the two commits.
-    :param table_metadata:
-    :param conn:
+    :param engine:
+    :param table:
     :param from_commit:
     :param to_commit:
     :return:
     """
-    pks = [col.col_name for col in table_metadata.columns if col.key]
+    pks = [col.name for col in table.columns if col.primary_key]
     query = '''
         SELECT
             {pks}
@@ -164,14 +152,13 @@ def get_dropped_pks(table_metadata: TableMetadata, conn, from_commit: str, to_co
             AND to_commit = '{to_commit}'
             AND diff_type = 'removed'
     '''.format(pks=','.join(['`from_{}`'.format(pk) for pk in pks]),
-               table_name=table_metadata.name,
+               table_name=table.name,
                from_commit=from_commit,
                to_commit=to_commit)
 
-    cursor = conn.cursor()
-    cursor.execute(query)
-    result = [tup for tup in cursor]
-    return result
+    with engine.connect() as conn:
+        result = conn.execute(query)
+        return [row for row in result]
 
 
 def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, str]:
@@ -211,19 +198,18 @@ def get_table_reader(commit_ref: str = None,
         if branch and branch != repo.log():
             repo.checkout(branch)
 
-        connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
         query_commit = commit_ref or list(repo.log().keys())[0]
-        table_metadata = get_mysql_table_metadata(table_name, connection)
+        table = get_table_metadata(engine, table_name)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
-        pks_to_drop = get_dropped_pks(table_metadata, connection, from_commit, to_commit)
-        result = _read_from_dolt_history(table_metadata, connection, query_commit)
-        connection.close()
+        pks_to_drop = get_dropped_pks(engine, table, from_commit, to_commit)
+        result = _read_from_dolt_history(engine, table, query_commit)
         return pks_to_drop, result
 
     return inner
 
 
-def _read_from_dolt_diff(table_metadata: TableMetadata, conn: MySQLConnection, from_commit: str, to_commit: str):
+def _read_from_dolt_diff(engine: Engine, table: Table, from_commit: str, to_commit: str) -> List[dict]:
     query = '''
         SELECT
             {columns}
@@ -233,14 +219,17 @@ def _read_from_dolt_diff(table_metadata: TableMetadata, conn: MySQLConnection, f
             from_commit = '{from_commit}'
             AND to_commit = '{to_commit}'
             AND diff_type != 'removed'
-    '''.format(columns=','.join(['`to_{}`'.format(col.col_name) for col in table_metadata.columns]),
-               table_name=table_metadata.name,
+    '''.format(columns=','.join(['`to_{}`'.format(col.name) for col in table.columns]),
+               table_name=table.name,
                from_commit=from_commit,
                to_commit=to_commit)
-    return _query_helper(conn, query)
+
+    with engine.connect() as conn:
+        result = conn.execute(query)
+        return [row for row in result]
 
 
-def _read_from_dolt_history(table_metadata: TableMetadata, conn: MySQLConnection, commit_ref: str):
+def _read_from_dolt_history(engine: Engine, table: Table, commit_ref: str) -> List[dict]:
     query = '''
         SELECT
             {columns}
@@ -248,21 +237,18 @@ def _read_from_dolt_history(table_metadata: TableMetadata, conn: MySQLConnection
             dolt_history_{table_name}
         WHERE
             commit_hash = '{commit_ref}'
-    '''.format(columns=','.join('`{}`'.format(col.col_name) for col in table_metadata.columns),
-               table_name=table_metadata.name,
+    '''.format(columns=','.join('`{}`'.format(col.name) for col in table.columns),
+               table_name=table.name,
                commit_ref=commit_ref)
-    return _query_helper(conn, query)
 
-
-def _query_helper(conn, query):
-    cursor = conn.cursor()
-    cursor.execute(query)
-    return [tup for tup in cursor]
+    with engine.connect() as conn:
+        result = conn.execute(query)
+        return [row for row in result]
 
 
 def write_to_table(repo: Dolt,
                    table_name: str,
-                   data: List[tuple],
+                   data: List[dict],
                    commit: bool = False,
                    message: str = None,
                    dolt_server_host: str = DEFAULT_HOST,
@@ -280,32 +266,31 @@ def write_to_table(repo: Dolt,
     :param dolt_server_port:
     :return:
     """
-    connection = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
-    table_metadata = get_mysql_table_metadata(table_name, connection)
-    inserts, updates = get_inserts_and_updates(connection, table_metadata, data)
+    engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+    table = get_table_metadata(engine, table_name)
+    inserts, updates = get_inserts_and_updates(engine, table, data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
-        write_to_table_helper(connection, table_metadata, get_mysql_insert_query, inserts, update_on_duplicate=False)
+        with engine.connect() as conn:
+            conn.execute(table.insert(), inserts)
+
     if updates:
         logger.info('Updating {} rows'.format(len(updates)))
-        update_rows(connection, table_metadata, updates)
-    connection.close()
+        with engine.connect() as conn:
+            conn.execute(table.update(), updates)
+
     if commit:
-        repo.add(table_metadata.name)
+        repo.add(table.name)
         message = message or 'Inserting {} records at '.format(len(data), datetime.now())
         repo.commit(message)
 
 
-def get_inserts_and_updates(connection: MySQLConnection,
-                            table_metadata: TableMetadata,
-                            data: List[tuple]) -> Tuple[List[tuple], List[tuple]]:
-    existing_pks = get_existing_pks(connection,
-                                    table_metadata,
-                                    sorted(col.col_name for col in table_metadata.columns if col.key))
+def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> Tuple[List[dict], List[dict]]:
+    existing_pks = get_existing_pks(engine, table)
     if not existing_pks:
         return data, []
 
-    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
+    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table.columns) if col.primary_key}
     inserts, updates = [], []
     for row in data:
         row_pk = tuple(row[i] for _, i in pk_cols_to_index.items())
@@ -315,31 +300,3 @@ def get_inserts_and_updates(connection: MySQLConnection,
             inserts.append(row)
 
     return inserts, updates
-
-
-def update_rows(connection: MySQLConnection, table_metadata: TableMetadata,  data: List[tuple]):
-    query_template = '''
-        UPDATE
-            {table_name}
-        SET
-            {update_assignments}
-        WHERE
-            {pk_filter}
-    '''
-    update_assignments = ','.join('`{}` = %s'.format(col.col_name) for col in table_metadata.columns if not col.key)
-    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table_metadata.columns) if col.key}
-
-    pk_filter = get_filters(list(pk_cols_to_index.keys()))
-    query = query_template.format(table_name=table_metadata.name,
-                                  update_assignments=update_assignments,
-                                  pk_filter=pk_filter)
-
-    rows_with_pks = []
-    non_pk_cols_to_index = [i for i, col in enumerate(table_metadata.columns) if not col.key]
-    for row in data:
-        combined = tuple([row[i] for i in non_pk_cols_to_index] + [row[i] for _, i in pk_cols_to_index.items()])
-        rows_with_pks.append(combined)
-
-    cursor = connection.cursor()
-    cursor.executemany(query, rows_with_pks)
-    connection.commit()

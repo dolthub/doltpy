@@ -1,5 +1,4 @@
-from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
-                                                           TEST_TABLE_METADATA,
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_METADATA,
                                                            TEST_DATA_INITIAL,
                                                            TEST_DATA_APPEND_SINGLE_ROW,
                                                            TEST_DATA_APPEND_MULTIPLE_ROWS,
@@ -12,16 +11,18 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_COLUMNS,
                                                            THIRD_UPDATE,
                                                            FOURTH_UPDATE,
                                                            get_expected_data)
-from doltpy.etl.sql_sync.db_tools import write_to_table, drop_primary_keys
 from doltpy.etl.sql_sync.dolt import (get_source_reader as get_dolt_source_reader,
                                       get_target_writer as get_dolt_target_writer,
                                       get_table_reader_diffs as get_dolt_table_reader_diffs,
                                       get_table_reader as get_dolt_table_reader)
 from doltpy.etl.sql_sync.sync_tools import sync_to_dolt, sync_from_dolt
+from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from typing import List
+from sqlalchemy.engine import Engine
+from sqlalchemy import Table
 
 
-def validate_get_table_metadata(db_conn, db_table, table_metadata_builder):
+def validate_get_table_metadata(engine: Engine, table_name: str):
     """
     Verify that get_table_metadata correctly constructs the metadata associated with the test table. We manually build
     that metadata in helpers/data_helper.py to verify this.
@@ -30,27 +31,24 @@ def validate_get_table_metadata(db_conn, db_table, table_metadata_builder):
     :param table_metadata_builder:
     :return:
     """
-    result = table_metadata_builder(db_table, db_conn)
-    expected_columns = sorted(TEST_TABLE_COLUMNS, key=lambda col: col.col_name)
+    result = get_table_metadata(engine, table_name)
+    expected_columns = sorted(TEST_TABLE_METADATA.columns, key=lambda col: col.name)
     assert TEST_TABLE_METADATA.name == result.name
     assert len(expected_columns) == len(result.columns)
-    assert all(left.col_name == right.col_name for left, right in zip(expected_columns, result.columns))
+    assert all(left.col_name == right.name for left, right in zip(expected_columns, result.columns))
 
 
-def validate_write_to_table(db_conn, db_table, table_metadata_builder, insert_query_builder):
+def validate_write_to_table(engine: Engine, table: Table):
     """
     Ensure that writes using our write wrapper correctly show up in a relational database server.
-    :param db_conn:
-    :param db_table:
-    :param table_metadata_builder:
-    :param insert_query_builder:
+    :param engine:
+    :param table:
     :return:
     """
-    table_metadata = table_metadata_builder(db_table, db_conn)
-
-    def _write_and_diff_helper(data, update_num):
-        write_to_table(db_conn, table_metadata, insert_query_builder, data)
-        result = get_data_for_comparison(db_conn)
+    def _write_and_diff_helper(data: List[dict], update_num: int):
+        with engine.connect() as conn:
+            conn.execute(table.insert(), data)
+        result = get_data_for_comparison(engine)
         _, expected_data = get_expected_data(update_num)
         assert_tuple_array_equality(expected_data, result)
 
@@ -60,21 +58,22 @@ def validate_write_to_table(db_conn, db_table, table_metadata_builder, insert_qu
     _write_and_diff_helper(TEST_DATA_UPDATE_SINGLE_ROW, FOURTH_UPDATE)
 
 
-def validate_drop_primary_keys(db_conn, db_table, table_metadata_builder, insert_query_builder):
+def validate_drop_primary_keys(engine: Engine, table: Table):
     """
     Verify that dropping a primary key from using drop_primary_keys leaves a relational database in the required state.
-    :param db_conn:
-    :param db_table:
-    :param table_metadata_builder:
-    :param insert_query_builder:
+    :param engine:
+    :param table:
     :return:
     """
-    table_metadata = table_metadata_builder(db_table, db_conn)
 
-    write_to_table(db_conn, table_metadata, insert_query_builder, TEST_DATA_APPEND_MULTIPLE_ROWS)
-    pks_to_drop = [('Stefanos', 'Tsitsipas')]
-    drop_primary_keys(db_conn, table_metadata, pks_to_drop)
-    result = get_data_for_comparison(db_conn)
+    with engine.connect() as conn:
+        conn.execute(table.insert(), TEST_DATA_APPEND_MULTIPLE_ROWS)
+
+    pks_to_drop = [{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}]
+    with engine.connect() as conn:
+        conn.execute(table.delete(), pks_to_drop)
+
+    result = get_data_for_comparison(engine)
     assert_tuple_array_equality(TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE, result)
 
 
@@ -102,7 +101,7 @@ def validate_dolt_as_target(db_conn,
     :return:
     """
 
-    db_table_metadata = get_db_table_metadata(db_table, db_conn)
+    db_table_metadata = get_db_table_metadata(db_conn, db_table)
 
     def sync_to_dolt_helper():
         source_reader = get_db_source_reader(db_conn, get_db_table_reader())

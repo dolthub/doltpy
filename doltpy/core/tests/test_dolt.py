@@ -8,7 +8,10 @@ import uuid
 import os
 from typing import Tuple
 from doltpy.core.tests.helpers import get_repo_path_tmp_path
-
+from sqlalchemy.engine import Engine
+import sqlalchemy
+from retry import retry
+from retry.api import retry_call
 
 @pytest.fixture
 def create_test_data(tmp_path) -> str:
@@ -115,8 +118,8 @@ def test_sql_server(create_test_table, run_serve_mode):
     :return:
     """
     repo, test_table = create_test_table
-    connection = run_serve_mode
-    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), connection)
+    engine = run_serve_mode
+    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), engine)
     assert list(data['id']) == [1, 2]
 
 
@@ -126,51 +129,23 @@ def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_t
     is running, not another repos MySQL server instance.
     :return:
     """
-    def get_databases(conn):
-        cursor = conn.cursor()
-        cursor.execute('SHOW DATABASES')
-        res = [tup[0] for tup in cursor]
-        return res
+    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    def get_databases(engine: Engine):
+        with engine.connect() as conn:
+            result = conn.execute('SHOW DATABASES')
+            return [tup[0] for tup in result]
 
     repo, test_table = create_test_table
-    repo_conn = run_serve_mode
+    repo_engine = run_serve_mode
     other_repo = init_other_empty_test_repo
     other_repo.sql_server(port=3307)
-    other_repo_conn = other_repo.get_connection(port=3307)
+    other_repo_engine = other_repo.get_engine(port=3307)
 
-    repo_databases = get_databases(repo_conn)
-    other_repo_databases = get_databases(other_repo_conn)
+    repo_databases = get_databases(repo_engine)
+    other_repo_databases = get_databases(other_repo_engine)
 
     assert {'information_schema', repo.repo_name} == set(repo_databases)
     assert {'information_schema', other_repo.repo_name} == set(other_repo_databases)
-
-
-def test_get_connection_no_server(create_test_table):
-    """
-    Tests that in the event we call get_connection without the server running we get the expected exception.
-    :param create_test_table:
-    :return:
-    """
-    repo, test_table = create_test_table
-    with pytest.raises(DoltServerNotRunningException):
-        repo.get_connection()
-
-
-def test_get_connection_wrong_port(run_serve_mode, init_other_empty_test_repo):
-    """
-    Tests that in the event we call get_connection with the wrong port, we will get the expected exception, that is the
-    library reports to the user they are trying to connect to the wrong database, rather than just spitting out the
-    MySQL Connector error.
-    :param run_serve_mode:
-    :param init_other_empty_test_repo:
-    :return:
-    """
-    _ = run_serve_mode
-    other_repo = init_other_empty_test_repo
-    other_repo.sql_server(port=3307)
-
-    with pytest.raises(DoltWrongServerException):
-        other_repo.get_connection(port=3306)
 
 
 def test_branch(create_test_table):

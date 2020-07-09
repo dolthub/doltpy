@@ -2,7 +2,10 @@ import logging
 import atexit
 import psutil
 
-LOG_LEVEL = logging.INFO
+
+LOG_LEVEL = logging.WARN
+logger = logging.getLogger()
+logger.setLevel(LOG_LEVEL)
 HANDLERS = []
 SQL_LOG_FILE = None
 
@@ -22,7 +25,6 @@ def get_logger(name: str):
     for handler in HANDLERS:
         logger.addHandler(handler)
 
-    logger.setLevel(LOG_LEVEL)
     return logger
 
 

@@ -5,7 +5,10 @@ import logging
 import io
 import tempfile
 from datetime import datetime
+from sqlalchemy import String, DateTime, Integer, Float, Table, MetaData, Column
+from sqlalchemy.engine import Engine
 import math
+
 
 logger = logging.getLogger(__name__)
 
@@ -146,41 +149,33 @@ def import_dict(repo: Dolt,
     assert row_count > 0, 'Must provide at least a single row'
     assert all(len(val_list) == row_count for val_list in data.values()), 'Must provide value lists of uniform length'
 
+    # Get an Engine object
+    engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
+
     # If the table does not exist, create it using type inference to build a create statement
     if import_mode == CREATE:
         assert primary_keys, 'primary_keys need to be provided when inferring a schema'
-        _create_table_inferred(repo, table_name, data, primary_keys, dolt_server_host, dolt_server_port)
+        _create_table_inferred(engine, table_name, data, primary_keys)
 
     # Now transform the data to lists of tuples, where the elements are in the same order as the
     # columns when sorted lexicographically
-    sorted_cols = sorted(data.keys())
-    tuple_list = []
+    # sorted_cols = sorted(data.keys())
+    rows = []
     for i in range(row_count):
-        tuple_list.append(tuple([data[col][i] for col in sorted_cols]))
+        rows.append({col: data[col][i] for col in data.keys()})
 
-    insert_statement = _get_insert_statement(table_name, sorted_cols)
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
-
-    conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
-    for i in range(max(1, math.ceil(len(tuple_list) / chunk_size))):
-        cursor = conn.cursor()
-        cursor.execute('set profiling = 1')
-        chunk_start, chunk_end = i * chunk_size, min((i+1) * chunk_size, len(tuple_list))
-        chunk = tuple_list[chunk_start:chunk_end]
-        logger.info('Writing records {} through {} of {} rows to Dolt'.format(chunk_start, chunk_end, len(tuple_list)))
-        cursor.executemany(insert_statement, chunk)
-        conn.commit()
-
-    conn.close()
+    table = MetaData(bind=engine).tables[table_name]
+    for i in range(max(1, math.ceil(len(rows) / chunk_size))):
+        chunk_start, chunk_end = i * chunk_size, min((i+1) * chunk_size, len(rows))
+        chunk = rows[chunk_start:chunk_end]
+        logger.info('Writing records {} through {} of {} rows to Dolt'.format(chunk_start, chunk_end, len(rows)))
+        with engine.connect() as conn:
+            conn.execute(table.insert(), chunk)
 
 
-def _create_table_inferred(repo: Dolt,
-                           table_name: str,
-                           data: Mapping[str, List[Any]],
-                           primary_keys: List[str],
-                           dolt_server_host: str,
-                           dolt_server_port: int):
+def _create_table_inferred(engine: Engine, table_name: str, data: Mapping[str, List[Any]], primary_keys: List[str]):
     # generate and execute a create table statement
     cols_to_types = {}
     for col_name, list_of_values in data.items():
@@ -193,46 +188,29 @@ def _create_table_inferred(repo: Dolt,
             raise ValueError('Cannot provide an empty list, types cannot be inferred')
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
-    conn = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
-    query = _get_create_table_helper(table_name, cols_to_types, primary_keys)
-    cursor = conn.cursor()
-    cursor.execute(query)
-    conn.commit()
-    conn.close()
+    metadata = MetaData(bind=engine)
+    table = _get_table_def(metadata, table_name, cols_to_types, primary_keys)
+    table.create()
 
 
+# change these into SQL Alchemy types
 def _get_col_type(sample_value: Any, values: Any):
     if type(sample_value) == str:
-        return 'VARCHAR({})'.format(2 * max(len(val) for val in values))
+        return String(2 * max(len(val) for val in values))
     elif type(sample_value) == int:
-        return 'INT'
+        return Integer
     elif type(sample_value) == float:
-        return 'F'
+        return Float
     elif type(sample_value) == datetime:
-        return 'DATETIME'
+        return DateTime
     else:
         raise ValueError('Value of type {} is unsupported'.format(type(sample_value)))
 
 
-def _get_create_table_helper(table_name: str, cols_with_types: Mapping[str, str], pks: List[str]):
-    statement = '''
-        CREATE TABLE {table_name} (
-            {cols},
-            PRIMARY KEY ({pks})
-        )   
-    '''.format(table_name=table_name,
-               cols=','.join(['`{col_name}` {col_type}'.format(col_name=col_name, col_type=col_type)
-                              for col_name, col_type in cols_with_types.items()]),
-               pks=','.join(pks))
-
-    return statement
-
-
-def _get_insert_statement(table_name: str, cols: List[str]):
-    template = 'INSERT INTO {table_name} ({cols}) VALUES ({values})'
-    return template.format(table_name=table_name,
-                           cols=','.join('`{}`'.format(col) for col in cols),
-                           values=','.join('%s' for _ in range(len(cols))))
+def _get_table_def(metadata, table_name: str, cols_with_types: Mapping[str, str], pks: List[str]):
+    columns = [Column(col_name, col_type, primary_key=col_name in pks)
+               for col_name, col_type in cols_with_types.items()]
+    return Table(table_name, metadata, *columns)
 
 
 def import_list(repo: Dolt,

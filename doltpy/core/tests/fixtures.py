@@ -3,7 +3,8 @@ from doltpy.core.dolt import Dolt
 import pytest
 import shutil
 from doltpy.core.tests.helpers import get_repo_path_tmp_path
-
+import sqlalchemy
+from retry import retry
 
 @pytest.fixture
 def init_empty_test_repo(tmp_path) -> Dolt:
@@ -19,16 +20,21 @@ def init_empty_test_repo(tmp_path) -> Dolt:
 def run_serve_mode(request, init_empty_test_repo):
     repo = init_empty_test_repo
     repo.sql_server()
-    connection = repo.get_connection()
+    engine = repo.get_engine()
 
     def finalize():
-        if connection:
-            connection.close()
         if repo.server:
             repo.sql_server_stop()
 
+    # This block ensures the server is accepting connections
+    @retry(exceptions=sqlalchemy.exc.OperationalError, delay=2, tries=10)
+    def verify_connection():
+        conn = engine.connect()
+        conn.close()
+        return engine
+
     request.addfinalizer(finalize)
-    return connection
+    return verify_connection()
 
 
 @pytest.fixture

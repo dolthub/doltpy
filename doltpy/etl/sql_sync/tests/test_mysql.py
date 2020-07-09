@@ -1,4 +1,5 @@
-from doltpy.etl.sql_sync.mysql import get_table_metadata, get_insert_query
+from doltpy.etl.sql_sync.mysql import get_insert_query
+from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from doltpy.etl.sql_sync.tests.helpers.tools import (validate_get_table_metadata,
                                                      validate_write_to_table,
                                                      validate_drop_primary_keys)

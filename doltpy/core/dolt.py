@@ -4,8 +4,9 @@ from subprocess import Popen, PIPE, STDOUT
 import os
 from collections import OrderedDict
 from retry import retry
-from mysql import connector
-
+from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine
+import sqlalchemy
 from doltpy.core.system_helpers import get_logger, SQL_LOG_FILE
 
 logger = get_logger(__name__)
@@ -149,7 +150,7 @@ class Dolt:
         output = _execute(args, self.repo_dir())
 
         if print_output:
-            print(output)
+            logger.info(output)
 
         if was_serving:
             # TODO:
@@ -177,8 +178,7 @@ class Dolt:
             except Exception as e:
                 raise e
 
-        output = _execute(['init'], cwd=repo_dir)
-        print(output)
+        _execute(['init'], cwd=repo_dir)
         return Dolt(repo_dir)
 
     def status(self) -> DoltStatus:
@@ -384,7 +384,7 @@ class Dolt:
     def repo_name(self):
         return str(self.repo_dir()).split('/')[-1].replace('-', '_')
 
-    def get_connection(self, host: str = None, port: int = None):
+    def get_engine(self, host: str = None, port: int = None) -> Engine:
         """
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
         :param host:
@@ -397,27 +397,13 @@ class Dolt:
 
         logger.info('Attempting to connect to Dolt MySQL Server instance running on {}:{}'.format(host, port))
 
-        @retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
         def inner():
-            return connector.connect(host=host, user='root', database=database, port=port)
+            return create_engine('mysql+mysqlconnector://{user}@{host}:{port}/{database}'.format(user='root',
+                                                                                                 host=host,
+                                                                                                 port=port,
+                                                                                                 database=database), echo=True)
 
-        try:
-            return inner()
-        except connector.errors.DatabaseError as e:
-            if 'database not found' in e.msg:
-                msg = 'The server running on {}:{} does not correspond to the repo in {}'.format(host,
-                                                                                                 port,
-                                                                                                 self.repo_dir())
-                raise DoltWrongServerException(msg)
-            elif "Can't connect to MySQL server" in e.msg:
-                msg = 'There does not appear to be a MySQL Server server running on {}:{} for this repo'.format(host,
-                                                                                                                port)
-                raise DoltServerNotRunningException(msg)
-            else:
-                logger.error('''
-                    Unknown exception occurred after attempting to connect to Dolt MySQL Server runningon on {}:{}
-                '''.format(host, port).lstrip())
-                raise e
+        return inner()
 
     def sql_server_stop(self):
         """

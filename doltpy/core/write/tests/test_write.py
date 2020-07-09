@@ -51,7 +51,7 @@ LIST_OF_DICTS_WITH_NULLS = [
 
 def test_import_dict_all_nulls(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
-    with pytest.raises(ValueError ):
+    with pytest.raises(ValueError):
         import_list(repo, 'players', LIST_OF_DICTS_WITH_NULLS, ['name'], 'create')
 
 
