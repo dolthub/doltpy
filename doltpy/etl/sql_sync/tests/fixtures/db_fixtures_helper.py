@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from retry import retry
 import sqlalchemy
 
+
 @pytest.fixture(scope='session')
 def docker_compose_file(tmpdir_factory, mysql_service_def, postgres_service_def):
     compose_file = tmpdir_factory.mktemp('docker_files').join('docker-compose.yml')

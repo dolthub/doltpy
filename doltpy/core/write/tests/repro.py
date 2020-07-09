@@ -1,13 +1,13 @@
 from sqlalchemy import Table, MetaData, Column, String, Integer
-from doltpy.core import Dolt
 import sqlalchemy
 from retry import retry
+from doltpy.etl.sql_sync.tests.fixtures.mysql import MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_PORT
+from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 # Just needs to be an empty repo
-TEST_REPO_PATH = '/Users/oscarbatori/Documents/dolt_sqlalchemy_repro'
 
 
-def test_repro():
-    repo = Dolt(TEST_REPO_PATH)
+def test_repro(init_empty_test_repo):
+    repo = init_empty_test_repo
     repo.sql_server()
 
     engine = repo.get_engine()
@@ -32,3 +32,27 @@ def test_repro():
     new_engine = repo.get_engine()
     new_metadata = MetaData(bind=new_engine, reflect=True)
     print('Tables are:\n{}'.format(table.name for table in new_metadata.tables))
+
+
+def test_repro_mysql(mysql_with_table, docker_ip, docker_services):
+    engine, _ = mysql_with_table
+
+    insert = '''
+    CREATE TABLE `test` (
+      `id` int NOT NULL COMMENT 'tag:4490',
+      `name` VARCHAR(16) COMMENT 'tag:4490',
+      PRIMARY KEY (`id`)
+    )
+    '''
+
+    with engine.connect() as conn:
+        conn.execute(insert)
+
+    new_engine = engine_helper('mysql+mysqlconnector',
+                               MYSQL_USER,
+                               MYSQL_PASSWORD,
+                               docker_ip,
+                               docker_services.port_for('mysql', MYSQL_PORT),
+                               MYSQL_DATABASE)
+    new_metadata = MetaData(bind=new_engine, reflect=True)
+    print('Tables are:\n{}'.format([table for table in new_metadata.tables]))

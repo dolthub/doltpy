@@ -39,7 +39,7 @@ def mysql_engine(docker_ip, docker_services) -> Engine:
                          MYSQL_USER,
                          MYSQL_PASSWORD,
                          docker_ip,
-                         docker_services.port_for('postgres', MYSQL_PORT),
+                         docker_services.port_for('mysql', MYSQL_PORT),
                          MYSQL_DATABASE)
 
 
@@ -47,4 +47,4 @@ def mysql_engine(docker_ip, docker_services) -> Engine:
 def mysql_with_table(mysql_engine) -> Tuple[Engine, str]:
     TEST_TABLE_METADATA.metadata.create_all(mysql_engine)
     yield mysql_engine, TABLE_NAME
-    TEST_TABLE_METADATA.drop()
+    #TEST_TABLE_METADATA.drop()
