@@ -1,8 +1,9 @@
 from sqlalchemy.engine import Engine
+from sqlalchemy import Table, MetaData
 import pytest
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, TEST_TABLE_METADATA
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
 from typing import Tuple
 
 MYSQL_ROOT_PASSWORD = 'test'
@@ -44,7 +45,8 @@ def mysql_engine(docker_ip, docker_services) -> Engine:
 
 
 @pytest.fixture
-def mysql_with_table(mysql_engine) -> Tuple[Engine, str]:
+def mysql_with_table(mysql_engine) -> Tuple[Engine, Table]:
     TEST_TABLE_METADATA.metadata.create_all(mysql_engine)
-    yield mysql_engine, TABLE_NAME
-    #TEST_TABLE_METADATA.drop()
+    yield mysql_engine, TEST_TABLE_METADATA
+    reflected_table = MetaData(bind=mysql_engine, reflect=True).tables[TEST_TABLE_METADATA.name]
+    reflected_table.drop()

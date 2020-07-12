@@ -1,7 +1,9 @@
-from typing import Tuple, Iterable, Mapping, Callable, List, Any
+from typing import Tuple, Iterable, Mapping, Callable, List
 from doltpy.core.system_helpers import get_logger
-from sqlalchemy import MetaData, create_engine, Table, select
+from sqlalchemy import MetaData, Table, select
 from sqlalchemy.engine import Engine
+from retry import retry
+
 
 logger = get_logger(__name__)
 
@@ -20,7 +22,7 @@ DoltAsSourceReader = Callable[[List[str]], DoltAsSourceUpdate]
 DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
 
 
-def build_source_reader(engine: Engine, reader: Callable[[Engine, str], TableUpdate]) -> DoltAsTargetReader:
+def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableUpdate]) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
     the contents of each of the tables.
@@ -30,32 +32,88 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, str], TableUpd
     """
     def inner(tables: List[str]):
         result = {}
+        metadata = MetaData(bind=engine, reflect=True)
 
-        for table in tables:
+        for table in [table for table in metadata.tables if table.name in tables]:
             logger.info('Reading tables {}'.format(table))
-            table_metadata = get_table_metadata(engine, table)
-            result[table] = reader(engine, table_metadata)
+            result[table] = reader(engine, table)
 
         return result
 
     return inner
 
 
-def get_table_reader():
+def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None) -> DoltAsTargetReader:
+    """
+    Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
+    the contents of each of the tables.
+    :param engine:
+    :param reader:
+    :return:
+    """
+    reader_function = reader or get_table_reader()
+    return build_source_reader(engine, reader_function)
+
+
+def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
     """
     When syncing from a relational database, currently  MySQL or Postgres, the database has only a single concept of
     state, that is the current state. We simply capture this state by reading out all the data in the database.
     :return:
     """
-    def inner(engine: Engine, table: Table):
+    def inner(engine: Engine, table: Table) -> List[dict]:
         with engine.connect() as conn:
             result = conn.execute(select[table])
-            return result
+            return [dict(row) for row in result]
 
     return inner
 
 
+# TODO this is flaky on Dolt, though not at all clear why
+@retry(exceptions=Exception, delay=2, tries=10)
 def get_table_metadata(engine: Engine, table_name: str) -> Table:
     metadata = MetaData(bind=engine, reflect=True)
     return metadata.tables[table_name]
+
+
+def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_duplicate: bool) -> DoltAsSourceWriter:
+    """
+    Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
+    apply the table update. A table update consists of primary key values to drop, and data to insert/update.
+    :param engine: a database connection
+    :param get_upsert_statement:
+    :param update_on_duplicate: indicates whether to update values when encountering duplicate PK, default True
+    :return:
+    """
+    def inner(table_data_map: DoltAsSourceUpdate):
+        metadata = MetaData(bind=engine, reflect=True)
+        for table_name, table_update in table_data_map.items():
+            table = metadata.tables[table_name]
+            pks_to_drop, data = table_update
+
+            # PKs to be dropped are provided as dicts, we drop them
+            if pks_to_drop:
+                drop_primary_keys(engine, table, pks_to_drop)
+
+            # Now we can perform our inserts
+            with engine.connect() as conn:
+
+                if update_on_duplicate:
+                    statement = get_upsert_statement(table, data)
+                else:
+                    statement = table.insert().values(data)
+
+                conn.execute(statement)
+
+    return inner
+
+
+def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict]):
+    with engine.connect() as conn:
+        pks = [col.name for col in table.columns if col.primary_key]
+        statement = table.delete()
+        for pk in pks:
+            statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
+        conn.execute(statement)
+
 

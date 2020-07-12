@@ -3,7 +3,7 @@ import logging
 from sqlalchemy import Column, Table, MetaData
 from sqlalchemy.types import Integer, DateTime, String, Text, Float
 from sqlalchemy.engine import Engine
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 
 logger = logging.getLogger(__name__)
@@ -153,28 +153,44 @@ def get_dolt_drop_pk_query(table: Table):
 def get_data_for_comparison(engine: Engine):
     with engine.connect() as conn:
         result = conn.execute(TEST_TABLE_METADATA.select())
-        return [row for row in result]
+        return [dict(row) for row in result]
 
 
 DROP_TEST_TABLE = 'DROP TABLE {table_name}'.format(table_name=TABLE_NAME)
 
 
-def assert_tuple_array_equality(left: List[dict], right: List[dict]):
+def by_first_last(dic: dict) -> tuple:
+    return dic['first_name'], dic['last_name']
+
+
+def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[[dict], tuple] = by_first_last):
     assert len(left) == len(right)
     failed = False
 
     if len(left) == 0 and len(right) == 0:
         return True
 
-    for left_row, right_row in zip(left, right):
+    l, r = sorted(left, key=comparator), sorted(right, key=comparator)
+
+    for left_row, right_row in zip(l, r):
         for left_column, left_value in left_row.items():
             if left_column in right_row:
-                if left_value != right_row[left_column]:
+                right_value = right_row[left_column]
+                if not isinstance(left_value, type(right_value)):
+                    failed = True
+                    logger.error('left value is of type {}, right value is of type {}'.format(type(left_value),
+                                                                                              type(right_value)))
+
+                elif isinstance(left_value, float):
+                    left_value, right_value = round(left_value, 4), round(right_value, 4)
+
+                if left_value != right_value:
                     failed = True
                     logger.error('left value {} for column {} is not equal to {}'.format(left_value,
                                                                                          left_column,
-                                                                                         right_row[left_column]))
+                                                                                         right_value))
             else:
+                failed = True
                 logger.error('{} column is in left, but not right'.format(left_column))
 
     if failed:

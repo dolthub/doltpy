@@ -1,7 +1,7 @@
 import pytest
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA, TABLE_NAME
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
-
+from sqlalchemy import MetaData
 
 POSTGRES_CONTAINER_NAME = 'TEST_POSTGRES'
 POSTGRES_DB = 'test_db'
@@ -36,6 +36,6 @@ def postgres_engine(docker_ip, docker_services):
 @pytest.fixture
 def postgres_with_table(postgres_engine):
     TEST_TABLE_METADATA.metadata.create_all(postgres_engine)
-    yield postgres_engine, TABLE_NAME
-    TEST_TABLE_METADATA.drop()
-
+    yield postgres_engine, TEST_TABLE_METADATA
+    reflected_table = MetaData(bind=postgres_engine, reflect=True).tables[TEST_TABLE_METADATA.name]
+    reflected_table.drop()

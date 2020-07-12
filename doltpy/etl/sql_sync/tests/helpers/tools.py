@@ -5,7 +5,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TEST_TABLE_METADATA,
                                                            TEST_DATA_UPDATE_SINGLE_ROW,
                                                            TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE,
                                                            get_data_for_comparison,
-                                                           assert_tuple_array_equality,
+                                                           assert_rows_equal,
                                                            FIRST_UPDATE,
                                                            SECOND_UPDATE,
                                                            THIRD_UPDATE,
@@ -15,9 +15,9 @@ from doltpy.etl.sql_sync.dolt import (get_source_reader as get_dolt_source_reade
                                       get_target_writer as get_dolt_target_writer,
                                       get_table_reader_diffs as get_dolt_table_reader_diffs,
                                       get_table_reader as get_dolt_table_reader)
-from doltpy.etl.sql_sync.sync_tools import sync_to_dolt, sync_from_dolt
-from doltpy.etl.sql_sync.db_tools import get_table_metadata
-from typing import List
+from doltpy.etl.sql_sync.sync_tools import sync_to_dolt, sync_from_dolt, DoltAsSourceWriter
+from doltpy.etl.sql_sync.db_tools import get_table_metadata, drop_primary_keys
+from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
 
@@ -26,31 +26,31 @@ def validate_get_table_metadata(engine: Engine, table_name: str):
     """
     Verify that get_table_metadata correctly constructs the metadata associated with the test table. We manually build
     that metadata in helpers/data_helper.py to verify this.
-    :param db_conn:
-    :param db_table:
-    :param table_metadata_builder:
+    :param engine:
+    :param table_name:
     :return:
     """
     result = get_table_metadata(engine, table_name)
-    expected_columns = sorted(TEST_TABLE_METADATA.columns, key=lambda col: col.name)
     assert TEST_TABLE_METADATA.name == result.name
-    assert len(expected_columns) == len(result.columns)
-    assert all(left.col_name == right.name for left, right in zip(expected_columns, result.columns))
+    assert len(TEST_TABLE_METADATA.columns) == len(result.columns)
+    assert set(col.name for col in TEST_TABLE_METADATA.columns) == set(col.name for col in result.columns)
 
 
-def validate_write_to_table(engine: Engine, table: Table):
+def validate_get_target_writer(engine: Engine,
+                               table: Table,
+                               get_target_writer: Callable[[Engine, bool], DoltAsSourceWriter]):
     """
     Ensure that writes using our write wrapper correctly show up in a relational database server.
     :param engine:
     :param table:
+    :param get_target_writer:
     :return:
     """
     def _write_and_diff_helper(data: List[dict], update_num: int):
-        with engine.connect() as conn:
-            conn.execute(table.insert(), data)
+        get_target_writer(engine, True)({table.name: ([], data)})
         result = get_data_for_comparison(engine)
         _, expected_data = get_expected_data(update_num)
-        assert_tuple_array_equality(expected_data, result)
+        assert_rows_equal(expected_data, result)
 
     _write_and_diff_helper(TEST_DATA_INITIAL, FIRST_UPDATE)
     _write_and_diff_helper(TEST_DATA_APPEND_SINGLE_ROW, SECOND_UPDATE)
@@ -65,24 +65,19 @@ def validate_drop_primary_keys(engine: Engine, table: Table):
     :param table:
     :return:
     """
-
     with engine.connect() as conn:
         conn.execute(table.insert(), TEST_DATA_APPEND_MULTIPLE_ROWS)
 
     pks_to_drop = [{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}]
-    with engine.connect() as conn:
-        conn.execute(table.delete(), pks_to_drop)
-
+    drop_primary_keys(engine, table, pks_to_drop)
     result = get_data_for_comparison(engine)
-    assert_tuple_array_equality(TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE, result)
+    assert_rows_equal(TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE, result)
 
 
-def validate_dolt_as_target(db_conn,
-                            db_table,
-                            get_db_table_metadata,
+def validate_dolt_as_target(db_engine: Engine,
+                            db_table: Table,
                             get_db_source_reader,
                             get_db_table_reader,
-                            get_db_insert_query,
                             dolt_repo,
                             dolt_table):
     """
@@ -90,36 +85,31 @@ def validate_dolt_as_target(db_conn,
     to the relational database (running in a Docker container provided by a fixture), executing a sync, and then
     validating the HEAD of master of the Dolt repo has the expected values. It also validates that the Dolt history is
     correct after every write. Finally validates that deletes flow through to Dolt.
-    :param db_conn:
+    :param db_engine:
     :param db_table:
-    :param get_db_table_metadata:
     :param get_db_source_reader:
     :param get_db_table_reader:
-    :param get_db_insert_query:
     :param dolt_repo:
     :param dolt_table:
     :return:
     """
-
-    db_table_metadata = get_db_table_metadata(db_conn, db_table)
-
     def sync_to_dolt_helper():
-        source_reader = get_db_source_reader(db_conn, get_db_table_reader())
+        source_reader = get_db_source_reader(db_engine, get_db_table_reader())
         target_writer = get_dolt_target_writer(dolt_repo, commit=True)
         sync_to_dolt(source_reader, target_writer, {db_table: dolt_table})
 
-    def assertion_helper(commit: str, expected_diff: List[tuple]):
+    def assertion_helper(commit: str, expected_diff: List[dict]):
         """
         Validates that both the HEAD of the current branch of the Dolt repo match MySQL, and that the diffs created by
         the write match what is expected.
         """
         _, dolt_data = get_dolt_table_reader(commit)(dolt_table, dolt_repo)
-        db_table_metadata = get_db_table_metadata(db_table, db_conn)
-        db_data = get_db_table_reader()(db_conn, db_table_metadata)
-        assert_tuple_array_equality(list(dolt_data), db_data)
+        db_table_metadata = get_table_metadata(db_engine, db_table)
+        db_data = get_db_table_reader()(db_engine, db_table_metadata)
+        assert_rows_equal(list(dolt_data), db_data)
 
         _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(dolt_table, dolt_repo)
-        assert_tuple_array_equality(expected_diff, list(dolt_diff_data))
+        assert_rows_equal(expected_diff, list(dolt_diff_data))
 
     update_sequence = [
         TEST_DATA_INITIAL,
@@ -129,25 +119,20 @@ def validate_dolt_as_target(db_conn,
     ]
 
     for update_data in update_sequence:
-        write_to_table(db_conn, db_table_metadata, get_db_insert_query, update_data)
+        with db_engine.connect() as conn:
+            conn.execute(db_table.insert(), update_data)
         sync_to_dolt_helper()
         latest_commit = list(dolt_repo.log().keys())[0]
         assertion_helper(latest_commit, update_data)
 
-    delete_query = '''
-            DELETE FROM
-                {table_name}
-            WHERE
-                first_name = 'Novak'
-        '''.format(table_name=db_table)
-    cursor = db_conn.cursor()
-    cursor.execute(delete_query)
-    db_conn.commit()
+    with db_engine.connect() as conn:
+        conn.execute(db_table.delete().where(db_table.c.first_name == 'Novak'))
+
     sync_to_dolt_helper()
     latest_commit = list(dolt_repo.log().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(dolt_table, dolt_repo)
-    db_data = get_db_table_reader()(db_conn, db_table_metadata)
-    assert_tuple_array_equality(list(dolt_data), db_data)
+    db_data = get_db_table_reader()(db_engine, db_table)
+    assert_rows_equal(list(dolt_data), db_data)
     dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(dolt_table, dolt_repo)
     assert dropped_pks == [('Novak', 'Djokovic')]
 
@@ -177,4 +162,4 @@ def validate_dolt_as_source(db_conn, db_table, get_db_target_writer, dolt_repo, 
         sync_from_dolt(get_dolt_source_reader(dolt_repo, table_reader), target_writer, table_mapping)
         db_data = get_data_for_comparison(db_conn)
         _, dolt_data = get_dolt_table_reader(commit)(dolt_table, dolt_repo)
-        assert assert_tuple_array_equality(db_data, list(dolt_data))
+        assert assert_rows_equal(db_data, list(dolt_data))

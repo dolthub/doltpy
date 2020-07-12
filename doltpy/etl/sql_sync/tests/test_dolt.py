@@ -1,4 +1,4 @@
-from doltpy.etl.sql_sync.tests.helpers.data_helper import (assert_tuple_array_equality,
+from doltpy.etl.sql_sync.tests.helpers.data_helper import (assert_rows_equal,
                                                            get_expected_data,
                                                            get_expected_dolt_diffs,
                                                            FIRST_UPDATE,
@@ -40,7 +40,7 @@ def test_get_table_reader_diffs(create_dolt_test_data_commits):
         dropped_pks, dolt_data = get_table_reader_diffs(commit)(table, repo)
         expected_dropped_pks, expected_data = get_expected_dolt_diffs(update_num)
         assert expected_dropped_pks == dropped_pks
-        assert_tuple_array_equality(expected_data, list(dolt_data))
+        assert_rows_equal(expected_data, list(dolt_data))
 
 
 def test_get_table_reader(create_dolt_test_data_commits):
@@ -64,7 +64,7 @@ def test_get_table_reader(create_dolt_test_data_commits):
         dropped_pks, dolt_data = get_table_reader(commit)(table, repo)
         expected_dropped_pks, expected_data = get_expected_data(update_num)
         assert expected_dropped_pks == dropped_pks
-        assert_tuple_array_equality(expected_data, list(dolt_data))
+        assert_rows_equal(expected_data, list(dolt_data))
 
 
 def test_get_target_writer(repo_with_table):
@@ -83,18 +83,19 @@ def test_get_target_writer(repo_with_table):
         TEST_DATA_APPEND_MULTIPLE_ROWS + TEST_DATA_UPDATE_SINGLE_ROW
     ]
 
-    for update in update_sequence:
+    for i, update in enumerate(update_sequence):
+        logger.info('Making {} of {} updates and validating'.format(i, len(update_sequence)))
         get_target_writer(repo, commit=True)({dolt_table: update})
         result = _dolt_table_read_helper(repo, dolt_table)
-        assert_tuple_array_equality(update, result)
+        assert_rows_equal(update, result)
 
 
 def _dolt_table_read_helper(repo: Dolt, table_name: str):
-    engine = repo.get_connection()
+    engine = repo.get_engine()
     table = get_table_metadata(engine, table_name)
     with engine.connect() as conn:
         result = conn.execute(table.select())
-        return [row for row in result]
+        return [dict(row) for row in result]
 
 
 def test_get_table_metadata(create_dolt_test_data_commits):
@@ -104,5 +105,4 @@ def test_get_table_metadata(create_dolt_test_data_commits):
     :return:
     """
     repo, table = create_dolt_test_data_commits
-    conn = repo.get_connection()
-    validate_get_table_metadata(conn, table, get_table_metadata)
+    validate_get_table_metadata(repo.get_engine(), table)

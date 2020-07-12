@@ -5,12 +5,12 @@ from doltpy.etl.sql_sync.db_tools import (get_table_metadata,
                                           DoltTableUpdate,
                                           DoltAsSourceReader,
                                           DoltAsSourceUpdate,
-                                          DoltAsTargetUpdate)
+                                          DoltAsTargetUpdate,
+                                          drop_primary_keys)
 from typing import List, Callable, Tuple
-from mysql.connector.connection import MySQLConnection
 from datetime import datetime
 from sqlalchemy.engine import Engine
-from sqlalchemy import Table, MetaData, update
+from sqlalchemy import Table, select
 
 logger = get_logger(__name__)
 
@@ -37,7 +37,7 @@ def get_target_writer(repo: Dolt,
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
 
         for table_name, table_update in table_data_map.items():
             table = get_table_metadata(engine, table_name)
@@ -64,17 +64,33 @@ def drop_missing_pks(engine: Engine, table: Table, data: List[dict]):
     :return:
     """
     existing_pks = get_existing_pks(engine, table)
+
+    if not existing_pks:
+        return
+
     pk_cols = [col.name for col in table.columns if col.primary_key]
-    proposed_pks = set({pk_col: row[pk_col] for pk_col in pk_cols} for row in data)
-    pks_to_drop = [existing_pk for existing_pk in existing_pks if existing_pk not in proposed_pks]
-    with engine.connect() as conn:
-        conn.execute(table.delete(), pks_to_drop)
+    proposed_pks = [{pk_col: row[pk_col] for pk_col in pk_cols} for row in data]
+
+    pks_to_drop = []
+    for proposed_pk in proposed_pks:
+        if hash(frozenset(proposed_pk.items())) in existing_pks:
+            pks_to_drop.append(proposed_pk)
+
+    if pks_to_drop:
+        drop_primary_keys(engine, table, pks_to_drop)
 
 
-def get_existing_pks(engine: Engine, table: Table) -> List[dict]:
+def get_existing_pks(engine: Engine, table: Table) -> List[int]:
+    """
+    Creates an index of hashes of the values of the primary keys in the table provided.
+    :param engine:
+    :param table:
+    :return:
+    """
     with engine.connect() as conn:
-        result = conn.execute(table.select(columns=[col.name for col in table.columns if col.primary_key]))
-        return result
+        query = select([table.c[col.name] for col in table.columns if col.primary_key])
+        result = conn.execute(query)
+        return [hash(frozenset(dict(row).items())) for row in result]
 
 
 def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]) -> DoltAsSourceReader:
@@ -122,7 +138,7 @@ def get_table_reader_diffs(commit_ref: str = None,
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
         table_metadata = get_table_metadata(engine, table_name)
         pks_to_drop = get_dropped_pks(engine, table_metadata, from_commit, to_commit)
         result = _read_from_dolt_diff(engine, table_metadata, from_commit, to_commit)
@@ -156,9 +172,7 @@ def get_dropped_pks(engine: Engine, table: Table, from_commit: str, to_commit: s
                from_commit=from_commit,
                to_commit=to_commit)
 
-    with engine.connect() as conn:
-        result = conn.execute(query)
-        return [row for row in result]
+    return _query_helper(engine, query)
 
 
 def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, str]:
@@ -198,7 +212,7 @@ def get_table_reader(commit_ref: str = None,
         if branch and branch != repo.log():
             repo.checkout(branch)
 
-        engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
         query_commit = commit_ref or list(repo.log().keys())[0]
         table = get_table_metadata(engine, table_name)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
@@ -224,9 +238,7 @@ def _read_from_dolt_diff(engine: Engine, table: Table, from_commit: str, to_comm
                from_commit=from_commit,
                to_commit=to_commit)
 
-    with engine.connect() as conn:
-        result = conn.execute(query)
-        return [row for row in result]
+    return _query_helper(engine, query)
 
 
 def _read_from_dolt_history(engine: Engine, table: Table, commit_ref: str) -> List[dict]:
@@ -241,13 +253,17 @@ def _read_from_dolt_history(engine: Engine, table: Table, commit_ref: str) -> Li
                table_name=table.name,
                commit_ref=commit_ref)
 
+    return _query_helper(engine, query)
+
+
+def _query_helper(engine: Engine, query: str):
     with engine.connect() as conn:
         result = conn.execute(query)
-        return [row for row in result]
+        return [dict(row) for row in result]
 
 
 def write_to_table(repo: Dolt,
-                   table_name: str,
+                   table: Table,
                    data: List[dict],
                    commit: bool = False,
                    message: str = None,
@@ -266,8 +282,7 @@ def write_to_table(repo: Dolt,
     :param dolt_server_port:
     :return:
     """
-    engine = repo.get_connection(host=dolt_server_host, port=dolt_server_port)
-    table = get_table_metadata(engine, table_name)
+    engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
     inserts, updates = get_inserts_and_updates(engine, table, data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
@@ -290,11 +305,11 @@ def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> T
     if not existing_pks:
         return data, []
 
-    pk_cols_to_index = {col.col_name: i for i, col in enumerate(table.columns) if col.primary_key}
+    pk_cols = [col.name for col in table.columns]
     inserts, updates = [], []
     for row in data:
-        row_pk = tuple(row[i] for _, i in pk_cols_to_index.items())
-        if row_pk in existing_pks:
+        row_hash = hash(frozenset({row[pk_col] for pk_col in pk_cols}))
+        if row_hash in existing_pks:
             updates.append(row)
         else:
             inserts.append(row)

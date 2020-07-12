@@ -1,8 +1,7 @@
-from doltpy.etl.sql_sync.mysql import get_insert_query
-from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from doltpy.etl.sql_sync.tests.helpers.tools import (validate_get_table_metadata,
-                                                     validate_write_to_table,
+                                                     validate_get_target_writer,
                                                      validate_drop_primary_keys)
+from doltpy.etl.sql_sync.mysql import get_target_writer
 
 
 def test_get_table_metadata(mysql_with_table):
@@ -11,8 +10,8 @@ def test_get_table_metadata(mysql_with_table):
     :param mysql_with_table:
     :return:
     """
-    conn, table = mysql_with_table
-    validate_get_table_metadata(conn, table, get_table_metadata)
+    engine, table = mysql_with_table
+    validate_get_table_metadata(engine, table.name)
 
 
 def test_write_to_table(mysql_with_table):
@@ -21,8 +20,8 @@ def test_write_to_table(mysql_with_table):
     :param mysql_with_table:
     :return:
     """
-    conn, table = mysql_with_table
-    validate_write_to_table(conn, table, get_table_metadata, get_insert_query)
+    engine, table = mysql_with_table
+    validate_get_target_writer(engine, table, get_target_writer)
 
 
 def test_drop_primary_keys(mysql_with_table):
@@ -31,5 +30,5 @@ def test_drop_primary_keys(mysql_with_table):
     :param mysql_with_table:
     :return:
     """
-    conn, table = mysql_with_table
-    validate_drop_primary_keys(conn, table, get_table_metadata, get_insert_query)
+    engine, table = mysql_with_table
+    validate_drop_primary_keys(engine, table)

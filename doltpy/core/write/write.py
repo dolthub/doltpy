@@ -166,7 +166,7 @@ def import_dict(repo: Dolt,
 
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
-    table = MetaData(bind=engine).tables[table_name]
+    table = MetaData(bind=engine, reflect=True).tables[table_name]
     for i in range(max(1, math.ceil(len(rows) / chunk_size))):
         chunk_start, chunk_end = i * chunk_size, min((i+1) * chunk_size, len(rows))
         chunk = rows[chunk_start:chunk_end]

@@ -42,7 +42,8 @@ def engine_helper(dialect: str, user: str, password: str, host: str, port: int, 
             host=host,
             port=port,
             database=database
-        )
+        ),
+        echo=True
     )
 
     @retry(exceptions=sqlalchemy.exc.OperationalError, delay=2, tries=10)

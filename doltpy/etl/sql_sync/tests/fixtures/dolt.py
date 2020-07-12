@@ -12,6 +12,9 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TABLE_NAME,
 from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from typing import Tuple
 from sqlalchemy.engine import Engine
+import sqlalchemy
+from retry import retry
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,8 +28,16 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
     """
     repo = init_empty_test_repo
     repo.sql_server()
-    engine = repo.get_connection()
-    TEST_TABLE_METADATA.metadata.create_all(engine)
+
+    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    def verify_connection():
+        eng = repo.get_engine()
+        conn = eng.connect()
+        conn.close()
+        return eng
+
+    engine = verify_connection()
+    TEST_TABLE_METADATA.create(engine)
 
     def finalize():
         if repo.server:
