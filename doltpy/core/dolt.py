@@ -152,11 +152,18 @@ class Dolt:
         if print_output:
             logger.info(output)
 
+        @retry(exceptions=Exception, delay=2, tries=10)
+        def verify_connection():
+            engine = self.get_engine()
+            with engine.connect() as _:
+                logger.info('Verified database server running')
+
         if was_serving:
             # TODO:
             #   this is a a problem because we restart with different parameters, solution is to
             #   to store a config object on the repo
             self.sql_server()
+            verify_connection()
 
         return output.split('\n')
 

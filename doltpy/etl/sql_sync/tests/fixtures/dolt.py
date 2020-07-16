@@ -13,13 +13,14 @@ from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from typing import Tuple
 from sqlalchemy.engine import Engine
 import sqlalchemy
+from sqlalchemy import Table
 from retry import retry
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
+def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
     """
     Creates a test table inside the empty test repo provided by the init_empty_test_repo fixture parameter.
     :param request:
@@ -45,7 +46,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
 
     request.addfinalizer(finalize)
 
-    return repo, TABLE_NAME
+    return repo, TEST_TABLE_METADATA
 
 
 @pytest.fixture
@@ -56,22 +57,22 @@ def create_dolt_test_data_commits(repo_with_table):
     :param repo_with_table:
     :return:
     """
-    repo, table_name = repo_with_table
+    repo, table = repo_with_table
 
-    write_to_table(repo, table_name, TEST_DATA_INITIAL, commit=True)
-    write_to_table(repo, table_name, TEST_DATA_APPEND_SINGLE_ROW, commit=True)
-    write_to_table(repo, table_name, TEST_DATA_APPEND_MULTIPLE_ROWS, commit=True)
+    write_to_table(repo, table, TEST_DATA_INITIAL, commit=True)
+    write_to_table(repo, table, TEST_DATA_APPEND_SINGLE_ROW, commit=True)
+    write_to_table(repo, table, TEST_DATA_APPEND_MULTIPLE_ROWS, commit=True)
     # TODO: we currently do not support ON DUPLICATE KEY syntax, so this does the update
     # write_to_table(repo, table, TEST_DATA_UPDATE_SINGLE_ROW, commit=True)
-    engine = repo.get_engine()
-    table = get_table_metadata(engine, table_name)
     _query_helper(repo, get_dolt_update_row_statement(table), 'Updated a row')
     _query_helper(repo, get_dolt_drop_pk_query(table), 'Updated a row')
 
     return repo, table
 
 
-def _query_helper(repo: Dolt, engine: Engine, query, message):
+def _query_helper(repo: Dolt, query, message):
+    engine = repo.get_engine()
+
     with engine.connect() as conn:
         conn.execute(query)
 

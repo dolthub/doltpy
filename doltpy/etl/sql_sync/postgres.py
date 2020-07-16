@@ -23,6 +23,6 @@ def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltA
 def upsert_helper(table: Table, data: List[dict]):
     # TODO this does not work yet
     insert_statement = insert(table).values(data)
-    update_dict = {el.name: el for el in insert_statement.excluded}
-    upsert_statement = insert_statement.on_conflict_do_update(update_dict)
+    update = {col.name: col for col in insert_statement.excluded}
+    upsert_statement = insert_statement.on_conflict_do_update(constraint=table.primary_key, set_=update)
     return upsert_statement

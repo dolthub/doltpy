@@ -22,27 +22,6 @@ DoltAsSourceReader = Callable[[List[str]], DoltAsSourceUpdate]
 DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
 
 
-def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableUpdate]) -> DoltAsTargetReader:
-    """
-    Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
-    the contents of each of the tables.
-    :param engine:
-    :param reader:
-    :return:
-    """
-    def inner(tables: List[str]):
-        result = {}
-        metadata = MetaData(bind=engine, reflect=True)
-
-        for table in [table for table in metadata.tables if table.name in tables]:
-            logger.info('Reading tables {}'.format(table))
-            result[table] = reader(engine, table)
-
-        return result
-
-    return inner
-
-
 def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
@@ -55,6 +34,27 @@ def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dic
     return build_source_reader(engine, reader_function)
 
 
+def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableUpdate]) -> DoltAsTargetReader:
+    """
+    Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
+    the contents of each of the tables.
+    :param engine:
+    :param reader:
+    :return:
+    """
+    def inner(tables: List[str]) -> DoltAsTargetUpdate:
+        result = {}
+        metadata = MetaData(bind=engine, reflect=True)
+
+        for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
+            logger.info('Reading tables {}'.format(table))
+            result[table.name] = reader(engine, table)
+
+        return result
+
+    return inner
+
+
 def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
     """
     When syncing from a relational database, currently  MySQL or Postgres, the database has only a single concept of
@@ -63,7 +63,7 @@ def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
     """
     def inner(engine: Engine, table: Table) -> List[dict]:
         with engine.connect() as conn:
-            result = conn.execute(select[table])
+            result = conn.execute(table.select())
             return [dict(row) for row in result]
 
     return inner
@@ -96,14 +96,13 @@ def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_dup
                 drop_primary_keys(engine, table, pks_to_drop)
 
             # Now we can perform our inserts
-            with engine.connect() as conn:
-
-                if update_on_duplicate:
-                    statement = get_upsert_statement(table, data)
-                else:
-                    statement = table.insert().values(data)
-
-                conn.execute(statement)
+            if data:
+                with engine.connect() as conn:
+                    if update_on_duplicate:
+                        statement = get_upsert_statement(table, data)
+                    else:
+                        statement = table.insert().values(data)
+                    conn.execute(statement)
 
     return inner
 

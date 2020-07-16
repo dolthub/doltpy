@@ -1,17 +1,5 @@
-from doltpy.etl.sql_sync.tests.helpers.tools import (validate_get_table_metadata,
-                                                     validate_get_target_writer,
-                                                     validate_drop_primary_keys)
+from doltpy.etl.sql_sync.tests.helpers.tools import validate_get_target_writer, validate_drop_primary_keys
 from doltpy.etl.sql_sync.postgres import get_target_writer
-
-
-def test_get_table_metadata(postgres_with_table):
-    """
-    See validate_get_table_metadata docstring.
-    :param postgres_with_table:
-    :return:
-    """
-    engine, table = postgres_with_table
-    validate_get_table_metadata(engine, table.name)
 
 
 def test_write_to_table(postgres_with_table):

@@ -21,7 +21,7 @@ def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltA
 
 def upsert_helper(table: Table, data: List[dict]):
     insert_statement = insert(table).values(data)
-    update_dict = {el.name: el for el in insert_statement.inserted}
+    update_dict = {el.name: el for el in insert_statement.inserted if not el.primary_key}
     on_duplicate_key_statement = insert_statement.on_duplicate_key_update(update_dict)
     return on_duplicate_key_statement
 

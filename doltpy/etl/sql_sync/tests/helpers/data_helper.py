@@ -94,7 +94,7 @@ def get_expected_dolt_diffs(update_num: int):
         SECOND_UPDATE: ([], TEST_DATA_APPEND_SINGLE_ROW),
         THIRD_UPDATE: ([], TEST_DATA_APPEND_MULTIPLE_ROWS),
         FOURTH_UPDATE: ([], TEST_DATA_UPDATE_SINGLE_ROW),
-        FIFTH_UPDATE: ([('Stefanos', 'Tsitsipas')], [])
+        FIFTH_UPDATE: ([{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}], [])
     }
 
     return diffs[update_num]
@@ -114,7 +114,7 @@ def get_expected_data(update_num: int) -> Tuple[list, list]:
         THIRD_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW + TEST_DATA_APPEND_MULTIPLE_ROWS),
         FOURTH_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS + TEST_DATA_UPDATE_SINGLE_ROW),
         FIFTH_UPDATE:
-            ([('Stefanos', 'Tsitsipas')],
+            ([{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}],
              TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE + TEST_DATA_UPDATE_SINGLE_ROW)
     }
 
