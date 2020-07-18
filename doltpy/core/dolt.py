@@ -115,6 +115,32 @@ class DoltRemote:
         self.url = url
 
 
+class ServerConfig:
+    def __init__(self,
+                 config: str = None,
+                 host: str = DEFAULT_HOST,
+                 port: int = DEFAULT_PORT,
+                 user: str = None,
+                 password: str = None,
+                 timeout: int = None,
+                 readonly: bool = None,
+                 loglevel: str = None,
+                 multi_db_dir: str = None,
+                 no_auto_commit: bool = None,
+                 echo: bool = False):
+        self.config = config
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.timeout = timeout
+        self.readonly = readonly
+        self.loglevel = loglevel
+        self.multi_db_dir = multi_db_dir
+        self.no_auto_commit = no_auto_commit
+        self.echo = echo
+
+
 class Dolt:
     """
     This class wraps the Dolt command line interface, mimicking functionality exactly to the extent that is possible.
@@ -122,9 +148,11 @@ class Dolt:
     launches an interactive shell.
     """
 
-    def __init__(self, repo_dir: str):
+    def __init__(self, repo_dir: str, server_config: ServerConfig = ServerConfig()):
         self._repo_dir = repo_dir
         self.server = None
+        self.server_config = server_config
+        self.engine = self._get_engine()
 
     def repo_dir(self):
         """
@@ -154,8 +182,7 @@ class Dolt:
 
         @retry(exceptions=Exception, delay=2, tries=10)
         def verify_connection():
-            engine = self.get_engine()
-            with engine.connect() as _:
+            with self.engine.connect() as _:
                 logger.info('Verified database server running')
 
         if was_serving:
@@ -168,7 +195,7 @@ class Dolt:
         return output.split('\n')
 
     @staticmethod
-    def init(repo_dir: str = None) -> 'Dolt':
+    def init(repo_dir: str = None, server_config: ServerConfig = ServerConfig()) -> 'Dolt':
         """
         Creates a new repository in the directory specified, creating the directory if `create_dir` is passed, and returns
         a `Dolt` object representing the newly created repo.
@@ -186,7 +213,7 @@ class Dolt:
                 raise e
 
         _execute(['init'], cwd=repo_dir)
-        return Dolt(repo_dir)
+        return Dolt(repo_dir, server_config=server_config)
 
     def status(self) -> DoltStatus:
         """
@@ -321,31 +348,11 @@ class Dolt:
         args.extend(['--query', query])
         self.execute(args)
 
-    def sql_server(self,
-                   config: str = None,
-                   host: str = None,
-                   port: int = None,
-                   user: str = None,
-                   password: str = None,
-                   timeout: int = None,
-                   readonly: bool = False,
-                   loglevel: str = 'info',
-                   multi_db_dir: str = None,
-                   no_auto_commit: str = None):
+    def sql_server(self):
         """
         Start a MySQL Server process on local host using the parameters to configure behavior. The parameters are
         self-explanatory, but the config is a way to provide them as a YAML file rather than as function
         arguments.
-        :param config:
-        :param host:
-        :param port:
-        :param user:
-        :param password:
-        :param timeout:
-        :param readonly:
-        :param loglevel:
-        :param multi_db_dir:
-        :param no_auto_commit:
         :return:
         """
         def start_server(server_args):
@@ -363,27 +370,27 @@ class Dolt:
 
         args = ['sql-server']
 
-        if config:
-            args.extend(['--config', config])
+        if self.server_config.config:
+            args.extend(['--config', self.server_config.config])
         else:
-            if host:
-                args.extend(['--host', host])
-            if port:
-                args.extend(['--port', str(port)])
-            if user:
-                args.extend(['--user', user])
-            if password:
-                args.extend(['--password', password])
-            if timeout:
-                args.extend(['--timeout', int(timeout)])
-            if readonly:
+            if self.server_config.host:
+                args.extend(['--host', self.server_config.host])
+            if self.server_config.port:
+                args.extend(['--port', str(self.server_config.port)])
+            if self.server_config.user:
+                args.extend(['--user', self.server_config.user])
+            if self.server_config.password:
+                args.extend(['--password', self.server_config.password])
+            if self.server_config.timeout:
+                args.extend(['--timeout', int(self.server_config.timeout)])
+            if self.server_config.readonly:
                 args.extend(['--readonly'])
-            if loglevel:
-                args.extend(['--loglevel', loglevel])
-            if multi_db_dir:
-                args.extend(['--multi-db-dir', multi_db_dir])
-            if no_auto_commit:
-                args.extend(['--no-auto-commit', no_auto_commit])
+            if self.server_config.loglevel:
+                args.extend(['--loglevel', self.server_config.loglevel])
+            if self.server_config.multi_db_dir:
+                args.extend(['--multi-db-dir', self.server_config.multi_db_dir])
+            if self.server_config.no_auto_commit:
+                args.extend(['--no-auto-commit'])
 
         start_server(args)
 
@@ -391,16 +398,17 @@ class Dolt:
     def repo_name(self):
         return str(self.repo_dir()).split('/')[-1].replace('-', '_')
 
-    def get_engine(self, host: str = None, port: int = None) -> Engine:
+    def _get_engine(self, echo: bool = False) -> Engine:
         """
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
         :param host:
         :param port:
+        :param echo:
         :return:
         """
         database = self.repo_name
-        host = host or DEFAULT_HOST
-        port = port or DEFAULT_PORT
+        host = self.server_config.host
+        port = self.server_config.port
 
         logger.info('Attempting to connect to Dolt MySQL Server instance running on {}:{}'.format(host, port))
 
@@ -408,7 +416,8 @@ class Dolt:
             return create_engine('mysql+mysqlconnector://{user}@{host}:{port}/{database}'.format(user='root',
                                                                                                  host=host,
                                                                                                  port=port,
-                                                                                                 database=database), echo=True)
+                                                                                                 database=database),
+                                 echo=self.server_config.echo)
 
         return inner()
 

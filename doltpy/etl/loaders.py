@@ -148,7 +148,8 @@ def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
     with_id = df.assign(hash_id=ids).set_index(INSERTED_ROW_HASH_COL)
     count_by_id = with_id.groupby(INSERTED_ROW_HASH_COL).size()
     with_id.loc[:, INSERTED_COUNT_COL] = count_by_id
-    return with_id.reset_index()
+    unique = with_id.reset_index().drop_duplicates(subset=[INSERTED_ROW_HASH_COL])
+    return unique
 
 
 def _get_unique_key_update_writer(table: str,

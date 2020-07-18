@@ -21,7 +21,7 @@ DICT_OF_LISTS = {
 def test_import_dict(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
     import_dict(repo, 'characters', DICT_OF_LISTS, ['id'], 'create')
-    df = pandas_read_sql('select * from characters', repo.get_engine())
+    df = pandas_read_sql('select * from characters', repo.engine)
     expected = pd.DataFrame(DICT_OF_LISTS)
     assert df.equals(expected)
 
@@ -29,15 +29,15 @@ def test_import_dict(init_empty_test_repo, run_serve_mode):
 def test_import_lists(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
     import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create')
-    df = pandas_read_sql('select * from characters', repo.get_engine())
+    df = pandas_read_sql('select * from characters', repo.engine)
     expected = pd.DataFrame(LIST_OF_DICTS)
     assert df.equals(expected)
 
 
 def test_import_dicts_chunked(init_empty_test_repo, run_serve_mode):
     repo = init_empty_test_repo
-    import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create', chunk_size=2)
-    df = pandas_read_sql('select * from characters', repo.get_engine())
+    import_list(repo, 'characters', LIST_OF_DICTS, ['id'], 'create', batch_size=2)
+    df = pandas_read_sql('select * from characters', repo.engine)
     expected = pd.DataFrame(LIST_OF_DICTS)
     assert df.equals(expected)
 

@@ -60,7 +60,16 @@ def averager(df: pd.DataFrame) -> pd.DataFrame:
 
 @pytest.fixture
 def initial_derived_data(initial_test_data):
-    return _populate_derived_data_helper(initial_test_data, CREATE)
+    repo = initial_test_data
+    query = '''
+        CREATE TABLE average_major_count (
+            `gender` VARCHAR(16),
+            `average` FLOAT,
+            PRIMARY KEY (`gender`)
+        )
+    '''
+    repo.sql(query)
+    return _populate_derived_data_helper(repo, UPDATE)
 
 
 @pytest.fixture
