@@ -6,13 +6,12 @@ import io
 import tempfile
 from datetime import datetime
 from sqlalchemy import String, DateTime, Integer, Float, Table, MetaData, Column
-from sqlalchemy.engine import Engine
 import math
 
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CHUNK_SIZE = 300000
+DEFAULT_BATCH_SIZE = 300000
 CREATE, FORCE_CREATE, REPLACE, UPDATE = 'create', 'force_create', 'replace', 'update'
 IMPORT_MODES_TO_FLAGS = {CREATE: ['-c'],
                          FORCE_CREATE: ['-f', '-c'],
@@ -98,9 +97,7 @@ def import_dict(repo: Dolt,
                 data: Mapping[str, List[Any]],
                 primary_keys: List[str] = None,
                 import_mode: str = None,
-                chunk_size: int = DEFAULT_CHUNK_SIZE,
-                dolt_server_host: str = DEFAULT_HOST,
-                dolt_server_port: int = DEFAULT_PORT):
+                batch_size: int = DEFAULT_BATCH_SIZE):
     """
     Provides a column major interface for writing Python data structures to Dolt, specifically data should be a dict
     where the keys are column names and the values are equal length lists of values to be written to Dolt. The lists
@@ -136,9 +133,7 @@ def import_dict(repo: Dolt,
     :param data:
     :param primary_keys:
     :param import_mode:
-    :param chunk_size:
-    :param dolt_server_host:
-    :param dolt_server_port:
+    :param batch_size:
     :return:
     """
     assert import_mode in [UPDATE, CREATE]
@@ -150,32 +145,29 @@ def import_dict(repo: Dolt,
     assert all(len(val_list) == row_count for val_list in data.values()), 'Must provide value lists of uniform length'
 
     # Get an Engine object
-    engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
 
     # If the table does not exist, create it using type inference to build a create statement
     if import_mode == CREATE:
         assert primary_keys, 'primary_keys need to be provided when inferring a schema'
-        _create_table_inferred(engine, table_name, data, primary_keys)
+        _create_table_inferred(repo, table_name, data, primary_keys)
 
-    # Now transform the data to lists of tuples, where the elements are in the same order as the
-    # columns when sorted lexicographically
-    # sorted_cols = sorted(data.keys())
     rows = []
     for i in range(row_count):
         rows.append({col: data[col][i] for col in data.keys()})
 
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
-    table = MetaData(bind=engine, reflect=True).tables[table_name]
-    for i in range(max(1, math.ceil(len(rows) / chunk_size))):
-        chunk_start, chunk_end = i * chunk_size, min((i+1) * chunk_size, len(rows))
-        chunk = rows[chunk_start:chunk_end]
-        logger.info('Writing records {} through {} of {} rows to Dolt'.format(chunk_start, chunk_end, len(rows)))
-        with engine.connect() as conn:
-            conn.execute(table.insert(), chunk)
+    table = MetaData(bind=repo.engine, reflect=True).tables[table_name]
+    for i in range(max(1, math.ceil(len(rows) / batch_size))):
+        batch_start = i * batch_size
+        batch_end = min((i+1) * batch_size, len(rows))
+        batch = rows[batch_start:batch_end]
+        logger.info('Writing records {} through {} of {} rows to Dolt'.format(batch_start, batch_end, len(rows)))
+        with repo.engine.connect() as conn:
+            conn.execute(table.insert(), batch)
 
 
-def _create_table_inferred(engine: Engine, table_name: str, data: Mapping[str, List[Any]], primary_keys: List[str]):
+def _create_table_inferred(repo: Dolt, table_name: str, data: Mapping[str, List[Any]], primary_keys: List[str]):
     # generate and execute a create table statement
     cols_to_types = {}
     for col_name, list_of_values in data.items():
@@ -188,12 +180,11 @@ def _create_table_inferred(engine: Engine, table_name: str, data: Mapping[str, L
             raise ValueError('Cannot provide an empty list, types cannot be inferred')
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
-    metadata = MetaData(bind=engine)
+    metadata = MetaData(bind=repo.engine)
     table = _get_table_def(metadata, table_name, cols_to_types, primary_keys)
     table.create()
 
 
-# change these into SQL Alchemy types
 def _get_col_type(sample_value: Any, values: Any):
     if type(sample_value) == str:
         return String(2 * max(len(val) for val in values))
@@ -218,9 +209,7 @@ def import_list(repo: Dolt,
                 data: List[Mapping[str, Any]],
                 primary_keys: List[str] = None,
                 import_mode: str = None,
-                chunk_size: int = DEFAULT_CHUNK_SIZE,
-                dolt_server_host: str = DEFAULT_HOST,
-                dolt_server_port: int = DEFAULT_PORT):
+                batch_size: int = DEFAULT_BATCH_SIZE):
     """
     This provides a write interface for writing row major Python data structures to Dolt. The data parameter should be a
     list of dicts, where each dict represents a row. Each dict must have the same columns, and:
@@ -252,9 +241,7 @@ def import_list(repo: Dolt,
     :param data:
     :param primary_keys:
     :param import_mode:
-    :param chunk_size:
-    :param dolt_server_host:
-    :param dolt_server_port:
+    :param batch_size:
     :return:
     """
     assert data, 'Cannot provide empty dict'
@@ -272,11 +259,4 @@ def import_list(repo: Dolt,
             else:
                 reformatted[col_name] = [value]
 
-    import_dict(repo,
-                table_name,
-                reformatted,
-                primary_keys,
-                import_mode,
-                chunk_size,
-                dolt_server_host,
-                dolt_server_port)
+    import_dict(repo, table_name, reformatted, primary_keys, import_mode, batch_size)

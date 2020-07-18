@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException, DoltServerNotRunningException, DoltWrongServerException
+from doltpy.core.dolt import Dolt, _execute, DoltException
 from doltpy.core.write import UPDATE, import_df
 from doltpy.core.read import pandas_read_sql, read_table
 import shutil
@@ -8,10 +8,9 @@ import uuid
 import os
 from typing import Tuple
 from doltpy.core.tests.helpers import get_repo_path_tmp_path
-from sqlalchemy.engine import Engine
 import sqlalchemy
 from retry import retry
-from retry.api import retry_call
+
 
 @pytest.fixture
 def create_test_data(tmp_path) -> str:
@@ -118,8 +117,7 @@ def test_sql_server(create_test_table, run_serve_mode):
     :return:
     """
     repo, test_table = create_test_table
-    engine = run_serve_mode
-    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), engine)
+    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), repo.engine)
     assert list(data['id']) == [1, 2]
 
 
@@ -130,19 +128,17 @@ def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_t
     :return:
     """
     @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
-    def get_databases(engine: Engine):
-        with engine.connect() as conn:
+    def get_databases(dolt_repo: Dolt):
+        with dolt_repo.engine.connect() as conn:
             result = conn.execute('SHOW DATABASES')
             return [tup[0] for tup in result]
 
     repo, test_table = create_test_table
-    repo_engine = run_serve_mode
     other_repo = init_other_empty_test_repo
-    other_repo.sql_server(port=3307)
-    other_repo_engine = other_repo.get_engine(port=3307)
+    other_repo.sql_server()
 
-    repo_databases = get_databases(repo_engine)
-    other_repo_databases = get_databases(other_repo_engine)
+    repo_databases = get_databases(repo.engine)
+    other_repo_databases = get_databases(other_repo.engine)
 
     assert {'information_schema', repo.repo_name} == set(repo_databases)
     assert {'information_schema', other_repo.repo_name} == set(other_repo_databases)

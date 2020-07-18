@@ -9,9 +9,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TABLE_NAME,
                                                            TEST_TABLE_METADATA,
                                                            get_dolt_update_row_statement,
                                                            get_dolt_drop_pk_query)
-from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from typing import Tuple
-from sqlalchemy.engine import Engine
 import sqlalchemy
 from sqlalchemy import Table
 from retry import retry
@@ -32,10 +30,9 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
 
     @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
     def verify_connection():
-        eng = repo.get_engine()
-        conn = eng.connect()
+        conn = repo.engine.connect()
         conn.close()
-        return eng
+        return repo.engine
 
     engine = verify_connection()
     TEST_TABLE_METADATA.create(engine)
@@ -71,9 +68,7 @@ def create_dolt_test_data_commits(repo_with_table):
 
 
 def _query_helper(repo: Dolt, query, message):
-    engine = repo.get_engine()
-
-    with engine.connect() as conn:
+    with repo.engine.connect() as conn:
         conn.execute(query)
 
     repo.add(TABLE_NAME)

@@ -17,7 +17,6 @@ from doltpy.etl.sql_sync.dolt import (get_source_reader as get_dolt_source_reade
                                       get_table_reader as get_dolt_table_reader)
 from doltpy.etl.sql_sync.sync_tools import sync_to_dolt, sync_from_dolt, DoltAsSourceWriter
 from doltpy.etl.sql_sync.db_tools import get_table_metadata, drop_primary_keys
-from doltpy.etl.sql_sync.mysql import get_target_writer as get_mysql_target_writer
 from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
@@ -78,6 +77,7 @@ def validate_drop_primary_keys(engine: Engine, table: Table):
 def validate_dolt_as_target(db_engine: Engine,
                             db_table: Table,
                             get_db_source_reader,
+                            get_db_target_writer,
                             get_db_table_reader,
                             dolt_repo,
                             dolt_table):
@@ -89,6 +89,7 @@ def validate_dolt_as_target(db_engine: Engine,
     :param db_engine:
     :param db_table:
     :param get_db_source_reader:
+    :param get_db_target_writer:
     :param get_db_table_reader:
     :param dolt_repo:
     :param dolt_table:
@@ -120,7 +121,7 @@ def validate_dolt_as_target(db_engine: Engine,
     ]
 
     for update_data in update_sequence:
-        get_mysql_target_writer(db_engine)({str(db_table.name): ([], update_data)})
+        get_db_target_writer(db_engine)({str(db_table.name): ([], update_data)})
         sync_to_dolt_helper()
         latest_commit = list(dolt_repo.log().keys())[0]
         assertion_helper(latest_commit, update_data)

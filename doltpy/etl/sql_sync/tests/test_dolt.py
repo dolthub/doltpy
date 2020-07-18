@@ -85,8 +85,7 @@ def test_get_target_writer(repo_with_table):
 
 
 def _dolt_table_read_helper(repo: Dolt, table_name: str):
-    engine = repo.get_engine()
-    table = get_table_metadata(engine, table_name)
-    with engine.connect() as conn:
+    table = get_table_metadata(repo.engine, table_name)
+    with repo.engine.connect() as conn:
         result = conn.execute(table.select())
         return [dict(row) for row in result]

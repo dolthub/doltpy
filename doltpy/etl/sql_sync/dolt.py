@@ -15,12 +15,7 @@ from sqlalchemy import Table, select, bindparam, MetaData
 logger = get_logger(__name__)
 
 
-def get_target_writer(repo: Dolt,
-                      branch: str = None,
-                      commit: bool = True,
-                      message: str = None,
-                      dolt_server_host: str = DEFAULT_HOST,
-                      dolt_server_port: int = DEFAULT_PORT) -> DoltAsTargetWriter:
+def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
     """
     Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
     message or generates a standard one.
@@ -28,16 +23,14 @@ def get_target_writer(repo: Dolt,
     :param branch:
     :param commit:
     :param message:
-    :param dolt_server_host:
-    :param dolt_server_port:
-    :return:
+    :return: 
     """
     def inner(table_data_map: DoltAsTargetUpdate):
         current_branch, _ = repo.branch()
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
+        engine = repo.engine
         metadata = MetaData(engine, reflect=True)
 
         for table_name, table_update in table_data_map.items():
@@ -121,17 +114,12 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]
     return inner
 
 
-def get_table_reader_diffs(commit_ref: str = None,
-                           branch: str = None,
-                           dolt_server_host: str = DEFAULT_HOST,
-                           dolt_server_port: int = DEFAULT_PORT) -> Callable[[str, Dolt], DoltTableUpdate]:
+def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the diff from a commit and/or branch, defaults to the HEAD of the current branch if
     neither are provided.
     :param commit_ref:
     :param branch:
-    :param dolt_server_host:
-    :param dolt_server_port:
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
@@ -140,10 +128,9 @@ def get_table_reader_diffs(commit_ref: str = None,
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
-        table = MetaData(engine, reflect=True).tables[table_name]
-        pks_to_drop = get_dropped_pks(engine, table, from_commit, to_commit)
-        result = _read_from_dolt_diff(engine, table, from_commit, to_commit)
+        table = MetaData(repo.engine, reflect=True).tables[table_name]
+        pks_to_drop = get_dropped_pks(repo.engine, table, from_commit, to_commit)
+        result = _read_from_dolt_diff(repo.engine, table, from_commit, to_commit)
         return pks_to_drop, result
 
     return inner
@@ -198,28 +185,22 @@ def get_from_commit_to_commit(repo: Dolt, commit_ref: str = None) -> Tuple[str, 
     return commits[commit_ref_index + 1], commits[commit_ref_index]
 
 
-def get_table_reader(commit_ref: str = None,
-                     branch: str = None,
-                     dolt_server_host: str = DEFAULT_HOST,
-                     dolt_server_port: int = DEFAULT_PORT) -> Callable[[str, Dolt], DoltTableUpdate]:
+def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[str, Dolt], DoltTableUpdate]:
     """
     Returns a function that reads the entire table at a commit and/or branch, and returns the data.
     :param commit_ref:
     :param branch:
-    :param dolt_server_host:
-    :param dolt_server_port:
     :return:
     """
     def inner(table_name: str, repo: Dolt) -> DoltTableUpdate:
         if branch and branch != repo.log():
             repo.checkout(branch)
 
-        engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
         query_commit = commit_ref or list(repo.log().keys())[0]
-        table = get_table_metadata(engine, table_name)
+        table = get_table_metadata(repo.engine, table_name)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
-        pks_to_drop = get_dropped_pks(engine, table, from_commit, to_commit)
-        result = _read_from_dolt_history(engine, table, query_commit)
+        pks_to_drop = get_dropped_pks(repo.engine, table, from_commit, to_commit)
+        result = _read_from_dolt_history(repo.engine, table, query_commit)
         return pks_to_drop, result
 
     return inner
@@ -264,13 +245,7 @@ def _query_helper(engine: Engine, query: str):
         return [dict(row) for row in result]
 
 
-def write_to_table(repo: Dolt,
-                   table: Table,
-                   data: List[dict],
-                   commit: bool = False,
-                   message: str = None,
-                   dolt_server_host: str = DEFAULT_HOST,
-                   dolt_server_port: int = DEFAULT_PORT):
+def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = False, message: str = None):
     """
     Given a repo, table, and data, will try and use the repo's MySQL Server instance to write the provided data to the
     table. Since Dolt does not yet support ON DUPLICATE KEY clause to INSERT statements we also have to separate
@@ -280,15 +255,12 @@ def write_to_table(repo: Dolt,
     :param data:
     :param commit:
     :param message:
-    :param dolt_server_host:
-    :param dolt_server_port:
     :return:
     """
-    engine = repo.get_engine(host=dolt_server_host, port=dolt_server_port)
-    inserts, updates = get_inserts_and_updates(engine, table, data)
+    inserts, updates = get_inserts_and_updates(repo.engine, table, data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
-        with engine.connect() as conn:
+        with repo.engine.connect() as conn:
             conn.execute(table.insert(), inserts)
 
     # We need to prefix the columns with "_" in order to use bindparam properly
@@ -300,7 +272,7 @@ def write_to_table(repo: Dolt,
 
     if _updates:
         logger.info('Updating {} rows'.format(len(_updates)))
-        with engine.connect() as conn:
+        with repo.engine.connect() as conn:
             statement = table.update()
             for pk_col in [col.name for col in table.columns if col.primary_key]:
                 statement = statement.where(table.c[pk_col] == bindparam('_{}'.format(pk_col)))
