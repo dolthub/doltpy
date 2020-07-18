@@ -1,14 +1,7 @@
 import logging
-from doltpy.etl.sql_sync.mysql import (get_target_writer as get_mysql_target_writer,
-                                       get_insert_query as get_mysql_insert_query,
-                                       get_table_metadata as get_mysql_table_metadata,
-                                       get_source_reader as get_mysql_source_reader,
-                                       get_table_reader as get_mysql_table_reader)
-from doltpy.etl.sql_sync.postgres import (get_target_writer as get_postgres_target_writer,
-                                          get_table_metadata as get_postgres_table_metadata,
-                                          get_source_reader as get_postgres_source_reader,
-                                          get_table_reader as get_postgres_table_reader,
-                                          get_insert_query as get_postgres_insert_query)
+from doltpy.etl.sql_sync.mysql import get_target_writer as get_mysql_target_writer
+from doltpy.etl.sql_sync.postgres import get_target_writer as get_postgres_target_writer
+from doltpy.etl.sql_sync.db_tools import get_source_reader, get_table_reader
 from doltpy.etl.sql_sync.tests.helpers.tools import validate_dolt_as_source, validate_dolt_as_target
 
 logger = logging.getLogger(__name__)
@@ -34,14 +27,12 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
     :param repo_with_table:
     :return:
     """
-    mysql_conn, mysql_table = mysql_with_table
+    mysql_engine, mysql_table = mysql_with_table
     dolt_repo, dolt_table = repo_with_table
-    validate_dolt_as_target(mysql_conn,
+    validate_dolt_as_target(mysql_engine,
                             mysql_table,
-                            get_mysql_table_metadata,
-                            get_mysql_source_reader,
-                            get_mysql_table_reader,
-                            get_mysql_insert_query,
+                            get_source_reader,
+                            get_table_reader,
                             dolt_repo,
                             dolt_table)
 
@@ -69,9 +60,7 @@ def test_postgres_to_dolt(postgres_with_table, repo_with_table):
     dolt_repo, dolt_table = repo_with_table
     validate_dolt_as_target(postgres_conn,
                             postgres_table,
-                            get_postgres_table_metadata,
-                            get_postgres_source_reader,
-                            get_postgres_table_reader,
-                            get_postgres_insert_query,
+                            get_source_reader,
+                            get_table_reader,
                             dolt_repo,
                             dolt_table)

@@ -6,16 +6,21 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TABLE_NAME,
                                                            TEST_DATA_INITIAL,
                                                            TEST_DATA_APPEND_SINGLE_ROW,
                                                            TEST_DATA_APPEND_MULTIPLE_ROWS,
-                                                           get_dolt_update_row_query,
+                                                           TEST_TABLE_METADATA,
+                                                           get_dolt_update_row_statement,
                                                            get_dolt_drop_pk_query)
-from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
+from doltpy.etl.sql_sync.db_tools import get_table_metadata
 from typing import Tuple
+from sqlalchemy.engine import Engine
+import sqlalchemy
+from sqlalchemy import Table
+from retry import retry
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
+def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
     """
     Creates a test table inside the empty test repo provided by the init_empty_test_repo fixture parameter.
     :param request:
@@ -24,11 +29,16 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
     """
     repo = init_empty_test_repo
     repo.sql_server()
-    connection = repo.get_connection()
-    create_curs = connection.cursor()
-    create_curs.execute(CREATE_TEST_TABLE)
-    connection.commit()
-    connection.close()
+
+    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    def verify_connection():
+        eng = repo.get_engine()
+        conn = eng.connect()
+        conn.close()
+        return eng
+
+    engine = verify_connection()
+    TEST_TABLE_METADATA.create(engine)
 
     def finalize():
         if repo.server:
@@ -36,7 +46,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, str]:
 
     request.addfinalizer(finalize)
 
-    return repo, TABLE_NAME
+    return repo, TEST_TABLE_METADATA
 
 
 @pytest.fixture
@@ -54,18 +64,18 @@ def create_dolt_test_data_commits(repo_with_table):
     write_to_table(repo, table, TEST_DATA_APPEND_MULTIPLE_ROWS, commit=True)
     # TODO: we currently do not support ON DUPLICATE KEY syntax, so this does the update
     # write_to_table(repo, table, TEST_DATA_UPDATE_SINGLE_ROW, commit=True)
-    _query_helper(repo, get_dolt_update_row_query(), 'Updated a row')
-    _query_helper(repo, get_dolt_drop_pk_query(), 'Updated a row')
+    _query_helper(repo, get_dolt_update_row_statement(table), 'Updated a row')
+    _query_helper(repo, get_dolt_drop_pk_query(table), 'Updated a row')
 
     return repo, table
 
 
-def _query_helper(repo, query, message):
-    conn = repo.get_connection()
-    cursor = conn.cursor()
-    cursor.execute(query)
-    conn.commit()
-    conn.close()
+def _query_helper(repo: Dolt, query, message):
+    engine = repo.get_engine()
+
+    with engine.connect() as conn:
+        conn.execute(query)
+
     repo.add(TABLE_NAME)
     repo.commit(message)
 

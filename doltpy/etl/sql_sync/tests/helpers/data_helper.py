@@ -1,13 +1,15 @@
 from datetime import datetime
 import logging
-from doltpy.etl.sql_sync.db_tools import TableMetadata, Column
-from decimal import Decimal
-from typing import List
+from sqlalchemy import Column, Table, MetaData
+from sqlalchemy.types import Integer, DateTime, String, Text, Float
+from sqlalchemy.engine import Engine
+from typing import List, Tuple, Callable
+
 
 logger = logging.getLogger(__name__)
 
 TABLE_NAME = 'great_players'
-BASE_TEST_DATA_INITIAL = [
+TEST_DATA_INITIAL = [
     {'first_name': 'Novak',
      'last_name': 'Djokovic',
      'playing_style_desc': 'aggressive/baseline',
@@ -27,7 +29,7 @@ BASE_TEST_DATA_INITIAL = [
      'high_rank': 1,
      'turned_pro': datetime(1998, 1, 1)}
 ]
-BASE_TEST_DATA_APPEND_MULTIPLE_ROWS = [
+TEST_DATA_APPEND_MULTIPLE_ROWS = [
     {'first_name': 'Stefanos',
      'last_name': 'Tsitsipas',
      'playing_style_desc': 'aggressive/all-court',
@@ -47,8 +49,8 @@ BASE_TEST_DATA_APPEND_MULTIPLE_ROWS = [
      'high_rank': 3,
      'turned_pro': datetime(2011, 1, 1)}
 ]
-BASE_TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = BASE_TEST_DATA_APPEND_MULTIPLE_ROWS[1:]
-BASE_TEST_DATA_APPEND_SINGLE_ROW = [
+TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = TEST_DATA_APPEND_MULTIPLE_ROWS[1:]
+TEST_DATA_APPEND_SINGLE_ROW = [
     {'first_name': 'Andy',
      'last_name': 'Murray',
      'playing_style_desc': 'defensive/baseline',
@@ -56,7 +58,7 @@ BASE_TEST_DATA_APPEND_SINGLE_ROW = [
      'high_rank': 1,
      'turned_pro': datetime(2005, 1, 1)}
 ]
-BASE_TEST_DATA_UPDATE_SINGLE_ROW = [
+TEST_DATA_UPDATE_SINGLE_ROW = [
     {'first_name': 'Andy',
      'last_name': 'Murray',
      'playing_style_desc': 'defensive/baseline',
@@ -65,25 +67,14 @@ BASE_TEST_DATA_UPDATE_SINGLE_ROW = [
      'turned_pro': datetime(2005, 1, 1)}
 ]
 
-TEST_TABLE_COLUMNS = [Column('first_name', 'VARCHAR(256)', True),
-                      Column('last_name', 'VARCHAR(256)', True),
-                      Column('playing_style_desc', 'LONGTEXT'),
-                      Column('win_percentage', 'DECIMAL'),
-                      Column('high_rank', 'INT'),
-                      Column('turned_pro', 'DATETIME')]
-TEST_TABLE_METADATA = TableMetadata(TABLE_NAME, TEST_TABLE_COLUMNS)
-
-
-def _row_dicts_to_tuples(row_dict):
-    return [tuple(el[col.col_name] for col in TEST_TABLE_METADATA.columns) for el in row_dict]
-
-
-TEST_DATA_INITIAL = _row_dicts_to_tuples(BASE_TEST_DATA_INITIAL)
-TEST_DATA_APPEND_MULTIPLE_ROWS = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULTIPLE_ROWS)
-TEST_DATA_APPEND = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULTIPLE_ROWS)
-TEST_DATA_APPEND_SINGLE_ROW = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_SINGLE_ROW)
-TEST_DATA_UPDATE_SINGLE_ROW = _row_dicts_to_tuples(BASE_TEST_DATA_UPDATE_SINGLE_ROW)
-TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = _row_dicts_to_tuples(BASE_TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE)
+TEST_TABLE_METADATA = Table(TABLE_NAME,
+                            MetaData(),
+                            Column('first_name', String(256), primary_key=True),
+                            Column('last_name', String(256), primary_key=True),
+                            Column('playing_style_desc', Text),
+                            Column('win_percentage', Float),
+                            Column('high_rank', Integer),
+                            Column('turned_pro', DateTime))
 
 
 FIRST_UPDATE, SECOND_UPDATE, THIRD_UPDATE, FOURTH_UPDATE, FIFTH_UPDATE = tuple(range(5))
@@ -103,13 +94,13 @@ def get_expected_dolt_diffs(update_num: int):
         SECOND_UPDATE: ([], TEST_DATA_APPEND_SINGLE_ROW),
         THIRD_UPDATE: ([], TEST_DATA_APPEND_MULTIPLE_ROWS),
         FOURTH_UPDATE: ([], TEST_DATA_UPDATE_SINGLE_ROW),
-        FIFTH_UPDATE: ([('Stefanos', 'Tsitsipas')], [])
+        FIFTH_UPDATE: ([{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}], [])
     }
 
     return diffs[update_num]
 
 
-def get_expected_data(update_num: int):
+def get_expected_data(update_num: int) -> Tuple[list, list]:
     """
     The fixture fixtures.dolt.create_dolt_test_data_with_commits writes writes a sequence of four updates, this function
     returns the expected results at each of those updates.
@@ -123,102 +114,84 @@ def get_expected_data(update_num: int):
         THIRD_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_SINGLE_ROW + TEST_DATA_APPEND_MULTIPLE_ROWS),
         FOURTH_UPDATE: ([], TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS + TEST_DATA_UPDATE_SINGLE_ROW),
         FIFTH_UPDATE:
-            ([('Stefanos', 'Tsitsipas')],
+            ([{'first_name': 'Stefanos', 'last_name': 'Tsitsipas'}],
              TEST_DATA_INITIAL + TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE + TEST_DATA_UPDATE_SINGLE_ROW)
     }
 
     return cumulative[update_num]
 
 
-def get_dolt_update_row_query():
+def get_dolt_update_row_statement(table: Table):
     """
     Helper function used to form a update query for building test data.
     :return:
     """
-    update = BASE_TEST_DATA_UPDATE_SINGLE_ROW[0]
-    update_col = 'win_percentage'
-    update_val = update[update_col]
-    query = '''
-        UPDATE
-            {table_name} 
-        SET 
-            {update_col} = {update_val} 
-        WHERE 
-            first_name = "{first_name}" AND last_name = "{last_name}"'''.format(table_name=TABLE_NAME,
-                                                                                update_col=update_col,
-                                                                                update_val=update_val,
-                                                                                first_name=update['first_name'],
-                                                                                last_name=update['last_name'])
-    return query
+    update = TEST_DATA_UPDATE_SINGLE_ROW[0]
+    update_statement = (table
+                        .update()
+                        .values(win_percentage=update['win_percentage'])
+                        .where(table.c.first_name == update['first_name'])
+                        .where(table.c.last_name == update['last_name']))
+
+    return update_statement
 
 
-def get_dolt_drop_pk_query():
+def get_dolt_drop_pk_query(table: Table):
     """
     Helper function used to form a delete query for building test data.
     :return:
     """
     first_name, last_name = 'Stefanos', 'Tsitsipas'
-    return '''
-        DELETE FROM
-            {table_name}
-        WHERE
-            first_name = '{first_name}' AND last_name = '{last_name}'
-    '''.format(table_name=TABLE_NAME, first_name=first_name, last_name=last_name)
+    delete_statement = (table
+                        .delete()
+                        .where(table.c.first_name == first_name)
+                        .where(table.c.last_name == last_name))
+
+    return delete_statement
 
 
-def get_data_for_comparison(conn):
-    """
-    Given a database connection (MySQL, Dolt MySQL, or Postgres) returns data with column values in the order of the
-    columns sorted alphabetically on name.
-    :param conn:
-    :return:
-    """
-    query = '''
-        SELECT
-            {columns}
-        FROM
-            {table_name}
-        ORDER BY first_name, last_name ASC;
-    '''.format(columns=','.join(col.col_name for col in TEST_TABLE_METADATA.columns),
-               table_name=TEST_TABLE_METADATA.name)
-    cursor = conn.cursor()
-    cursor.execute(query)
-    return [tup for tup in cursor]
+def get_data_for_comparison(engine: Engine):
+    with engine.connect() as conn:
+        result = conn.execute(TEST_TABLE_METADATA.select())
+        return [dict(row) for row in result]
 
 
 DROP_TEST_TABLE = 'DROP TABLE {table_name}'.format(table_name=TABLE_NAME)
 
 
-def assert_tuple_array_equality(left: List[tuple], right: List[tuple]):
-    """
-    Compares two lists of tuples for equality ensuring that Decimal values returned by databases are properly cast to
-    execute correct comparison. All lists are sorted sorted using the primary key of the test data, which requires the
-    data come in a specified order.
-    :param left:
-    :param right:
-    :return:
-    """
+def by_first_last(dic: dict) -> tuple:
+    return dic['first_name'], dic['last_name']
+
+
+def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[[dict], tuple] = by_first_last):
     assert len(left) == len(right)
     failed = False
 
     if len(left) == 0 and len(right) == 0:
         return True
 
-    # All data comes in with values in the order of their column sorted alphabetically, 0 and 2 correspond to the
-    # position of the primary keys in this column sort.
-    def sort_helper(tup: tuple) -> tuple:
-        return tup[0], tup[2]
+    l, r = sorted(left, key=comparator), sorted(right, key=comparator)
 
-    left.sort(key=sort_helper)
-    right.sort(key=sort_helper)
+    for left_row, right_row in zip(l, r):
+        for left_column, left_value in left_row.items():
+            if left_column in right_row:
+                right_value = right_row[left_column]
+                if not isinstance(left_value, type(right_value)):
+                    failed = True
+                    logger.error('left value is of type {}, right value is of type {}'.format(type(left_value),
+                                                                                              type(right_value)))
 
-    for left_tup, right_tup in zip(left, right):
-        for left_el, right_el in zip(left_tup, right_tup):
-            if type(left_el) == float:
-                left_el = Decimal(str(left_el))
-            if left_el != right_el:
-                logger.warning('Non identical values (left) {} != {} (right)'.format(left_el, right_el))
+                elif isinstance(left_value, float):
+                    left_value, right_value = round(left_value, 4), round(right_value, 4)
+
+                if left_value != right_value:
+                    failed = True
+                    logger.error('left value {} for column {} is not equal to {}'.format(left_value,
+                                                                                         left_column,
+                                                                                         right_value))
+            else:
                 failed = True
+                logger.error('{} column is in left, but not right'.format(left_column))
 
     if failed:
         raise AssertionError('Errors found')

@@ -1,8 +1,10 @@
-import mysql.connector as connector
+from sqlalchemy.engine import Engine
+from sqlalchemy import Table, MetaData
 import pytest
-from retry import retry
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TABLE_NAME, DROP_TEST_TABLE
-from doltpy.etl.sql_sync.tests.helpers.mysql import CREATE_TEST_TABLE
+from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
+
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
+from typing import Tuple
 
 MYSQL_ROOT_PASSWORD = 'test'
 MYSQL_USER = 'MYSQL_USER'
@@ -32,44 +34,19 @@ def mysql_service_def():
     }
 
 
-@retry(exceptions=connector.errors.DatabaseError, delay=2, tries=10)
-def get_connection(host, port):
-    """
-    Provides a connection to the MySQL instance running at the specified host/port.
-    :param host:
-    :param port:
-    :return:
-    """
-    return connector.connect(host=host, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DATABASE, port=port)
+@pytest.fixture
+def mysql_engine(docker_ip, docker_services) -> Engine:
+    return engine_helper('mysql+mysqlconnector',
+                         MYSQL_USER,
+                         MYSQL_PASSWORD,
+                         docker_ip,
+                         docker_services.port_for('mysql', MYSQL_PORT),
+                         MYSQL_DATABASE)
 
 
 @pytest.fixture
-def mysql_connection(docker_ip, docker_services):
-    """
-    Provides a connection to the MySQL instance running on the Docker address provided by the fixture parameters.
-    :param docker_ip:
-    :param docker_services:
-    :return:
-    """
-    return get_connection(docker_ip, docker_services.port_for('mysql', MYSQL_PORT))
-
-
-@pytest.fixture
-def mysql_with_table(mysql_connection):
-    """
-    Creates a test table inside the MySQL Server pointed at by the connection returned by the mysql_connection fixture
-    parameter.
-    :param mysql_connection:
-    :return:
-    """
-    create_cursor = mysql_connection.cursor()
-    create_cursor.execute(CREATE_TEST_TABLE)
-    mysql_connection.commit()
-
-    yield mysql_connection, TABLE_NAME
-
-    # drop table
-    drop_cursor = mysql_connection.cursor()
-    drop_cursor.execute(DROP_TEST_TABLE)
-    mysql_connection.commit()
-    mysql_connection.close()
+def mysql_with_table(mysql_engine) -> Tuple[Engine, Table]:
+    TEST_TABLE_METADATA.metadata.create_all(mysql_engine)
+    yield mysql_engine, TEST_TABLE_METADATA
+    reflected_table = MetaData(bind=mysql_engine, reflect=True).tables[TEST_TABLE_METADATA.name]
+    reflected_table.drop()

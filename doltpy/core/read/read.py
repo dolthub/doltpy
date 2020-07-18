@@ -1,4 +1,4 @@
-from mysql import connector
+from sqlalchemy.engine import Engine
 from doltpy.core.dolt import Dolt
 import pandas as pd
 import tempfile
@@ -22,14 +22,13 @@ def read_table(repo: Dolt, table_name: str, delimiter: str = ',') -> pd.DataFram
     return result
 
 
-def pandas_read_sql(query: str, connection: connector.connection) -> pd.DataFrame:
+def pandas_read_sql(query: str, engine: Engine) -> pd.DataFrame:
     """
     Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
     `DataFrame` object. This is a higher level version of `query_server` where the object returned is the cursor
     associated with query executed.
-    :param repo:
     :param query:
-    :param connection:
+    :param engine:
     :return:
     """
-    return pd.read_sql(query, con=connection)
+    return pd.read_sql(query, con=engine)
