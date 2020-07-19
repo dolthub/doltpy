@@ -1,5 +1,4 @@
-from .dolthub_loader import loader as dolthub_loader
-from .dolt_loader import loader as dolt_loader
+from .wrappers import load_to_dolt, load_to_dolthub
 from .loaders import (get_df_table_writer,
                       get_bulk_table_writer,
                       get_unique_key_table_writer,
@@ -10,8 +9,7 @@ from .loaders import (get_df_table_writer,
                       create_table_from_schema_import,
                       create_table_from_schema_import_unique_key,
                       DoltTableWriter,
-                      DoltLoader,
-                      DoltLoaderBuilder)
+                      DoltLoader)
 from ..core.system_helpers import register_cleanup
 
 register_cleanup()

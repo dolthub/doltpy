@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Union
 import io
 from doltpy.core.dolt import Dolt
 from doltpy.core.write import import_df, bulk_import, UPDATE
@@ -11,7 +11,6 @@ import tempfile
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]
-DoltLoaderBuilder = Callable[[], List[DoltLoader]]
 DataframeTransformer = Callable[[pd.DataFrame], pd.DataFrame]
 FileTransformer = Callable[[io.StringIO], io.StringIO]
 
@@ -192,7 +191,7 @@ def _get_unique_key_update_writer(table: str,
     return inner
 
 
-def get_dolt_loader(table_writers: List[DoltTableWriter],
+def get_dolt_loader(writer_or_writers: Union[DoltTableWriter, List[DoltTableWriter]],
                     commit: bool,
                     message: str,
                     branch: str = 'master',
@@ -201,13 +200,18 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
     Given a repo and a set of table loaders, run the table loaders and conditionally commit the results with the
     specified message on the specified branch. If transaction_mode is true then ensure all loaders/transformers are
     successful, or all are rolled back.
-    :param table_writers:
+    :param writer_or_writers:
     :param commit:
     :param message:
     :param branch:
     :param transaction_mode:
     :return: the branch written to
     """
+    if type(writer_or_writers) == list:
+        writers = writer_or_writers
+    else:
+        writers = [writer_or_writers]
+
     def inner(repo: Dolt):
         current_branch, current_branch_list = repo.branch()
         original_branch = current_branch.name
@@ -225,7 +229,7 @@ def get_dolt_loader(table_writers: List[DoltTableWriter],
         if transaction_mode:
             raise NotImplementedError('transaction_mode is not yet implemented')
 
-        tables_updated = [writer(repo) for writer in table_writers]
+        tables_updated = [writer(repo) for writer in writers]
 
         if commit:
             if not repo.status().is_clean:
