@@ -6,8 +6,10 @@ from collections import OrderedDict
 from retry import retry
 from sqlalchemy.engine import Engine
 from sqlalchemy import create_engine
-import sqlalchemy
+import json
 from doltpy.core.system_helpers import get_logger, SQL_LOG_FILE
+import csv
+import io
 
 logger = get_logger(__name__)
 
@@ -78,13 +80,14 @@ class DoltCommit:
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
-    def __init__(self, ref: str, ts: datetime, author: str):
+    def __init__(self, ref: str, ts: datetime, author: str, message: str):
         self.hash = ref
         self.ts = ts
         self.author = author
+        self.message = message
 
     def __str__(self):
-        return '{}: {} @ {}'.format(self.hash, self.author, self.ts)
+        return '{}: {} @ {}, {}'.format(self.hash, self.author, self.ts, self.message)
 
 
 class DoltKeyPair:
@@ -105,10 +108,13 @@ class DoltBranch:
         self.name = name
         self.commit_id = commit_id
 
+    def __str__(self):
+        return 'branch name: {}, commit_id:{}'.format(self.name, self.commit_id)
+
 
 class DoltRemote:
     """
-    Represents a remote, effecitvely a name and URL pair.
+    Represents a remote, effectively a name and URL pair.
     """
     def __init__(self, name: str, url: str):
         self.name = name
@@ -345,8 +351,31 @@ class Dolt:
             if message:
                 args.extend(['--message', message])
 
+        # do something with result format
+        if result_format:
+            assert query, 'Must provide a query in order to specify a result format'
+            args.extend(['--query', query])
+            if result_format in ['csv', 'tabular']:
+                args.extend(['--result-format', 'csv'])
+                output = self.execute(args)
+                dict_reader = csv.DictReader(io.StringIO('\n'.join(output)))
+                return list(dict_reader)
+            elif result_format == 'json':
+                args.extend(['--result-format', 'json'])
+                output = self.execute(args)
+                return json.load(io.StringIO('\n'.join(output)))
+            else:
+                raise ValueError('{} is not a valid value for result_format'.format(result_format))
+
+        logger.warning('Must provide a value for result_format to get output back')
         args.extend(['--query', query])
         self.execute(args)
+
+    def _parse_tabluar_output_to_dict(self, args: List[str]):
+        args.extend(['--result-format', 'csv'])
+        output = self.execute(args)
+        dict_reader = csv.DictReader(io.StringIO('\n'.join(output)))
+        return list(dict_reader)
 
     def sql_server(self):
         """
@@ -449,21 +478,18 @@ class Dolt:
             raise NotImplementedError()
 
         output = self.execute(args, print_output=False)
-        current_commit, author, date = None, None, None
+        author_offset, date_offset, message_offset = 1, 2, 4
+
         result = OrderedDict()
-        for line in output:
+        for i, line in enumerate(output):
             if line.startswith('commit'):
                 current_commit = line.split(' ')[1]
-            elif line.startswith('Author'):
-                author = line.split(':')[1].lstrip()
-            elif line.startswith('Date'):
-                date = datetime.strptime(line.split(':', maxsplit=1)[1].lstrip(), '%a %b %d %H:%M:%S %z %Y')
-            elif current_commit is not None:
-                assert current_commit is not None and date is not None and author is not None
-                result[current_commit] = DoltCommit(current_commit, date, author)
-                current_commit = None
-            else:
-                pass
+                author = output[i + author_offset].split(':')[1].lstrip()
+                date = datetime.strptime(output[i + date_offset].split(':', maxsplit=1)[1].lstrip(),
+                                         '%a %b %d %H:%M:%S %z %Y')
+                message = output[i + message_offset].lstrip('\t')
+                assert current_commit is not None and date is not None and author is not None and message is not None
+                result[current_commit] = DoltCommit(current_commit, date, author, message)
 
         return result
 
@@ -472,7 +498,7 @@ class Dolt:
              other_commit: str = None,
              table_or_tables: Union[str, List[str]] = None,
              data: bool = False,
-             schema: bool = False, # can we even support this?
+             schema: bool = False,  # can we even support this?
              summary: bool = False,
              sql: bool = False,
              where: str = None,

@@ -6,16 +6,21 @@ import shutil
 import pandas as pd
 import uuid
 import os
-from typing import Tuple
+from typing import Tuple, List
 from doltpy.core.tests.helpers import get_repo_path_tmp_path
 import sqlalchemy
 from retry import retry
+
+BASE_TEST_ROWS = [
+    {'name': 'Rafael',  'id': 1},
+    {'name': 'Novak', 'id': 2}
+]
 
 
 @pytest.fixture
 def create_test_data(tmp_path) -> str:
     path = os.path.join(tmp_path, str(uuid.uuid4()))
-    pd.DataFrame({'name': ['Rafael', 'Novak'], 'id': [1, 2]}).to_csv(path, index_label=False)
+    pd.DataFrame(BASE_TEST_ROWS).to_csv(path, index_label=False)
     yield path
     os.remove(path)
 
@@ -51,6 +56,22 @@ def test_commit(create_test_table):
     before_commit_count = len(repo.log())
     repo.commit('Julianna, the very serious intellectual')
     assert repo.status().is_clean and len(repo.log()) == before_commit_count + 1
+
+
+def test_dolt_log(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Julianna, the very serious intellectual'
+    message_two = 'Added Stan the Man'
+    repo.add(test_table)
+    repo.commit('Julianna, the very serious intellectual')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Stan", 4)')
+    repo.add(test_table)
+    repo.commit(message_two)
+    commits = list(repo.log().values())
+    current_commit = commits[0]
+    previous_commit = commits[1]
+    assert current_commit.message == message_two
+    assert previous_commit.message == message_one
 
 
 def test_get_dirty_tables(create_test_table):
@@ -188,6 +209,37 @@ def test_sql(create_test_table):
 
     test_data = read_table(repo, test_table)
     assert 'Roger' in test_data['name'].to_list()
+
+
+def test_sql_json(create_test_table):
+    repo, test_table = create_test_table
+    result = repo.sql(query='SELECT * FROM `{table}`'.format(table=test_table), result_format='json')['rows']
+    _verify_against_base_rows(result)
+
+
+def test_sql_csv(create_test_table):
+    repo, test_table = create_test_table
+    result = repo.sql(query='SELECT * FROM `{table}`'.format(table=test_table), result_format='csv')
+    _verify_against_base_rows(result)
+
+
+def test_sql_tabular(create_test_table):
+    repo, test_table = create_test_table
+    result = repo.sql(query='SELECT * FROM `{table}`'.format(table=test_table), result_format='tabular')
+    _verify_against_base_rows(result)
+
+
+def _verify_against_base_rows(result: List[dict]):
+    assert len(result) == len(BASE_TEST_ROWS)
+
+    result_sorted = sorted(result, key=lambda el: el['id'])
+    for left, right in zip(BASE_TEST_ROWS, result_sorted):
+        assert set(left.keys()) == set(right.keys())
+        for k in left.keys():
+            # Unfortunately csv.DictReader is a stream reader and thus does not look at all values for a given column
+            # and make type inference, so we have to cast everything to a string. JSON roundtrips, but would not
+            # preserve datetime objects for example.
+            assert str(left[k]) == str(right[k])
 
 
 TEST_IMPORT_FILE_DATA = '''

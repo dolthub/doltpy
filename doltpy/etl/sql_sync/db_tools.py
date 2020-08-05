@@ -1,9 +1,8 @@
 from typing import Tuple, Iterable, Mapping, Callable, List
 from doltpy.core.system_helpers import get_logger
-from sqlalchemy import MetaData, Table, select
+from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
 from retry import retry
-
 
 logger = get_logger(__name__)
 
