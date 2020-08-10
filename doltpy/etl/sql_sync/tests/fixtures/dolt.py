@@ -28,7 +28,11 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
     repo = init_empty_test_repo
     repo.sql_server()
 
-    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    @retry(delay=2, tries=10, exceptions=(
+        sqlalchemy.exc.OperationalError,
+        sqlalchemy.exc.DatabaseError,
+        sqlalchemy.exc.InterfaceError,
+    ))
     def verify_connection():
         conn = repo.engine.connect()
         conn.close()

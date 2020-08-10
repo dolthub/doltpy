@@ -46,7 +46,11 @@ def engine_helper(dialect: str, user: str, password: str, host: str, port: int, 
         echo=True
     )
 
-    @retry(exceptions=sqlalchemy.exc.OperationalError, delay=2, tries=10)
+    @retry(delay=2, tries=10, exceptions=(
+        sqlalchemy.exc.OperationalError,
+        sqlalchemy.exc.DatabaseError,
+        sqlalchemy.exc.InterfaceError,
+    ))
     def verify_connection():
         conn = engine.connect()
         conn.close()

@@ -26,7 +26,11 @@ def run_serve_mode(request, init_empty_test_repo):
             repo.sql_server_stop()
 
     # This block ensures the server is accepting connections
-    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    @retry(delay=2, tries=10, exceptions=(
+        sqlalchemy.exc.OperationalError,
+        sqlalchemy.exc.DatabaseError,
+        sqlalchemy.exc.InterfaceError,
+    ))
     def verify_connection():
         conn = repo.engine.connect()
         conn.close()
