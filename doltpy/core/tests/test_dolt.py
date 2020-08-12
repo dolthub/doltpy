@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException
+from doltpy.core.dolt import Dolt, _execute, DoltException, DoltDirectoryException
 from doltpy.core.write import UPDATE, import_df
 from doltpy.core.read import pandas_read_sql, read_table
 import shutil
@@ -48,6 +48,12 @@ def test_init(tmp_path):
     Dolt.init(repo_path)
     assert os.path.exists(repo_data_dir)
     shutil.rmtree(repo_data_dir)
+
+
+def test_bad_repo_path(tmp_path):
+    bad_repo_path = tmp_path
+    with pytest.raises(AssertionError):
+        Dolt(bad_repo_path)
 
 
 def test_commit(create_test_table):
