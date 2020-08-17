@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "1.0.13"
+VERSION = "1.0.14"
 
 setup(name='doltpy',
       version=VERSION,
