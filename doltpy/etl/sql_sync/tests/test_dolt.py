@@ -13,6 +13,7 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (assert_rows_equal,
 from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
 from doltpy.etl.sql_sync.db_tools import get_table_metadata, DoltTableUpdate
 import logging
+import pytest
 from typing import Callable, Tuple, List
 from sqlalchemy import Table
 from doltpy.core.dolt import Dolt
@@ -20,6 +21,7 @@ from doltpy.core.dolt import Dolt
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.skip(reason="sql sync tests are currently unstable")
 def test_get_table_reader_diffs(create_dolt_test_data_commits):
     """
     Test that get_table_reader_diffs returns only the differences between a specific commit and its immediate parent.
@@ -30,6 +32,7 @@ def test_get_table_reader_diffs(create_dolt_test_data_commits):
     _test_dolt_table_reader_helper(repo, table, get_table_reader_diffs, get_expected_dolt_diffs)
 
 
+@pytest.mark.skip(reason="sql sync tests are currently unstable")
 def test_get_table_reader(create_dolt_test_data_commits):
     """
     Test that get_table_reader returns the data in a Dolt table at a given commit, or head of current branch.
@@ -61,6 +64,7 @@ def _test_dolt_table_reader_helper(repo: Dolt,
         assert_rows_equal(expected_data, list(dolt_data))
 
 
+@pytest.mark.skip(reason="sql sync tests are currently unstable")
 def test_get_target_writer(repo_with_table):
     """
     When writing to Dolt from a relational database we want to replicate the state of the database at each commit, since
