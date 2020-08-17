@@ -48,5 +48,7 @@ def mysql_engine(docker_ip, docker_services) -> Engine:
 def mysql_with_table(mysql_engine) -> Tuple[Engine, Table]:
     TEST_TABLE_METADATA.metadata.create_all(mysql_engine)
     yield mysql_engine, TEST_TABLE_METADATA
-    reflected_table = MetaData(bind=mysql_engine, reflect=True).tables[TEST_TABLE_METADATA.name]
+    metadata = MetaData(bind=mysql_engine)
+    metadata.reflect()
+    reflected_table = metadata.tables[TEST_TABLE_METADATA.name]
     reflected_table.drop()

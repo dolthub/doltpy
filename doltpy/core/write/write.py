@@ -159,7 +159,11 @@ def import_dict(repo: Dolt,
 
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
-    table = MetaData(bind=repo.engine, reflect=True).tables[table_name]
+
+    metadata = MetaData(bind=repo.engine)
+    metadata.reflect()
+    table = metadata.tables[table_name]
+
     for i in range(max(1, math.ceil(len(clean_rows) / batch_size))):
         batch_start = i * batch_size
         batch_end = min((i+1) * batch_size, len(clean_rows))

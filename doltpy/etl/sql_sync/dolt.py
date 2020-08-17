@@ -32,7 +32,8 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
             repo.checkout(branch)
 
         engine = repo.engine
-        metadata = MetaData(engine, reflect=True)
+        metadata = MetaData(bind=engine)
+        metadata.reflect()
 
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
@@ -129,7 +130,9 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        table = MetaData(repo.engine, reflect=True).tables[table_name]
+        metadata = MetaData(bind=repo.engine)
+        metadata.reflect()
+        table = metadata.tables[table_name]
         pks_to_drop = get_dropped_pks(repo.engine, table, from_commit, to_commit)
         result = _read_from_dolt_diff(repo.engine, table, from_commit, to_commit)
         return pks_to_drop, result
