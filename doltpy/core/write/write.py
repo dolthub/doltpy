@@ -1,11 +1,11 @@
-from typing import List, Callable, Any, Mapping
+from typing import List, Callable, Any, Mapping, Iterable
 import pandas as pd
 from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
 import logging
 import io
 import tempfile
-from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, Float, Table, MetaData, Column
+from datetime import datetime, date, time
+from sqlalchemy import String, DateTime, Date, Integer, Float, Table, MetaData, Column
 import math
 
 
@@ -155,14 +155,16 @@ def import_dict(repo: Dolt,
     for i in range(row_count):
         rows.append({col: data[col][i] for col in data.keys()})
 
+    clean_rows = coerce_dates(rows)
+
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
     table = MetaData(bind=repo.engine, reflect=True).tables[table_name]
-    for i in range(max(1, math.ceil(len(rows) / batch_size))):
+    for i in range(max(1, math.ceil(len(clean_rows) / batch_size))):
         batch_start = i * batch_size
-        batch_end = min((i+1) * batch_size, len(rows))
-        batch = rows[batch_start:batch_end]
-        logger.info('Writing records {} through {} of {} rows to Dolt'.format(batch_start, batch_end, len(rows)))
+        batch_end = min((i+1) * batch_size, len(clean_rows))
+        batch = clean_rows[batch_start:batch_end]
+        logger.info('Writing records {} through {} of {} rows to Dolt'.format(batch_start, batch_end, len(clean_rows)))
         with repo.engine.connect() as conn:
             conn.execute(table.insert(), batch)
 
@@ -194,6 +196,8 @@ def _get_col_type(sample_value: Any, values: Any):
         return Float
     elif type(sample_value) == datetime:
         return DateTime
+    elif type(sample_value) == date:
+        return Date
     else:
         raise ValueError('Value of type {} is unsupported'.format(type(sample_value)))
 
@@ -260,3 +264,22 @@ def import_list(repo: Dolt,
                 reformatted[col_name] = [value]
 
     import_dict(repo, table_name, reformatted, primary_keys, import_mode, batch_size)
+
+
+def coerce_dates(data: Iterable[dict]) -> List[dict]:
+    """
+
+    :param data:
+    :return:
+    """
+    data_copy = []
+    for row in data:
+        row_copy = {}
+        for col, val in row.items():
+            if type(val) == date:
+                row_copy[col] = datetime.combine(val, time())
+            else:
+                row_copy[col] = val
+        data_copy.append(row_copy)
+
+    return data_copy

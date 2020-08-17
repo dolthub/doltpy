@@ -1,8 +1,10 @@
 from typing import Tuple, Iterable, Mapping, Callable, List
 from doltpy.core.system_helpers import get_logger
+from doltpy.core.write import coerce_dates
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
 from retry import retry
+from datetime import datetime, date, time
 
 logger = get_logger(__name__)
 
@@ -43,7 +45,7 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableU
     """
     def inner(tables: List[str]) -> DoltAsTargetUpdate:
         result = {}
-        metadata = MetaData(bind=engine, reflect=True)
+        metadata = MetaData().reflect(bind=engine)
 
         for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
             logger.info('Reading tables {}'.format(table))
@@ -71,7 +73,7 @@ def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
 # TODO this is flaky on Dolt, though not at all clear why
 @retry(exceptions=Exception, delay=2, tries=10)
 def get_table_metadata(engine: Engine, table_name: str) -> Table:
-    metadata = MetaData(bind=engine, reflect=True)
+    metadata = MetaData().reflect(bind=engine)
     return metadata.tables[table_name]
 
 
@@ -85,10 +87,11 @@ def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_dup
     :return:
     """
     def inner(table_data_map: DoltAsSourceUpdate):
-        metadata = MetaData(bind=engine, reflect=True)
+        metadata = metadata = MetaData().reflect(bind=engine)
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
             pks_to_drop, data = table_update
+            clean_data = list(coerce_dates(data))
 
             # PKs to be dropped are provided as dicts, we drop them
             if pks_to_drop:
@@ -98,9 +101,9 @@ def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_dup
             if data:
                 with engine.connect() as conn:
                     if update_on_duplicate:
-                        statement = get_upsert_statement(table, data)
+                        statement = get_upsert_statement(table, clean_data)
                     else:
-                        statement = table.insert().values(data)
+                        statement = table.insert().values(clean_data)
                     conn.execute(statement)
 
     return inner
@@ -113,5 +116,3 @@ def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict])
         for pk in pks:
             statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
         conn.execute(statement)
-
-
