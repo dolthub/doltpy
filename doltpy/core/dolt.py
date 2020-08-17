@@ -224,6 +224,7 @@ class Dolt:
         else:
             try:
                 logger.info('Creating directory {}'.format(repo_dir))
+                os.mkdir(repo_dir)
             except Exception as e:
                 raise e
 

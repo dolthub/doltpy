@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from sqlalchemy import Column, Table, MetaData
-from sqlalchemy.types import Integer, DateTime, String, Text, Float
+from sqlalchemy.types import Integer, DateTime, String, Text, Float, Date
 from sqlalchemy.engine import Engine
 from typing import List, Tuple, Callable
 
@@ -15,19 +15,22 @@ TEST_DATA_INITIAL = [
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 83.0,
      'high_rank': 1,
-     'turned_pro': datetime(2003, 1, 1)},
+     'turned_pro': datetime(2003, 1, 1),
+     'date_of_birth': date(1987, 3, 22)},
     {'first_name': 'Rafael',
      'last_name': 'Nadal',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 83.2,
      'high_rank': 1,
-     'turned_pro': datetime(2001,1, 1)},
+     'turned_pro': datetime(2001, 1, 1),
+     'date_of_birth': date(1986, 6, 3)},
     {'first_name': 'Roger',
      'last_name': 'Federer',
      'playing_style_desc': 'aggressive/all-court',
      'win_percentage': 81.2,
      'high_rank': 1,
-     'turned_pro': datetime(1998, 1, 1)}
+     'turned_pro': datetime(1998, 1, 1),
+     'date_of_birth': date(1981, 8, 8)}
 ]
 TEST_DATA_APPEND_MULTIPLE_ROWS = [
     {'first_name': 'Stefanos',
@@ -35,19 +38,22 @@ TEST_DATA_APPEND_MULTIPLE_ROWS = [
      'playing_style_desc': 'aggressive/all-court',
      'win_percentage': 67.6,
      'high_rank': 5,
-     'turned_pro': datetime(2016, 1, 1)},
+     'turned_pro': datetime(2016, 1, 1),
+     'date_of_birth': date(1998, 8, 12)},
     {'first_name': 'Alexander',
      'last_name': 'Zverev',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 65.8,
      'high_rank': 3,
-     'turned_pro': datetime(2013, 1, 1)},
+     'turned_pro': datetime(2013, 1, 1),
+     'date_of_birth': date(1997, 4, 12)},
     {'first_name': 'Dominic',
      'last_name': 'Thiem',
      'playing_style_desc': 'aggressive/baseline',
      'win_percentage': 65.1,
      'high_rank': 3,
-     'turned_pro': datetime(2011, 1, 1)}
+     'turned_pro': datetime(2011, 1, 1),
+     'date_of_birth': date(1993, 10, 3)}
 ]
 TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE = TEST_DATA_APPEND_MULTIPLE_ROWS[1:]
 TEST_DATA_APPEND_SINGLE_ROW = [
@@ -56,7 +62,8 @@ TEST_DATA_APPEND_SINGLE_ROW = [
      'playing_style_desc': 'defensive/baseline',
      'win_percentage': 77.1,
      'high_rank': 1,
-     'turned_pro': datetime(2005, 1, 1)}
+     'turned_pro': datetime(2005, 1, 1),
+     'date_of_birth': date(1987, 5, 15)}
 ]
 TEST_DATA_UPDATE_SINGLE_ROW = [
     {'first_name': 'Andy',
@@ -64,7 +71,8 @@ TEST_DATA_UPDATE_SINGLE_ROW = [
      'playing_style_desc': 'defensive/baseline',
      'win_percentage': 77.4,
      'high_rank': 1,
-     'turned_pro': datetime(2005, 1, 1)}
+     'turned_pro': datetime(2005, 1, 1),
+     'date_of_birth': date(1987, 5, 15)}
 ]
 
 TEST_TABLE_METADATA = Table(TABLE_NAME,
@@ -74,7 +82,8 @@ TEST_TABLE_METADATA = Table(TABLE_NAME,
                             Column('playing_style_desc', Text),
                             Column('win_percentage', Float),
                             Column('high_rank', Integer),
-                            Column('turned_pro', DateTime))
+                            Column('turned_pro', DateTime),
+                            Column('date_of_birth', Date))
 
 
 FIRST_UPDATE, SECOND_UPDATE, THIRD_UPDATE, FOURTH_UPDATE, FIFTH_UPDATE = tuple(range(5))

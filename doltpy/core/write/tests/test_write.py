@@ -1,7 +1,7 @@
 from doltpy.core.write import import_dict, import_list
 from doltpy.core.read import pandas_read_sql
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 import pytest
 
 LIST_OF_DICTS = [
@@ -14,6 +14,7 @@ DICT_OF_LISTS = {
     'name': ['Anna', 'Vronksy', 'Oblonksy'],
     'adjective': ['tragic', 'honorable', 'buffoon'],
     'id': [1, 2, 3],
+    'date_of_birth': [date(1840, 1, 1), date(1840, 1, 1), date(1840, 1, 1)],
     'date_of_death': [datetime(1877, 1, 1), None, None]
 }
 
