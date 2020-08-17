@@ -40,6 +40,12 @@ class DoltWrongServerException(Exception):
         self.message = message
 
 
+class DoltDirectoryException(Exception):
+
+    def __init__(self, message):
+        self.message = message
+
+
 def _execute(args: List[str], cwd: str):
     _args = ['dolt'] + args
     proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
@@ -160,6 +166,9 @@ class Dolt:
         self.server_config = server_config
         self.engine = self._get_engine()
 
+        error_message = '{} is not a valid Dolt repository'.format(self.repo_dir())
+        assert os.path.exists(os.path.join(self.repo_dir(), '.dolt')), error_message
+
     def repo_dir(self):
         """
         The absolute path of the directory this repository represents.
@@ -215,6 +224,7 @@ class Dolt:
         else:
             try:
                 logger.info('Creating directory {}'.format(repo_dir))
+                os.mkdir(repo_dir)
             except Exception as e:
                 raise e
 
@@ -748,7 +758,7 @@ class Dolt:
         # just print the output
         self.execute(args, restart_server=True)
 
-    def pull(self, remote: str):
+    def pull(self, remote: str = 'origin'):
         """
         Pull the latest changes from the specified remote.
         :param remote:
@@ -801,10 +811,13 @@ class Dolt:
         if not new_dir:
             split = remote_url.split('/')
             new_dir = os.path.join(os.getcwd(), split[-1])
+            if os.path.exists(new_dir):
+                raise DoltDirectoryException('Cannot create new directory {}'.format(new_dir))
             os.mkdir(new_dir)
+        elif os.path.exists(os.path.join(new_dir, '.dolt')):
+            raise DoltDirectoryException('{} is already a valid Dolt repo'.format(new_dir))
 
-        if new_dir:
-            args.append(new_dir)
+        args.append(new_dir)
 
         _execute(args, cwd=new_dir)
 
