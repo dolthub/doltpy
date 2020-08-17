@@ -45,7 +45,8 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableU
     """
     def inner(tables: List[str]) -> DoltAsTargetUpdate:
         result = {}
-        metadata = MetaData().reflect(bind=engine)
+        metadata = MetaData(bind=engine)
+        metadata.reflect()
 
         for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
             logger.info('Reading tables {}'.format(table))
@@ -73,7 +74,8 @@ def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
 # TODO this is flaky on Dolt, though not at all clear why
 @retry(exceptions=Exception, delay=2, tries=10)
 def get_table_metadata(engine: Engine, table_name: str) -> Table:
-    metadata = MetaData().reflect(bind=engine)
+    metadata = MetaData(bind=engine)
+    metadata.reflect()
     return metadata.tables[table_name]
 
 
@@ -87,7 +89,8 @@ def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_dup
     :return:
     """
     def inner(table_data_map: DoltAsSourceUpdate):
-        metadata = metadata = MetaData().reflect(bind=engine)
+        metadata = MetaData(bind=engine)
+        metadata.reflect()
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
             pks_to_drop, data = table_update

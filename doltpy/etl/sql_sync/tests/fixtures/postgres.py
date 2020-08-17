@@ -37,5 +37,7 @@ def postgres_engine(docker_ip, docker_services):
 def postgres_with_table(postgres_engine):
     TEST_TABLE_METADATA.metadata.create_all(postgres_engine)
     yield postgres_engine, TEST_TABLE_METADATA
-    reflected_table = MetaData(bind=postgres_engine, reflect=True).tables[TEST_TABLE_METADATA.name]
+    metadata = MetaData(bind=postgres_engine)
+    metadata.reflect()
+    reflected_table = metadata.tables[TEST_TABLE_METADATA.name]
     reflected_table.drop()
