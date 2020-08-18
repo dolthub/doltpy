@@ -2,6 +2,8 @@ from datetime import datetime, date
 import logging
 from sqlalchemy import Column, Table, MetaData
 from sqlalchemy.types import Integer, DateTime, String, Text, Float, Date
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.engine import Engine
 from typing import List, Tuple, Callable
 
@@ -206,3 +208,35 @@ def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[
         raise AssertionError('Errors found')
     else:
         return True
+
+
+TEST_DATA_WITH_ARRAYS = [
+    {'id': 1,
+     'ints': [1, 2],
+     'floats': [1.1, 2.2],
+     'dates': [datetime(2020, 1, 1), datetime(2019, 1, 1)],
+     'json_data': {'id': 1}},
+    {'id': 2,
+     'ints': [None, 2],
+     'floats': [1.1, None],
+     'dates': [datetime(2020, 1, 1), None],
+     'json_data': {}}
+]
+
+TABLE_WITH_ARRAYS_NAME = 'test_array_types'
+
+POSTGRES_TABLE_WITH_ARRAYS = Table(TABLE_WITH_ARRAYS_NAME,
+                                   MetaData(),
+                                   Column('id', Integer, primary_key=True),
+                                   Column('ints', ARRAY(Integer)),
+                                   Column('floats', ARRAY(Float)),
+                                   Column('dates', ARRAY(DateTime)),
+                                   Column('json_data', JSON))
+
+DOLT_TABLE_WITH_ARRAYS = Table(TABLE_WITH_ARRAYS_NAME,
+                               MetaData(),
+                               Column('id', String(32), primary_key=True),
+                               Column('ints', LONGTEXT),
+                               Column('floats', LONGTEXT),
+                               Column('dates', LONGTEXT),
+                               Column('json_data', LONGTEXT))
