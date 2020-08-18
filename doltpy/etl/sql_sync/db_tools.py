@@ -79,13 +79,17 @@ def get_table_metadata(engine: Engine, table_name: str) -> Table:
     return metadata.tables[table_name]
 
 
-def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_duplicate: bool) -> DoltAsSourceWriter:
+def get_target_writer_helper(engine: Engine,
+                             get_upsert_statement,
+                             update_on_duplicate: bool,
+                             clean_types: Callable[[Iterable[dict]], List[dict]] = None) -> DoltAsSourceWriter:
     """
     Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
     apply the table update. A table update consists of primary key values to drop, and data to insert/update.
     :param engine: a database connection
     :param get_upsert_statement:
     :param update_on_duplicate: indicates whether to update values when encountering duplicate PK, default True
+    :param clean_types: an optional function to clean up the types being written
     :return:
     """
     def inner(table_data_map: DoltAsSourceUpdate):
@@ -94,7 +98,10 @@ def get_target_writer_helper(engine: Engine, get_upsert_statement, update_on_dup
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
             pks_to_drop, data = table_update
-            clean_data = list(coerce_dates(data))
+            if clean_types:
+                clean_data = clean_types(data)
+            else:
+                clean_data = list(data)
 
             # PKs to be dropped are provided as dicts, we drop them
             if pks_to_drop:
