@@ -1,7 +1,8 @@
 import pytest
-from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
+from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA, POSTGRES_TABLE_WITH_ARRAYS
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 from sqlalchemy import MetaData
+from sqlalchemy.engine import Engine
 
 POSTGRES_CONTAINER_NAME = 'TEST_POSTGRES'
 POSTGRES_DB = 'test_db'
@@ -34,10 +35,24 @@ def postgres_engine(docker_ip, docker_services):
 
 
 @pytest.fixture
-def postgres_with_table(postgres_engine):
-    TEST_TABLE_METADATA.metadata.create_all(postgres_engine)
-    yield postgres_engine, TEST_TABLE_METADATA
-    metadata = MetaData(bind=postgres_engine)
-    metadata.reflect()
-    reflected_table = metadata.tables[TEST_TABLE_METADATA.name]
-    reflected_table.drop()
+def postgres_with_table(postgres_engine, request):
+    return _test_table_helper(postgres_engine, TEST_TABLE_METADATA, request)
+
+
+@pytest.fixture
+def postgres_with_table_with_arrays(postgres_engine, request):
+    return _test_table_helper(postgres_engine, POSTGRES_TABLE_WITH_ARRAYS, request)
+
+
+def _test_table_helper(postgres_engine: Engine, table_metadata: MetaData, request):
+    table_metadata.metadata.create_all(postgres_engine)
+
+    def finalize():
+        metadata = MetaData(bind=postgres_engine)
+        metadata.reflect()
+        reflected_table = metadata.tables[table_metadata.name]
+        reflected_table.drop()
+
+    request.addfinalizer(finalize)
+
+    return postgres_engine, table_metadata

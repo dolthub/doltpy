@@ -7,11 +7,12 @@ from doltpy.etl.sql_sync.tests.helpers.data_helper import (TABLE_NAME,
                                                            TEST_DATA_APPEND_SINGLE_ROW,
                                                            TEST_DATA_APPEND_MULTIPLE_ROWS,
                                                            TEST_TABLE_METADATA,
+                                                           DOLT_TABLE_WITH_ARRAYS,
                                                            get_dolt_update_row_statement,
                                                            get_dolt_drop_pk_query)
 from typing import Tuple
 import sqlalchemy
-from sqlalchemy import Table
+from sqlalchemy import Table, MetaData
 from retry import retry
 
 logger = logging.getLogger(__name__)
@@ -19,19 +20,23 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
-    """
-    Creates a test table inside the empty test repo provided by the init_empty_test_repo fixture parameter.
-    :param request:
-    :param init_empty_test_repo:
-    :return:
-    """
     repo = init_empty_test_repo
+    return _test_table_helper(repo, request, TEST_TABLE_METADATA)
+
+
+@pytest.fixture
+def repo_with_table_with_arrays(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
+    repo = init_empty_test_repo
+    return _test_table_helper(repo, request, DOLT_TABLE_WITH_ARRAYS)
+
+
+def _test_table_helper(repo: Dolt, request, metadata: MetaData) -> Tuple[Dolt, Table]:
     repo.sql_server()
 
     @retry(delay=2, tries=10, exceptions=(
-        sqlalchemy.exc.OperationalError,
-        sqlalchemy.exc.DatabaseError,
-        sqlalchemy.exc.InterfaceError,
+            sqlalchemy.exc.OperationalError,
+            sqlalchemy.exc.DatabaseError,
+            sqlalchemy.exc.InterfaceError,
     ))
     def verify_connection():
         conn = repo.engine.connect()
@@ -39,7 +44,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
         return repo.engine
 
     engine = verify_connection()
-    TEST_TABLE_METADATA.create(engine)
+    metadata.create(engine)
 
     def finalize():
         if repo.server:
@@ -47,7 +52,7 @@ def repo_with_table(request, init_empty_test_repo) -> Tuple[Dolt, Table]:
 
     request.addfinalizer(finalize)
 
-    return repo, TEST_TABLE_METADATA
+    return repo, metadata
 
 
 @pytest.fixture

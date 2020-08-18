@@ -20,6 +20,7 @@ from doltpy.etl.sql_sync.db_tools import get_table_metadata, drop_primary_keys
 from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
+SQL_SYNC_SKIP_MSG = "sql sync tests are currently unstable"
 
 
 def validate_get_table_metadata(engine: Engine, table_name: str):

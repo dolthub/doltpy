@@ -7,7 +7,7 @@ from doltpy.etl.sql_sync.db_tools import (get_table_metadata,
                                           DoltAsSourceUpdate,
                                           DoltAsTargetUpdate,
                                           drop_primary_keys)
-from doltpy.core.write import coerce_dates
+from doltpy.etl.sql_sync.mysql import clean_types
 from typing import List, Callable, Tuple, Mapping
 from datetime import datetime
 from sqlalchemy.engine import Engine
@@ -261,7 +261,7 @@ def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = Fa
     :param message:
     :return:
     """
-    coerced_data = list(coerce_dates(data))
+    coerced_data = list(clean_types(data))
     inserts, updates = get_inserts_and_updates(repo.engine, table, coerced_data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
