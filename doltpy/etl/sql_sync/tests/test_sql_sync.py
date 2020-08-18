@@ -8,7 +8,7 @@ from doltpy.etl.sql_sync.dolt import (get_target_writer as get_dolt_target_write
                                       get_table_reader_diffs as get_dolt_table_reader_diffs,
                                       get_table_reader as get_dolt_table_reader)
 from doltpy.etl.sql_sync.tests.helpers.tools import validate_dolt_as_source, validate_dolt_as_target, SQL_SYNC_SKIP_MSG
-from doltpy.etl.sql_sync.tests.helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS
+from doltpy.etl.sql_sync.tests.helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deserialize_longtext
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def test_postgres_to_dolt_array_types(postgres_with_table_with_arrays, repo_with
     _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dolt_repo)
     db_table_metadata = get_table_metadata(postgres_engine, str(postgres_table.name))
     db_data = get_table_reader()(postgres_engine, db_table_metadata)
-    assert_rows_equal(list(dolt_data), db_data, lambda dic: dic['id'])
+    clean_dolt_data = deserialize_longtext(dolt_data)
+    assert_rows_equal(clean_dolt_data, db_data, lambda dic: dic['id'])
 
-    _, dolt_diff_data = get_dolt_table_reader_diffs(latest_commit)(str(dolt_table.name), dolt_repo)
-    assert_rows_equal(TEST_DATA_WITH_ARRAYS, list(dolt_diff_data), lambda dic: dic['id'])
+
