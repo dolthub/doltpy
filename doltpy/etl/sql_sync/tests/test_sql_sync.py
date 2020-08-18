@@ -77,7 +77,7 @@ def test_postgres_to_dolt(postgres_with_table, repo_with_table):
                             dolt_table)
 
 
-@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_postgres_to_dolt_array_types(postgres_with_table_with_arrays, repo_with_table_with_arrays):
     postgres_engine, postgres_table = postgres_with_table_with_arrays
     dolt_repo, dolt_table = repo_with_table_with_arrays
