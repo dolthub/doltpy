@@ -46,7 +46,7 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
                 if not val:
                     row_copy[col] = None
                 else:
-                    row_copy[col] = ','.join(str(el) for el in val)
+                    row_copy[col] = ','.join(str(el) if el is not None else 'NULL' for el in val)
             elif type(val) == dict:
                 if not val:
                     row_copy[col] = None

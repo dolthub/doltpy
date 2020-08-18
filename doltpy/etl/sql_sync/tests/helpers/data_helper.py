@@ -2,9 +2,11 @@ from datetime import datetime, date
 import logging
 from sqlalchemy import Column, Table, MetaData
 from sqlalchemy.types import Integer, DateTime, String, Text, Float, Date
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.engine import Engine
-from typing import List, Tuple, Callable
-
+from typing import List, Tuple, Callable, Iterable
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -206,3 +208,62 @@ def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[
         raise AssertionError('Errors found')
     else:
         return True
+
+
+TEST_DATA_WITH_ARRAYS = [
+    {'id': 1,
+     'ints': [1, 2],
+     'floats': [1.1, 2.2],
+     'dates': [datetime(2020, 1, 1), datetime(2019, 1, 1)],
+     'json_data': json.dumps({"id": 1})},
+    {'id': 2,
+     'ints': [None, 2],
+     'floats': [1.1, None],
+     'dates': [datetime(2020, 1, 1), None],
+     'json_data': {}}
+]
+
+TABLE_WITH_ARRAYS_NAME = 'test_array_types'
+
+POSTGRES_TABLE_WITH_ARRAYS = Table(TABLE_WITH_ARRAYS_NAME,
+                                   MetaData(),
+                                   Column('id', Integer, primary_key=True),
+                                   Column('ints', ARRAY(Integer)),
+                                   Column('floats', ARRAY(Float)),
+                                   Column('dates', ARRAY(DateTime)),
+                                   Column('json_data', JSON))
+
+DOLT_TABLE_WITH_ARRAYS = Table(TABLE_WITH_ARRAYS_NAME,
+                               MetaData(),
+                               Column('id', String(32), primary_key=True),
+                               Column('ints', LONGTEXT),
+                               Column('floats', LONGTEXT),
+                               Column('dates', LONGTEXT),
+                               Column('json_data', LONGTEXT))
+
+
+def deserialize_longtext(data: Iterable[dict]):
+    """
+    This function transforms array types serialized as LONGTEXT back to Python data structures. We currently do not
+    support this as we do not support array types. An appropriate serialization scheme needs to be chosen to make this
+    work, with JSON arrays being the current favorite.
+    :param data:
+    :return:
+    """
+    data_copy = []
+    for row in data:
+        row_copy = {}
+        for col, val in row.items():
+            if col == 'id':
+                row_copy[col] = int(val)
+            if col == 'ints':
+                row_copy[col] = [int(el) if el != 'NULL' else None for el in val.split(',')]
+            if col == 'floats':
+                row_copy[col] = [float(el) if el != 'NULL' else None for el in val.split(',')]
+            if col == 'dates':
+                row_copy[col] = [datetime.strptime(el, '%Y-%m-%d %H:%M:%S') if el != 'NULL' else None
+                                 for el in val.split(',')]
+
+        data_copy.append(row_copy)
+
+    return data_copy
