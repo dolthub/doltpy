@@ -220,7 +220,7 @@ TEST_DATA_WITH_ARRAYS = [
      'ints': [None, 2],
      'floats': [1.1, None],
      'dates': [datetime(2020, 1, 1), None],
-     'json_data': {}}
+     'json_data': json.dumps({})}
 ]
 
 TABLE_WITH_ARRAYS_NAME = 'test_array_types'
@@ -263,6 +263,8 @@ def deserialize_longtext(data: Iterable[dict]):
             if col == 'dates':
                 row_copy[col] = [datetime.strptime(el, '%Y-%m-%d %H:%M:%S') if el != 'NULL' else None
                                  for el in val.split(',')]
+            if col == 'json_data':
+                row_copy[col] = val
 
         data_copy.append(row_copy)
 
