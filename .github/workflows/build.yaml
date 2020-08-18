@@ -8,21 +8,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python_version: ['3.7', '3.8']
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python_version }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
+        python_version: ${{ matrix.python_version }}
     - name: Install dependencies
       run: |
         sudo curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash
         dolt config --global --add user.email bojack@horseman.com
         dolt config --global --add user.name "Bojack Horseman"
         python -m pip install --upgrade pip
-        pip install .[test]
+        pip install -r requirements.txt
     - name: Execute pytest
       run: |
         pytest
@@ -33,14 +33,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python_version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python_version }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
+        python_version: ${{ matrix.python_version }}
     - name: Build from source
       run: |
         python setup.py sdist

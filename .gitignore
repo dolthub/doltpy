@@ -8,3 +8,4 @@ dist
 .pytest_cache
 .eggs/
 .sqlhistory
+Pipfile*

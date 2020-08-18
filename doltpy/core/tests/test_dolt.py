@@ -154,7 +154,11 @@ def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_t
     is running, not another repos MySQL server instance.
     :return:
     """
-    @retry(exceptions=(sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError), delay=2, tries=10)
+    @retry(delay=2, tries=10, exceptions=(
+        sqlalchemy.exc.OperationalError,
+        sqlalchemy.exc.DatabaseError,
+        sqlalchemy.exc.InterfaceError,
+    ))
     def get_databases(dolt_repo: Dolt):
         with dolt_repo.engine.connect() as conn:
             result = conn.execute('SHOW DATABASES')
