@@ -863,7 +863,7 @@ class Dolt:
         """
         args = ['creds', 'ls', '--verbose']
 
-        output = _execute(args, self.repo_dir())
+        output = self.execute(args, print_output=False)
 
         creds = []
         for line in output:
@@ -872,7 +872,7 @@ class Dolt:
                 split = line[1:].lstrip().split(' ')
             else:
                 active = False
-                split = line.lstrip().splity(' ')
+                split = line.lstrip().split(' ')
 
             creds.append(DoltKeyPair(split[0], split[1], active))
 
@@ -925,18 +925,16 @@ class Dolt:
         """
         raise NotImplementedError()
 
-    def config(self,
-               name: str = None,
-               value: str = None,
-               add: bool = False,
-               list: bool = False,
-               get: bool = False,
-               unset: bool = False):
+    @classmethod
+    def config_global(cls,
+                      name: str = None,
+                      value: str = None,
+                      add: bool = False,
+                      list: bool = False,
+                      get: bool = False,
+                      unset: bool = False) -> Mapping[str, str]:
         """
-        Manipulate the global and local configs by examining and updating config values. This passes to Dolt which then
-        manipulates its JSON config files.
-
-        In a future version we will use an object interface to represent the current state of the configs.
+        Class method for manipulating global configs.
         :param name:
         :param value:
         :param add:
@@ -945,25 +943,86 @@ class Dolt:
         :param unset:
         :return:
         """
+        return cls._config_helper(global_config=True,
+                                  cwd=os.getcwd(),
+                                  name=name,
+                                  value=value,
+                                  add=add,
+                                  list=list,
+                                  get=get,
+                                  unset=unset)
+
+    def config_local(self,
+                     name: str = None,
+                     value: str = None,
+                     add: bool = False,
+                     list: bool = False,
+                     get: bool = False,
+                     unset: bool = False) -> Mapping[str, str]:
+        """
+        Instance method for manipulating configs local to a repository.
+        :param name:
+        :param value:
+        :param add:
+        :param list:
+        :param get:
+        :param unset:
+        :return:
+        """
+        return self._config_helper(local_config=True,
+                                   cwd=self.repo_dir(),
+                                   name=name,
+                                   value=value,
+                                   add=add,
+                                   list=list,
+                                   get=get,
+                                   unset=unset)
+
+    @classmethod
+    def _config_helper(cls,
+                       global_config: bool = False,
+                       local_config: bool = False,
+                       cwd: str = None,
+                       name: str = None,
+                       value: str = None,
+                       add: bool = False,
+                       list: bool = False,
+                       get: bool = False,
+                       unset: bool = False) -> Mapping[str, str]:
+
         switch_count = [el for el in [add, list, get, unset] if el]
         assert len(switch_count) == 1, 'Exactly one of add, list, get, unset must be True'
 
         args = ['config']
 
+        if global_config:
+            args.append('--global')
+        elif local_config:
+            args.append('--local')
+        else:
+            raise ValueError('Must pass either global_config')
+
         if add:
             assert name and value, 'For add, name and value must be set'
-            args.extend(['--add', '--name', name, '--value', value])
+            args.extend(['--add', name, value])
         if list:
             assert not(name or value), 'For list, no name and value provided'
             args.append('--list')
         if get:
             assert name and not value, 'For get, only name is provided'
-            args.extend(['--get', '--name', name])
+            args.extend(['--get', name])
         if unset:
             assert name and not value, 'For get, only name is provided'
-            args.extend(['--unset', '--name', name])
+            args.extend(['--unset', name])
 
-        self.execute(args, self.repo_dir()).split('\n')
+        output = _execute(args, cwd).split('\n')
+        result = {}
+        for line in [l for l in output if l and '=' in l]:
+            split = line.split(' = ')
+            config_name, config_val = split[0], split[1]
+            result[config_name] = config_val
+
+        return result
 
     def ls(self, system: bool = False, all: bool = False) -> List[DoltTable]:
         """

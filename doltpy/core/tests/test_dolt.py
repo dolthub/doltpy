@@ -268,3 +268,31 @@ def test_schema_import_create(init_empty_test_repo, tmp_path):
     repo.schema_import(table=table, create=True, pks=['id'], filename=test_file)
 
     assert repo.status().added_tables == {table: False}
+
+
+def test_config_global(init_empty_test_repo):
+    _ = init_empty_test_repo
+    current_global_config = Dolt.config_global(list=True)
+    test_username, test_email = 'test_user', 'test_email'
+    Dolt.config_global(add=True, name='user.name', value=test_username)
+    Dolt.config_global(add=True, name='user.email', value=test_email)
+    updated_config = Dolt.config_global(list=True)
+    assert updated_config['user.name'] == test_username and updated_config['user.email'] == test_email
+    Dolt.config_global(add=True, name='user.name', value=current_global_config['user.name'])
+    Dolt.config_global(add=True, name='user.email', value=current_global_config['user.email'])
+    reset_config = Dolt.config_global(list=True)
+    assert reset_config['user.name'] == current_global_config['user.name']
+    assert reset_config['user.email'] == current_global_config['user.email']
+
+
+def test_config_local(init_empty_test_repo):
+    repo = init_empty_test_repo
+    current_global_config = Dolt.config_global(list=True)
+    test_username, test_email = 'test_user', 'test_email'
+    repo.config_local(add=True, name='user.name', value=test_username)
+    repo.config_local(add=True, name='user.email', value=test_email)
+    local_config = repo.config_local(list=True)
+    global_config = Dolt.config_global(list=True)
+    assert local_config['user.name'] == test_username and local_config['user.email'] == test_email
+    assert global_config['user.name'] == current_global_config['user.name']
+    assert global_config['user.email'] == current_global_config['user.email']
