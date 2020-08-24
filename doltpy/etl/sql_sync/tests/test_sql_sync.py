@@ -5,12 +5,12 @@ from doltpy.etl.sql_sync.postgres import get_target_writer as get_postgres_targe
 from doltpy.etl.sql_sync.db_tools import get_source_reader, get_table_reader, get_table_metadata
 from doltpy.etl.sql_sync.sync_tools import sync_to_dolt
 from doltpy.etl.sql_sync.dolt import (get_target_writer as get_dolt_target_writer,
-                                      get_table_reader_diffs as get_dolt_table_reader_diffs,
                                       get_table_reader as get_dolt_table_reader)
 from doltpy.etl.sql_sync.tests.helpers.tools import validate_dolt_as_source, validate_dolt_as_target, SQL_SYNC_SKIP_MSG
 from doltpy.etl.sql_sync.tests.helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deserialize_longtext
 
 logger = logging.getLogger(__name__)
+
 
 # TODO this needs to include record deletion to make sure we are capturing deletes
 @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)

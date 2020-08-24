@@ -1,11 +1,49 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy import Table
+from sqlalchemy import Table, Column
+from sqlalchemy.dialects import mysql, postgresql
 from doltpy.etl.sql_sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
 from doltpy.core.system_helpers import get_logger
 from typing import List
 
 logger = get_logger(__name__)
+
+# Rules for translating postgres to Dolt
+# def clean_column(column):
+#     # Postgres uses next_val in autoincrement, and mysql does not. If autoincrement
+#     # and has a default, remove. This likely has other use cases this would not be
+#     # desirable for, and should be adjusted as those are found.
+#     if hasattr(column, "server_default") and column.autoincrement is True:
+#         delattr(column, 'server_default')
+#     # Postgres has native IP address types, that should be converted to VARCHAR(43)
+#     if str(column.type) == 'CIDR':
+#         column = Column(column.name, VARCHAR(length=43), autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'INET':
+#         column = Column(column.name, VARCHAR(length=43), autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'MACADDR':
+#         column = Column(column.name, VARCHAR(length=43), autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'JSONB':
+#         column = Column(column.name, mysql.LONGTEXT, autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'ARRAY':
+#         column = Column(column.name, mysql.LONGTEXT, autoincrement=column.autoincrement, nullable=column.nullable)
+#     # Postgres can have an ARRAY of other types, such as SMALLINT[]
+#     elif str(column.type).endswith('[]'):
+#         column = Column(column.name, mysql.LONGTEXT, autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'UUID':
+#         column = Column(column.name, VARCHAR(length=36), autoincrement=column.autoincrement, nullable=column.nullable)
+#     elif str(column.type) == 'BYTEA':
+#         column = Column(column.name, mysql.LONGTEXT, autoincrement=column.autoincrement, nullable=column.nullable)
+#     return column
+POSTGRES_TO_DOLT_TYPE_MAPPINGS = {
+    postgresql.CIDR: mysql.VARCHAR(43),
+    postgresql.INET: mysql.VARCHAR(43),
+    postgresql.MACADDR: mysql.VARCHAR(43),
+    postgresql.JSON: mysql.LONGTEXT,
+    postgresql.JSONB: mysql.LONGTEXT,
+    postgresql.ARRAY: mysql.LONGTEXT,
+    postgresql.UUID: mysql.VARCHAR(43),
+    postgresql.BYTEA: mysql.LONGTEXT
+}
 
 
 def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:

@@ -11,7 +11,10 @@ from doltpy.core.system_helpers import get_logger, SQL_LOG_FILE
 import csv
 import io
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
+# logger.setLevel('INFO')
 
 DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
 
@@ -228,6 +231,7 @@ class Dolt:
             except Exception as e:
                 raise e
 
+        logger.info('Creating a new repo in {}'.format(repo_dir))
         _execute(['init'], cwd=repo_dir)
         return Dolt(repo_dir, server_config=server_config)
 

@@ -1,12 +1,17 @@
 from sqlalchemy .engine import Engine
 from sqlalchemy.dialects.mysql import insert
-from sqlalchemy import Table
+from sqlalchemy import Table, Column
+from sqlalchemy.dialects import mysql
 from doltpy.etl.sql_sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
 from doltpy.core.system_helpers import get_logger
 from typing import List, Iterable
 from datetime import datetime, date, time
 
 logger = get_logger(__name__)
+
+MYSQL_TO_DOLT_TYPE_MAPPINGS = {
+    mysql.JSON: mysql.LONGTEXT
+}
 
 
 def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
@@ -55,4 +60,3 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
         data_copy.append(row_copy)
 
     return data_copy
-
