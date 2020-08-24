@@ -4,7 +4,7 @@ import pytest
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 
 from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
-from doltpy.etl.sql_sync.tests.helpers.shcema_sync_helper import MYSQL_TABLE as MYSQL_SCHEMA_SYNC_TEST_TABLE
+from doltpy.etl.sql_sync.tests.helpers.schema_sync_helper import MYSQL_TABLE as MYSQL_SCHEMA_SYNC_TEST_TABLE
 from typing import Tuple
 
 MYSQL_ROOT_PASSWORD = 'test'

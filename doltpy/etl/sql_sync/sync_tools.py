@@ -64,7 +64,6 @@ def sync_schema_to_dolt(source_engine: Engine, repo: Dolt, table_map: Mapping[st
         source_table = source_metadata.tables[source_table_name]
         target_table = coerce_schema_to_dolt(target_table_name, source_table, type_mapping)
         if target_table_name in target_metadata.tables.keys():
-            # drop the table if it exists, Dolt will compute diffs when we recreate it
             target_table.drop(repo.engine)
 
         target_table.create(repo.engine)
@@ -78,7 +77,7 @@ def coerce_schema_to_dolt(target_table_name: str,
         target_col = coerce_column_to_dolt(col, type_mapping)
         target_cols.append(target_col)
     # TODO:
-    #   currently we do not support table or column level contraints except for nullability. We simply ignore these.
+    #   currently we do not support table or column level constraints except for nullability. We simply ignore these.
     return Table(target_table_name, MetaData(), *target_cols)
 
 

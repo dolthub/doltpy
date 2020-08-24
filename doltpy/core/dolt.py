@@ -11,10 +11,7 @@ from doltpy.core.system_helpers import get_logger, SQL_LOG_FILE
 import csv
 import io
 
-# logger = get_logger(__name__)
-import logging
-logger = logging.getLogger(__name__)
-# logger.setLevel('INFO')
+logger = get_logger(__name__)
 
 DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
 
