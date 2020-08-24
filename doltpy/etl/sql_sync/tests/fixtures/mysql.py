@@ -4,6 +4,7 @@ import pytest
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 
 from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA
+from doltpy.etl.sql_sync.tests.helpers.schema_sync_helper import MYSQL_TABLE as MYSQL_SCHEMA_SYNC_TEST_TABLE
 from typing import Tuple
 
 MYSQL_ROOT_PASSWORD = 'test'
@@ -45,10 +46,24 @@ def mysql_engine(docker_ip, docker_services) -> Engine:
 
 
 @pytest.fixture
-def mysql_with_table(mysql_engine) -> Tuple[Engine, Table]:
-    TEST_TABLE_METADATA.metadata.create_all(mysql_engine)
-    yield mysql_engine, TEST_TABLE_METADATA
-    metadata = MetaData(bind=mysql_engine)
-    metadata.reflect()
-    reflected_table = metadata.tables[TEST_TABLE_METADATA.name]
-    reflected_table.drop()
+def mysql_with_table(mysql_engine, request) -> Tuple[Engine, Table]:
+    return _test_table_helper(mysql_engine, TEST_TABLE_METADATA, request)
+
+
+@pytest.fixture
+def mysql_with_schema_sync_test_table(mysql_engine, request) -> Tuple[Engine, Table]:
+    return _test_table_helper(mysql_engine, MYSQL_SCHEMA_SYNC_TEST_TABLE, request)
+
+
+def _test_table_helper(mysql_engine: Engine, table_metadata: MetaData, request):
+    table_metadata.metadata.create_all(mysql_engine)
+
+    def finalize():
+        metadata = MetaData(bind=mysql_engine)
+        metadata.reflect()
+        reflected_table = metadata.tables[table_metadata.name]
+        reflected_table.drop()
+
+    request.addfinalizer(finalize)
+
+    return mysql_engine, table_metadata

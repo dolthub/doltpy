@@ -1,11 +1,24 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy import Table
+from sqlalchemy import Table, Column
+from sqlalchemy.dialects import mysql, postgresql
 from doltpy.etl.sql_sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
 from doltpy.core.system_helpers import get_logger
 from typing import List
 
 logger = get_logger(__name__)
+
+
+POSTGRES_TO_DOLT_TYPE_MAPPINGS = {
+    postgresql.CIDR: mysql.VARCHAR(43),
+    postgresql.INET: mysql.VARCHAR(43),
+    postgresql.MACADDR: mysql.VARCHAR(43),
+    postgresql.JSON: mysql.LONGTEXT,
+    postgresql.JSONB: mysql.LONGTEXT,
+    postgresql.ARRAY: mysql.LONGTEXT,
+    postgresql.UUID: mysql.VARCHAR(43),
+    postgresql.BYTEA: mysql.LONGTEXT
+}
 
 
 def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:

@@ -30,7 +30,20 @@ def repo_with_table_with_arrays(request, init_empty_test_repo) -> Tuple[Dolt, Ta
     return _test_table_helper(repo, request, DOLT_TABLE_WITH_ARRAYS)
 
 
+@pytest.fixture
+def empty_repo_with_server_process(request, init_empty_test_repo) -> Dolt:
+    repo = init_empty_test_repo
+    _server_helper(repo, request)
+    return repo
+
+
 def _test_table_helper(repo: Dolt, request, metadata: MetaData) -> Tuple[Dolt, Table]:
+    _server_helper(repo, request)
+    metadata.create(repo.engine)
+    return repo, metadata
+
+
+def _server_helper(repo: Dolt, request):
     repo.sql_server()
 
     @retry(delay=2, tries=10, exceptions=(
@@ -43,16 +56,11 @@ def _test_table_helper(repo: Dolt, request, metadata: MetaData) -> Tuple[Dolt, T
         conn.close()
         return repo.engine
 
-    engine = verify_connection()
-    metadata.create(engine)
-
     def finalize():
         if repo.server:
             repo.sql_server_stop()
 
     request.addfinalizer(finalize)
-
-    return repo, metadata
 
 
 @pytest.fixture

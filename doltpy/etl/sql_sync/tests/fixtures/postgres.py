@@ -1,5 +1,6 @@
 import pytest
 from doltpy.etl.sql_sync.tests.helpers.data_helper import TEST_TABLE_METADATA, POSTGRES_TABLE_WITH_ARRAYS
+from doltpy.etl.sql_sync.tests.helpers.schema_sync_helper import POSTGRES_TABLE as POSTGRES_SCHEMA_SYNC_TEST_TABLE
 from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
@@ -42,6 +43,11 @@ def postgres_with_table(postgres_engine, request):
 @pytest.fixture
 def postgres_with_table_with_arrays(postgres_engine, request):
     return _test_table_helper(postgres_engine, POSTGRES_TABLE_WITH_ARRAYS, request)
+
+
+@pytest.fixture
+def postgres_with_schema_sync_test_table(postgres_engine, request):
+    return _test_table_helper(postgres_engine, POSTGRES_SCHEMA_SYNC_TEST_TABLE, request)
 
 
 def _test_table_helper(postgres_engine: Engine, table_metadata: MetaData, request):

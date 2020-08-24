@@ -1,5 +1,8 @@
-from typing import Mapping
+from typing import Mapping, Callable
 from doltpy.etl.sql_sync.db_tools import DoltAsTargetReader, DoltAsTargetWriter, DoltAsSourceReader, DoltAsSourceWriter
+from doltpy.core.dolt import Dolt
+from sqlalchemy.engine import Engine
+from sqlalchemy import Table, Column, MetaData
 
 
 def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetWriter, table_map: Mapping[str, str]):
@@ -42,3 +45,52 @@ def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
     to_sync = source_reader(list(table_map.keys()))
     remapped = {table_map[source_table]: source_data for source_table, source_data in to_sync.items()}
     target_writer(remapped)
+
+
+def sync_schema_to_dolt(source_engine: Engine, repo: Dolt, table_map: Mapping[str, str], type_mapping: dict):
+    """
+
+    :param source_engine:
+    :param repo:
+    :param table_map:
+    :param type_mapping:
+    :return:
+    """
+    source_metadata = MetaData(bind=source_engine)
+    source_metadata.reflect()
+    target_metadata = MetaData(bind=repo.engine)
+    target_metadata.reflect()
+    for source_table_name, target_table_name in table_map.items():
+        source_table = source_metadata.tables[source_table_name]
+        target_table = coerce_schema_to_dolt(target_table_name, source_table, type_mapping)
+        if target_table_name in target_metadata.tables.keys():
+            target_table.drop(repo.engine)
+
+        target_table.create(repo.engine)
+
+
+def coerce_schema_to_dolt(target_table_name: str,
+                          table: Table,
+                          type_mapping: dict) -> Table:
+    target_cols = []
+    for col in table.columns:
+        target_col = coerce_column_to_dolt(col, type_mapping)
+        target_cols.append(target_col)
+    # TODO:
+    #   currently we do not support table or column level constraints except for nullability. We simply ignore these.
+    return Table(target_table_name, MetaData(), *target_cols)
+
+
+def coerce_column_to_dolt(column: Column, type_mapping: dict):
+    """
+    Defines how we map MySQL types to Dolt types, and removes unsupported column level constraints. Eventually this
+    function should be trivial since we aim to faithfully support MySQL.
+    :param column:
+    :param type_mapping:
+    :return:
+    """
+    return Column(column.name,
+                  type_mapping[type(column.type)] if type(column.type) in type_mapping else column.type,
+                  primary_key=column.primary_key,
+                  autoincrement=column.autoincrement,
+                  nullable=column.nullable)
