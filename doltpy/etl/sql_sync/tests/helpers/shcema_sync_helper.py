@@ -7,7 +7,7 @@ TEST_SOURCE_TABLE, TEST_TARGET_TABLE = 'test_source_table', 'test_target_table'
 
 POSTGRES_TABLE = Table(TEST_SOURCE_TABLE,
                        MetaData(),
-                       Column('id', Integer, primary_key=True, autoincrement=False),
+                       Column('id', postgresql.INTEGER, primary_key=True, autoincrement=False),
                        Column('ints', postgresql.ARRAY(postgresql.INTEGER)),
                        Column('floats', postgresql.ARRAY(postgresql.FLOAT)),
                        Column('cidr_val', postgresql.CIDR),
@@ -19,7 +19,7 @@ POSTGRES_TABLE = Table(TEST_SOURCE_TABLE,
 
 MYSQL_TABLE = Table(TEST_SOURCE_TABLE,
                     MetaData(),
-                    Column('id', Integer, primary_key=True, autoincrement=False),
+                    Column('id', mysql.INTEGER, primary_key=True, autoincrement=False),
                     Column('ints', mysql.LONGTEXT),
                     Column('floats', mysql.LONGTEXT),
                     Column('cidr_val', mysql.VARCHAR(43)),
@@ -29,9 +29,14 @@ MYSQL_TABLE = Table(TEST_SOURCE_TABLE,
                     Column('jsonb_val', mysql.LONGTEXT),
                     Column('json_val', mysql.JSON))
 
+
+ALTER_TABLE = '''
+    ALTER TABLE {} ADD COLUMN another INTEGER
+'''.format(TEST_SOURCE_TABLE)
+
 EXPECTED_DOLT_TABLE = Table(TEST_TARGET_TABLE,
                             MetaData(),
-                            Column('id', Integer, primary_key=True, autoincrement=False),
+                            Column('id', mysql.INTEGER, primary_key=True, autoincrement=False),
                             Column('ints', mysql.LONGTEXT),
                             Column('floats', mysql.LONGTEXT),
                             Column('cidr_val', mysql.VARCHAR(43)),
