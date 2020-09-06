@@ -11,14 +11,14 @@ import pytest
 TABLE_MAP = {TEST_SOURCE_TABLE: TEST_TARGET_TABLE}
 
 
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_mysql_to_dolt(mysql_with_schema_sync_test_table, empty_repo_with_server_process):
     mysql_engine, _ = mysql_with_schema_sync_test_table
     dolt = empty_repo_with_server_process
     _test_schema_sync_helper(mysql_engine, MYSQL_TO_DOLT_TYPE_MAPPINGS, dolt)
 
 
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_postgres_to_dolt(postgres_with_schema_sync_test_table, empty_repo_with_server_process):
     postgres_engine, _ = postgres_with_schema_sync_test_table
     dolt = empty_repo_with_server_process

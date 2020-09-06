@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO this needs to include record deletion to make sure we are capturing deletes
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to MySQL, see validate_dolt_as_source for details.
@@ -26,7 +26,7 @@ def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     validate_dolt_as_source(mysql_conn, mysql_table, get_mysql_target_writer, dolt_repo, dolt_table)
 
 
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_mysql_to_dolt(mysql_with_table, repo_with_table):
     """
     Tests MySQL to Dolt, see validate_dolt_as_source for details.
@@ -45,7 +45,7 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
                             dolt_table)
 
 
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to Postgres, see validate_dolt_as_source for details.
@@ -58,7 +58,7 @@ def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     validate_dolt_as_source(postgres_conn, postgres_table, get_postgres_target_writer, dolt_repo, dolt_table)
 
 
-# @pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
+@pytest.mark.skip(reason=SQL_SYNC_SKIP_MSG)
 def test_postgres_to_dolt(postgres_with_table, repo_with_table):
     """
     Tests Postgres to Dolt, see validate_dolt_as_source for details.
