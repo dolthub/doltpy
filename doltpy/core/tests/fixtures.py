@@ -32,7 +32,7 @@ def run_serve_mode(request, init_empty_test_repo):
         sqlalchemy.exc.InterfaceError,
     ))
     def verify_connection():
-        conn = repo.engine.connect()
+        conn = repo.get_engine().connect()
         conn.close()
         return repo
 

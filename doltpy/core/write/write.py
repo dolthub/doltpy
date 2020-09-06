@@ -7,7 +7,7 @@ import tempfile
 from datetime import datetime, date, time
 from sqlalchemy import String, DateTime, Date, Integer, Float, Table, MetaData, Column
 import math
-
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -86,10 +86,15 @@ def _import_helper(repo: Dolt,
     logger.info('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
                                                                                                repo.repo_dir(),
                                                                                                import_mode))
-    fp = tempfile.NamedTemporaryFile(suffix='.csv')
-    write_import_file(fp.name)
-    args = ['table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
-    repo.execute(args + [fp.name])
+
+    fname = tempfile.mktemp (suffix='.csv')
+    try:
+        write_import_file(fname)
+        args = ['table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
+        repo.execute(args + [fname])
+    finally:
+        if os.path.exists(fname):
+            os.remove(fname)
 
 
 def import_dict(repo: Dolt,
@@ -160,7 +165,7 @@ def import_dict(repo: Dolt,
     logger.info('Inserting {row_count} rows into table {table_name}'.format(row_count=row_count,
                                                                             table_name=table_name))
 
-    metadata = MetaData(bind=repo.engine)
+    metadata = MetaData(bind=repo.get_engine())
     metadata.reflect()
     table = metadata.tables[table_name]
 
@@ -169,7 +174,7 @@ def import_dict(repo: Dolt,
         batch_end = min((i+1) * batch_size, len(clean_rows))
         batch = clean_rows[batch_start:batch_end]
         logger.info('Writing records {} through {} of {} rows to Dolt'.format(batch_start, batch_end, len(clean_rows)))
-        with repo.engine.connect() as conn:
+        with repo.get_engine().connect() as conn:
             conn.execute(table.insert(), batch)
 
 
@@ -186,7 +191,7 @@ def _create_table_inferred(repo: Dolt, table_name: str, data: Mapping[str, List[
             raise ValueError('Cannot provide an empty list, types cannot be inferred')
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
-    metadata = MetaData(bind=repo.engine)
+    metadata = MetaData(bind=repo.get_engine())
     table = _get_table_def(metadata, table_name, cols_to_types, primary_keys)
     table.create()
 

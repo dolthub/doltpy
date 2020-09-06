@@ -10,6 +10,8 @@ from typing import Tuple, List
 from doltpy.core.tests.helpers import get_repo_path_tmp_path
 import sqlalchemy
 from retry import retry
+from sqlalchemy.engine import Engine
+
 
 BASE_TEST_ROWS = [
     {'name': 'Rafael',  'id': 1},
@@ -144,7 +146,7 @@ def test_sql_server(create_test_table, run_serve_mode):
     :return:
     """
     repo, test_table = create_test_table
-    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), repo.engine)
+    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), repo.get_engine())
     assert list(data['id']) == [1, 2]
 
 
@@ -159,8 +161,8 @@ def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_t
         sqlalchemy.exc.DatabaseError,
         sqlalchemy.exc.InterfaceError,
     ))
-    def get_databases(dolt_repo: Dolt):
-        with dolt_repo.engine.connect() as conn:
+    def get_databases(engine: Engine):
+        with engine.connect() as conn:
             result = conn.execute('SHOW DATABASES')
             return [tup[0] for tup in result]
 
@@ -168,8 +170,8 @@ def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_t
     other_repo = init_other_empty_test_repo
     other_repo.sql_server()
 
-    repo_databases = get_databases(repo.engine)
-    other_repo_databases = get_databases(other_repo.engine)
+    repo_databases = get_databases(repo.get_engine())
+    other_repo_databases = get_databases(other_repo.get_engine())
 
     assert {'information_schema', repo.repo_name} == set(repo_databases)
     assert {'information_schema', other_repo.repo_name} == set(other_repo_databases)

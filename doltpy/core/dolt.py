@@ -438,11 +438,9 @@ class Dolt:
     def repo_name(self):
         return str(self.repo_dir()).split('/')[-1].replace('-', '_')
 
-    def _get_engine(self, echo: bool = False) -> Engine:
+    def _get_engine(self) -> Engine:
         """
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
-        :param host:
-        :param port:
         :param echo:
         :return:
         """
@@ -450,7 +448,7 @@ class Dolt:
         host = self.server_config.host
         port = self.server_config.port
 
-        logger.info('Attempting to connect to Dolt MySQL Server instance running on {}:{}'.format(host, port))
+        logger.info('Creating engine for Dolt SQL Server instance running on {}:{}'.format(host, port))
 
         def inner():
             return create_engine('mysql+mysqlconnector://{user}@{host}:{port}/{database}'.format(user='root',
@@ -460,6 +458,9 @@ class Dolt:
                                  echo=self.server_config.echo)
 
         return inner()
+
+    def get_engine(self):
+        return self.engine
 
     def sql_server_stop(self):
         """
