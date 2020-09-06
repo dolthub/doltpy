@@ -31,7 +31,7 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        engine = repo.engine
+        engine = repo.get_engine()
         metadata = MetaData(bind=engine)
         metadata.reflect()
 
@@ -130,11 +130,11 @@ def get_table_reader_diffs(commit_ref: str = None, branch: str = None) -> Callab
             repo.checkout(branch)
 
         from_commit, to_commit = get_from_commit_to_commit(repo, commit_ref)
-        metadata = MetaData(bind=repo.engine)
+        metadata = MetaData(bind=repo.get_engine())
         metadata.reflect()
         table = metadata.tables[table_name]
-        pks_to_drop = get_dropped_pks(repo.engine, table, from_commit, to_commit)
-        result = _read_from_dolt_diff(repo.engine, table, from_commit, to_commit)
+        pks_to_drop = get_dropped_pks(repo.get_engine(), table, from_commit, to_commit)
+        result = _read_from_dolt_diff(repo.get_engine(), table, from_commit, to_commit)
         return pks_to_drop, result
 
     return inner
@@ -201,10 +201,10 @@ def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[st
             repo.checkout(branch)
 
         query_commit = commit_ref or list(repo.log().keys())[0]
-        table = get_table_metadata(repo.engine, table_name)
+        table = get_table_metadata(repo.get_engine(), table_name)
         from_commit, to_commit = get_from_commit_to_commit(repo, query_commit)
-        pks_to_drop = get_dropped_pks(repo.engine, table, from_commit, to_commit)
-        result = _read_from_dolt_history(repo.engine, table, query_commit)
+        pks_to_drop = get_dropped_pks(repo.get_engine(), table, from_commit, to_commit)
+        result = _read_from_dolt_history(repo.get_engine(), table, query_commit)
         return pks_to_drop, result
 
     return inner
@@ -262,10 +262,10 @@ def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = Fa
     :return:
     """
     coerced_data = list(clean_types(data))
-    inserts, updates = get_inserts_and_updates(repo.engine, table, coerced_data)
+    inserts, updates = get_inserts_and_updates(repo.get_engine(), table, coerced_data)
     if inserts:
         logger.info('Inserting {} rows'.format(len(inserts)))
-        with repo.engine.connect() as conn:
+        with repo.get_engine().connect() as conn:
             conn.execute(table.insert(), inserts)
 
     # We need to prefix the columns with "_" in order to use bindparam properly
@@ -277,7 +277,7 @@ def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = Fa
 
     if _updates:
         logger.info('Updating {} rows'.format(len(_updates)))
-        with repo.engine.connect() as conn:
+        with repo.get_engine().connect() as conn:
             statement = table.update()
             for pk_col in [col.name for col in table.columns if col.primary_key]:
                 statement = statement.where(table.c[pk_col] == bindparam('_{}'.format(pk_col)))

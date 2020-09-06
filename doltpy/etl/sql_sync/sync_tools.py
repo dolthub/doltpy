@@ -58,15 +58,15 @@ def sync_schema_to_dolt(source_engine: Engine, repo: Dolt, table_map: Mapping[st
     """
     source_metadata = MetaData(bind=source_engine)
     source_metadata.reflect()
-    target_metadata = MetaData(bind=repo.engine)
+    target_metadata = MetaData(bind=repo.get_engine())
     target_metadata.reflect()
     for source_table_name, target_table_name in table_map.items():
         source_table = source_metadata.tables[source_table_name]
         target_table = coerce_schema_to_dolt(target_table_name, source_table, type_mapping)
         if target_table_name in target_metadata.tables.keys():
-            target_table.drop(repo.engine)
+            target_table.drop(repo.get_engine())
 
-        target_table.create(repo.engine)
+        target_table.create(repo.get_engine())
 
 
 def coerce_schema_to_dolt(target_table_name: str,

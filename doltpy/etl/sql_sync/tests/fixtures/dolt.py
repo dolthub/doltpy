@@ -39,7 +39,7 @@ def empty_repo_with_server_process(request, init_empty_test_repo) -> Dolt:
 
 def _test_table_helper(repo: Dolt, request, metadata: MetaData) -> Tuple[Dolt, Table]:
     _server_helper(repo, request)
-    metadata.create(repo.engine)
+    metadata.create(repo.get_engine())
     return repo, metadata
 
 
@@ -52,9 +52,9 @@ def _server_helper(repo: Dolt, request):
             sqlalchemy.exc.InterfaceError,
     ))
     def verify_connection():
-        conn = repo.engine.connect()
+        conn = repo.get_engine().connect()
         conn.close()
-        return repo.engine
+        return repo.get_engine()
 
     def finalize():
         if repo.server:
@@ -85,7 +85,7 @@ def create_dolt_test_data_commits(repo_with_table):
 
 
 def _query_helper(repo: Dolt, query, message):
-    with repo.engine.connect() as conn:
+    with repo.get_engine().connect() as conn:
         conn.execute(query)
 
     repo.add(TABLE_NAME)
