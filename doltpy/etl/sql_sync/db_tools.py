@@ -95,21 +95,22 @@ def get_target_writer_helper(engine: Engine,
     def inner(table_data_map: DoltAsSourceUpdate):
         metadata = MetaData(bind=engine)
         metadata.reflect()
-        for table_name, table_update in table_data_map.items():
-            table = metadata.tables[table_name]
-            pks_to_drop, data = table_update
-            if clean_types:
-                clean_data = clean_types(data)
-            else:
-                clean_data = list(data)
+        with engine.connect() as conn:
+            for table_name, table_update in table_data_map.items():
+                table = metadata.tables[table_name]
+                pks_to_drop, data = table_update
+                if clean_types:
+                    clean_data = clean_types(data)
+                else:
+                    clean_data = list(data)
 
-            # PKs to be dropped are provided as dicts, we drop them
-            if pks_to_drop:
-                drop_primary_keys(engine, table, pks_to_drop)
+                # PKs to be dropped are provided as dicts, we drop them
+                if pks_to_drop:
+                    drop_primary_keys(engine, table, pks_to_drop)
 
-            # Now we can perform our inserts
-            if data:
-                with engine.connect() as conn:
+                # Now we can perform our inserts
+                if data:
+
                     if update_on_duplicate:
                         statement = get_upsert_statement(table, clean_data)
                     else:
