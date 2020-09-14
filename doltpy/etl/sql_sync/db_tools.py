@@ -110,7 +110,6 @@ def get_target_writer_helper(engine: Engine,
 
                 # Now we can perform our inserts
                 if data:
-
                     if update_on_duplicate:
                         statement = get_upsert_statement(table, clean_data)
                     else:
@@ -120,10 +119,9 @@ def get_target_writer_helper(engine: Engine,
     return inner
 
 
-def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict]):
-    with engine.connect() as conn:
-        pks = [col.name for col in table.columns if col.primary_key]
-        statement = table.delete()
-        for pk in pks:
-            statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
-        conn.execute(statement)
+def drop_primary_keys(conn, table: Table, pks_to_drop: Iterable[dict]):
+    pks = [col.name for col in table.columns if col.primary_key]
+    statement = table.delete()
+    for pk in pks:
+        statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
+    conn.execute(statement)
