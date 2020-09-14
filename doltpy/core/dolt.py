@@ -455,7 +455,7 @@ class Dolt:
                                                                                                  host=host,
                                                                                                  port=port,
                                                                                                  database=database),
-                                 echo=True)#self.server_config.echo)
+                                 echo=self.server_config.echo)
 
         return inner()
 
