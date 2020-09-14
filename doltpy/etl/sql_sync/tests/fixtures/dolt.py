@@ -81,7 +81,7 @@ def create_dolt_test_data_commits(repo_with_table):
     # TODO: we currently do not support ON DUPLICATE KEY syntax, so this does the update
     # write_to_table(repo, table, TEST_DATA_UPDATE_SINGLE_ROW, commit=True)
     _query_helper(repo, get_dolt_update_row_statement(table), 'Updated a row')
-    _query_helper(repo, get_dolt_drop_pk_query(table), 'Updated a record')
+    _query_helper(repo, get_dolt_drop_pk_query(table), 'Dropped a record')
 
     return repo, table
 
