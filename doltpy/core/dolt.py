@@ -422,7 +422,7 @@ class Dolt:
             if self.server_config.password:
                 args.extend(['--password', self.server_config.password])
             if self.server_config.timeout:
-                args.extend(['--timeout', int(self.server_config.timeout)])
+                args.extend(['--timeout', str(self.server_config.timeout)])
             if self.server_config.readonly:
                 args.extend(['--readonly'])
             if self.server_config.loglevel:
@@ -455,7 +455,7 @@ class Dolt:
                                                                                                  host=host,
                                                                                                  port=port,
                                                                                                  database=database),
-                                 echo=self.server_config.echo)
+                                 echo=True)#self.server_config.echo)
 
         return inner()
 

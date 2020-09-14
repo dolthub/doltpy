@@ -60,6 +60,7 @@ def _server_helper(repo: Dolt, request):
         if repo.server:
             repo.sql_server_stop()
 
+    verify_connection()
     request.addfinalizer(finalize)
 
 
@@ -76,10 +77,11 @@ def create_dolt_test_data_commits(repo_with_table):
     write_to_table(repo, table, TEST_DATA_INITIAL, commit=True)
     write_to_table(repo, table, TEST_DATA_APPEND_SINGLE_ROW, commit=True)
     write_to_table(repo, table, TEST_DATA_APPEND_MULTIPLE_ROWS, commit=True)
+
     # TODO: we currently do not support ON DUPLICATE KEY syntax, so this does the update
     # write_to_table(repo, table, TEST_DATA_UPDATE_SINGLE_ROW, commit=True)
     _query_helper(repo, get_dolt_update_row_statement(table), 'Updated a row')
-    _query_helper(repo, get_dolt_drop_pk_query(table), 'Updated a row')
+    _query_helper(repo, get_dolt_drop_pk_query(table), 'Dropped a row')
 
     return repo, table
 

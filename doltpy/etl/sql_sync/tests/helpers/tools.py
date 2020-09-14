@@ -20,7 +20,9 @@ from doltpy.etl.sql_sync.db_tools import get_table_metadata, drop_primary_keys
 from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
-SQL_SYNC_SKIP_MSG = "sql sync tests are currently unstable"
+from doltpy.core.system_helpers import get_logger
+
+logger = get_logger(__name__)
 
 
 def validate_get_table_metadata(engine: Engine, table_name: str):
@@ -159,7 +161,8 @@ def validate_dolt_as_source(db_conn, db_table, get_db_target_writer, dolt_repo, 
     commits_to_check = [commits[0], commits[1], commits[2], commits[3], commits[4]]
     commits_to_check.reverse()
 
-    for commit in commits_to_check:
+    for i, commit in enumerate(commits_to_check):
+        logger.info('Syncing from Dolt at commit {}, {} of {}'.format(commit, i, len(commits_to_check)))
         table_reader = get_dolt_table_reader_diffs(commit)
         sync_from_dolt(get_dolt_source_reader(dolt_repo, table_reader), target_writer, table_mapping)
         db_data = get_data_for_comparison(db_conn)

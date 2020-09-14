@@ -95,6 +95,7 @@ def get_target_writer_helper(engine: Engine,
     def inner(table_data_map: DoltAsSourceUpdate):
         metadata = MetaData(bind=engine)
         metadata.reflect()
+
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
             pks_to_drop, data = table_update

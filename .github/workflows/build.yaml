@@ -25,7 +25,7 @@ jobs:
         pip install -r requirements.txt
     - name: Execute pytest
       run: |
-        pytest
+        pytest -m 'not sql_sync'
 
   # Publish all pushes to Test PyPi, publish only tags to PyPi
   publish:

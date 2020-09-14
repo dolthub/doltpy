@@ -42,8 +42,8 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
             write_to_table(repo, table, list(data), False)
 
         if commit and not repo.status().is_clean:
-            for table, _ in table_data_map.items():
-                repo.add(table)
+            for table_name, _ in table_data_map.items():
+                repo.add(str(table_name))
             commit_message = message or 'Execute write for sync to Dolt'
             repo.commit(commit_message)
 
@@ -108,7 +108,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]
             raise ValueError('Missing tables {}'.format(missing_tables))
 
         for table in tables:
-            logger.info('Reading tables: {}'.format(tables))
+            logger.info('Reading table: {}'.format(table))
             result[table] = reader(table, repo)
 
         return result
