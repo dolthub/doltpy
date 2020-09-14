@@ -39,9 +39,6 @@ def empty_repo_with_server_process(request, init_empty_test_repo) -> Dolt:
 
 def _test_table_helper(repo: Dolt, request, metadata: MetaData) -> Tuple[Dolt, Table]:
     _server_helper(repo, request)
-    print(repo.repo_dir())
-    import time
-    time.sleep(5)
     metadata.create(repo.get_engine())
     return repo, metadata
 
@@ -63,6 +60,7 @@ def _server_helper(repo: Dolt, request):
         if repo.server:
             repo.sql_server_stop()
 
+    verify_connection()
     request.addfinalizer(finalize)
 
 
@@ -76,9 +74,6 @@ def create_dolt_test_data_commits(repo_with_table):
     """
     repo, table = repo_with_table
 
-    # get_target_writer(repo)({table.name: TEST_DATA_INITIAL})
-    # get_target_writer(repo)({table.name: TEST_DATA_APPEND_SINGLE_ROW})
-    # get_target_writer(repo)({table.name: TEST_DATA_APPEND_MULTIPLE_ROWS})
     write_to_table(repo, table, TEST_DATA_INITIAL, commit=True)
     write_to_table(repo, table, TEST_DATA_APPEND_SINGLE_ROW, commit=True)
     write_to_table(repo, table, TEST_DATA_APPEND_MULTIPLE_ROWS, commit=True)
