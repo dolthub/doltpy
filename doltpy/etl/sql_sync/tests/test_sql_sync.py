@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to MySQL, see validate_dolt_as_source for details.
-    :param mysql_with_table:
-    :param create_dolt_test_data_commits:
-    :return:
     """
     mysql_conn, mysql_table = mysql_with_table
     dolt_repo, dolt_table = create_dolt_test_data_commits
@@ -87,12 +84,9 @@ def test_postgres_to_dolt_array_types(postgres_with_table_with_arrays, repo_with
 
 
 @pytest.mark.sql_sync
-def test_oracl_to_mysql(oracle_with_table, create_dolt_test_data_commits):
+def test_oracle_to_mysql(oracle_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to Oracle, see validate_dolt_as_source for details.
-    :param oracle_with_table:
-    :param create_dolt_test_data_commits:
-    :return:
     """
     oracle_conn, oracle_table = oracle_with_table
     dolt_repo, dolt_table = create_dolt_test_data_commits
