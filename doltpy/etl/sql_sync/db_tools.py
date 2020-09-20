@@ -1,10 +1,8 @@
 from typing import Tuple, Iterable, Mapping, Callable, List
 from doltpy.core.system_helpers import get_logger
-from doltpy.core.write import coerce_dates
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
 from retry import retry
-from datetime import datetime, date, time
 
 logger = get_logger(__name__)
 
@@ -127,3 +125,7 @@ def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict])
         for pk in pks:
             statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
         conn.execute(statement)
+
+
+def hash_row_els(row: dict, cols: List[str]) -> int:
+    return hash(frozenset({col: row[col] for col in cols}.items()))
