@@ -106,4 +106,5 @@ def test_oracle_to_dolt(oracle_with_table, repo_with_table):
                             get_oracle_target_writer,
                             get_table_reader,
                             dolt_repo,
-                            dolt_table)
+                            dolt_table,
+                            datetime_strict=False)

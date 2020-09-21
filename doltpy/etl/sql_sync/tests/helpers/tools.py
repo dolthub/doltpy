@@ -83,7 +83,8 @@ def validate_dolt_as_target(db_engine: Engine,
                             get_db_target_writer,
                             get_db_table_reader,
                             dolt_repo,
-                            dolt_table):
+                            dolt_table,
+                            datetime_strict: bool = True):
     """
     Validates syncing from a relational database, so far MySQL and Postgres, to Dolt. Work by making a series of writes
     to the relational database (running in a Docker container provided by a fixture), executing a sync, and then
@@ -96,6 +97,7 @@ def validate_dolt_as_target(db_engine: Engine,
     :param get_db_table_reader:
     :param dolt_repo:
     :param dolt_table:
+    :param datetime_strict:
     :return:
     """
     def sync_to_dolt_helper():
@@ -111,10 +113,10 @@ def validate_dolt_as_target(db_engine: Engine,
         _, dolt_data = get_dolt_table_reader(commit)(str(dolt_table.name), dolt_repo)
         db_table_metadata = get_table_metadata(db_engine, str(db_table.name))
         db_data = get_db_table_reader()(db_engine, db_table_metadata)
-        assert_rows_equal(list(dolt_data), db_data)
+        assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
 
         _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(str(dolt_table.name), dolt_repo)
-        assert_rows_equal(expected_diff, list(dolt_diff_data))
+        assert_rows_equal(expected_diff, list(dolt_diff_data), datetime_strict=datetime_strict)
 
     update_sequence = [
         TEST_DATA_INITIAL,
@@ -136,7 +138,7 @@ def validate_dolt_as_target(db_engine: Engine,
     latest_commit = list(dolt_repo.log().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dolt_repo)
     db_data = get_db_table_reader()(db_engine, db_table)
-    assert_rows_equal(list(dolt_data), db_data)
+    assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
     dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(str(dolt_table.name), dolt_repo)
     assert dropped_pks == [{'first_name': 'Novak', 'last_name': 'Djokovic'}]
 

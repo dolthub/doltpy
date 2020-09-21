@@ -10,10 +10,6 @@ from sqlalchemy import MetaData, bindparam
 from copy import deepcopy
 
 logger = get_logger(__name__)
-#
-# MYSQL_TO_DOLT_TYPE_MAPPINGS = {
-#     mysql.JSON: mysql.LONGTEXT
-# }
 
 
 def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
@@ -31,10 +27,7 @@ def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltA
         for table_name, table_update in table_data_map.items():
             table = metadata.tables[table_name]
             pks_to_drop, data = table_update
-            if clean_types:
-                clean_data = clean_types(data)
-            else:
-                clean_data = list(data)
+            clean_data = list(data)
 
             # PKs to be dropped are provided as dicts, we drop them
             if pks_to_drop:
@@ -42,12 +35,12 @@ def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltA
 
             # Now we can perform our inserts
             if data:
-                execute_updates_and_inserts(engine, table, clean_data)
+                execute_updates_and_inserts(engine, table, clean_data, update_on_duplicate)
 
     return inner
 
 
-def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict]):
+def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict], update_on_duplicate: bool):
     # get the existing pks as dicts
     pk_cols = [col.name for col in table.columns if col.primary_key]
     non_pk_cols = [col.name for col in table.columns if not col.primary_key]
@@ -73,13 +66,9 @@ def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict]):
         for insert in inserts:
             insert_statement = table.insert().values(insert)
             conn.execute(insert_statement)
-        if _updates:
+        if update_on_duplicate and _updates:
             update_statement = table.update()
             for pk_col in pk_cols:
                 update_statement = update_statement.where(table.c[pk_col] == bindparam('_{}'.format(pk_col)))
             update_statement = update_statement.values({col: bindparam('_{}'.format(col)) for col in non_pk_cols})
             conn.execute(update_statement, _updates)
-
-
-def clean_types(data: List[dict]):
-    return data
