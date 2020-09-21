@@ -174,7 +174,10 @@ def by_first_last(dic: dict) -> tuple:
     return dic['first_name'], dic['last_name']
 
 
-def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[[dict], tuple] = by_first_last):
+def assert_rows_equal(left: List[dict],
+                      right: List[dict],
+                      comparator: Callable[[dict], tuple] = by_first_last,
+                      datetime_strict: bool = True):
     assert len(left) == len(right)
     failed = False
 
@@ -187,12 +190,20 @@ def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[
         for left_column, left_value in left_row.items():
             if left_column in right_row:
                 right_value = right_row[left_column]
+
+                # datetime coercion
+                #   - Oracle connector returns both dates and timestamps as datetime, and coerces a datetime in SQL
+                #     Alchemy to DATE (this seems like a bug as it is destructive). For now this code effectively
+                #     ensures that type discrepancy can be account for by passing datetime_strict = False.
+                if not datetime_strict:
+                    left_value, right_value = coerce_date(left_value, right_value)
+
                 if not isinstance(left_value, type(right_value)):
                     failed = True
                     logger.error('left value is of type {}, right value is of type {}'.format(type(left_value),
                                                                                               type(right_value)))
 
-                elif isinstance(left_value, float):
+                if isinstance(left_value, float):
                     left_value, right_value = round(left_value, 4), round(right_value, 4)
 
                 if left_value != right_value:
@@ -208,6 +219,16 @@ def assert_rows_equal(left: List[dict], right: List[dict], comparator: Callable[
         raise AssertionError('Errors found')
     else:
         return True
+
+
+def coerce_date(left_value, right_value):
+    if isinstance(left_value, datetime) and isinstance(right_value, date):
+        left_value = date(left_value.year, left_value.month, left_value.day)
+
+    elif isinstance(left_value, date) and isinstance(right_value, datetime):
+        right_value = date(right_value.year, right_value.month, right_value.day)
+
+    return left_value, right_value
 
 
 TEST_DATA_WITH_ARRAYS = [

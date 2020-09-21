@@ -6,12 +6,14 @@ from doltpy.etl.sql_sync.db_tools import (get_table_metadata,
                                           DoltAsSourceReader,
                                           DoltAsSourceUpdate,
                                           DoltAsTargetUpdate,
-                                          drop_primary_keys)
+                                          drop_primary_keys,
+                                          hash_row_els)
 from doltpy.etl.sql_sync.mysql import clean_types
 from typing import List, Callable, Tuple, Mapping
 from datetime import datetime
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, select, bindparam, MetaData
+from copy import deepcopy
 
 logger = get_logger(__name__)
 
@@ -269,7 +271,6 @@ def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = Fa
             conn.execute(table.insert(), inserts)
 
     # We need to prefix the columns with "_" in order to use bindparam properly
-    from copy import deepcopy
     _updates = deepcopy(updates)
     for dic in _updates:
         for col in list(dic.keys()):
@@ -310,5 +311,3 @@ def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> T
     return inserts, updates
 
 
-def hash_row_els(row: dict, cols: List[str]) -> int:
-    return hash(frozenset({col: row[col] for col in cols}.items()))
