@@ -10,4 +10,5 @@ from .fixtures.postgres import (postgres_engine,
                                 postgres_with_table_with_arrays,
                                 postgres_with_schema_sync_test_table,
                                 postgres_service_def)
+from .fixtures.oracle import (oracle_engine, oracle_with_table, oracle_service_def)
 from .fixtures.db_fixtures_helper import docker_compose_file

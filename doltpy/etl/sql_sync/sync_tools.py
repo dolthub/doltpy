@@ -3,6 +3,9 @@ from doltpy.etl.sql_sync.db_tools import DoltAsTargetReader, DoltAsTargetWriter,
 from doltpy.core.dolt import Dolt
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, Column, MetaData
+from doltpy.core.system_helpers import get_logger
+
+logger = get_logger(__name__)
 
 
 def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetWriter, table_map: Mapping[str, str]):
@@ -20,6 +23,7 @@ def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetW
     :param table_map:
     :return:
     """
+    logger.info('Syncing the following tables to Dolt:\n{}'.format(table_map))
     _sync_helper(source_reader, target_writer, table_map)
 
 
@@ -38,6 +42,7 @@ def sync_from_dolt(source_reader: DoltAsSourceReader, target_writer: DoltAsSourc
     :param table_map:
     :return:
     """
+    logger.info('Syncing the following tables from Dolt:\n{}'.format(table_map))
     _sync_helper(source_reader, target_writer, table_map)
 
 

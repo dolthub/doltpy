@@ -6,12 +6,14 @@ from doltpy.etl.sql_sync.db_tools import (get_table_metadata,
                                           DoltAsSourceReader,
                                           DoltAsSourceUpdate,
                                           DoltAsTargetUpdate,
-                                          drop_primary_keys)
+                                          drop_primary_keys,
+                                          hash_row_els)
 from doltpy.etl.sql_sync.mysql import clean_types
 from typing import List, Callable, Tuple, Mapping
 from datetime import datetime
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, select, bindparam, MetaData
+from copy import deepcopy
 
 logger = get_logger(__name__)
 
@@ -42,8 +44,8 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
             write_to_table(repo, table, list(data), False)
 
         if commit and not repo.status().is_clean:
-            for table, _ in table_data_map.items():
-                repo.add(table)
+            for table_name, _ in table_data_map.items():
+                repo.add(str(table_name))
             commit_message = message or 'Execute write for sync to Dolt'
             repo.commit(commit_message)
 
@@ -108,7 +110,7 @@ def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]
             raise ValueError('Missing tables {}'.format(missing_tables))
 
         for table in tables:
-            logger.info('Reading tables: {}'.format(tables))
+            logger.info('Reading table: {}'.format(table))
             result[table] = reader(table, repo)
 
         return result
@@ -269,7 +271,6 @@ def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = Fa
             conn.execute(table.insert(), inserts)
 
     # We need to prefix the columns with "_" in order to use bindparam properly
-    from copy import deepcopy
     _updates = deepcopy(updates)
     for dic in _updates:
         for col in list(dic.keys()):
@@ -310,5 +311,3 @@ def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> T
     return inserts, updates
 
 
-def hash_row_els(row: dict, cols: List[str]) -> int:
-    return hash(frozenset({col: row[col] for col in cols}.items()))

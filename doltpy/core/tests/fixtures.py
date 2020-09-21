@@ -10,7 +10,7 @@ from retry import retry
 def init_empty_test_repo(tmp_path) -> Dolt:
     repo_path, repo_data_dir = get_repo_path_tmp_path(tmp_path)
     assert not os.path.exists(repo_data_dir)
-    repo = Dolt.init(repo_path)
+    repo = Dolt.init(repo_path, ServerConfig(loglevel='trace', timeout=1000000))
     yield repo
     if os.path.exists(repo_data_dir):
         shutil.rmtree(repo_data_dir)

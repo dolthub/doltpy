@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, MetaData, Integer
-from sqlalchemy.dialects import postgresql, mysql
+from sqlalchemy.dialects import postgresql, mysql, oracle
 
 
 TEST_SOURCE_TABLE, TEST_TARGET_TABLE = 'test_source_table', 'test_target_table'

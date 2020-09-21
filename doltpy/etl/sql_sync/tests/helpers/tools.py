@@ -20,7 +20,9 @@ from doltpy.etl.sql_sync.db_tools import get_table_metadata, drop_primary_keys
 from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
-SQL_SYNC_SKIP_MSG = "sql sync tests are currently unstable"
+from doltpy.core.system_helpers import get_logger
+
+logger = get_logger(__name__)
 
 
 def validate_get_table_metadata(engine: Engine, table_name: str):
@@ -81,7 +83,8 @@ def validate_dolt_as_target(db_engine: Engine,
                             get_db_target_writer,
                             get_db_table_reader,
                             dolt_repo,
-                            dolt_table):
+                            dolt_table,
+                            datetime_strict: bool = True):
     """
     Validates syncing from a relational database, so far MySQL and Postgres, to Dolt. Work by making a series of writes
     to the relational database (running in a Docker container provided by a fixture), executing a sync, and then
@@ -94,6 +97,7 @@ def validate_dolt_as_target(db_engine: Engine,
     :param get_db_table_reader:
     :param dolt_repo:
     :param dolt_table:
+    :param datetime_strict:
     :return:
     """
     def sync_to_dolt_helper():
@@ -109,10 +113,10 @@ def validate_dolt_as_target(db_engine: Engine,
         _, dolt_data = get_dolt_table_reader(commit)(str(dolt_table.name), dolt_repo)
         db_table_metadata = get_table_metadata(db_engine, str(db_table.name))
         db_data = get_db_table_reader()(db_engine, db_table_metadata)
-        assert_rows_equal(list(dolt_data), db_data)
+        assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
 
         _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(str(dolt_table.name), dolt_repo)
-        assert_rows_equal(expected_diff, list(dolt_diff_data))
+        assert_rows_equal(expected_diff, list(dolt_diff_data), datetime_strict=datetime_strict)
 
     update_sequence = [
         TEST_DATA_INITIAL,
@@ -134,7 +138,7 @@ def validate_dolt_as_target(db_engine: Engine,
     latest_commit = list(dolt_repo.log().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dolt_repo)
     db_data = get_db_table_reader()(db_engine, db_table)
-    assert_rows_equal(list(dolt_data), db_data)
+    assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
     dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(str(dolt_table.name), dolt_repo)
     assert dropped_pks == [{'first_name': 'Novak', 'last_name': 'Djokovic'}]
 
@@ -159,7 +163,8 @@ def validate_dolt_as_source(db_conn, db_table, get_db_target_writer, dolt_repo, 
     commits_to_check = [commits[0], commits[1], commits[2], commits[3], commits[4]]
     commits_to_check.reverse()
 
-    for commit in commits_to_check:
+    for i, commit in enumerate(commits_to_check):
+        logger.info('Syncing from Dolt at commit {}, {} of {}'.format(commit, i, len(commits_to_check)))
         table_reader = get_dolt_table_reader_diffs(commit)
         sync_from_dolt(get_dolt_source_reader(dolt_repo, table_reader), target_writer, table_mapping)
         db_data = get_data_for_comparison(db_conn)
