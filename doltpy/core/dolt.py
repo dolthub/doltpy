@@ -912,7 +912,7 @@ class Dolt:
 
         output = _execute(args, self.repo_dir())
 
-        if output[0].startswith('error'):
+        if output and output[0].startswith('error'):
             logger.error('\n'.join(output[3:]))
             raise DoltException('Bad public key')
 
