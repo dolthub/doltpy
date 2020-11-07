@@ -794,7 +794,7 @@ class Dolt:
 
         self.execute(args)
 
-    def push(self, remote: str, refspec: str = None, set_upstream: str = bool, force: bool = False):
+    def push(self, remote: str, refspec: str = None, set_upstream: bool = False, force: bool = False):
         """
         Push the to the specified remote. If set_upstream is provided will create an upstream reference of all branches
         in a repo.
