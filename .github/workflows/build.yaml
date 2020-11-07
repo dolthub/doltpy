@@ -27,32 +27,3 @@ jobs:
       run: |
         pytest -m 'not sql_sync'
 
-  # Publish all pushes to Test PyPi, publish only tags to PyPi
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python_version: [3.7, 3.8]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python_version }}
-      uses: actions/setup-python@v1
-      with:
-        python_version: ${{ matrix.python_version }}
-    - name: Build from source
-      run: |
-        python setup.py sdist
-    - name: Publish Doltpy to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
-    - name: Publish Doltpy to PyPI
-      if: startsWith(github.event.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
