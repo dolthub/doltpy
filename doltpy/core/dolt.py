@@ -86,11 +86,12 @@ class DoltCommit:
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
-    def __init__(self, ref: str, ts: datetime, author: str, message: str):
+    def __init__(self, ref: str, ts: datetime, author: str, message: str, merge: Tuple[str, str] = None):
         self.hash = ref
         self.ts = ts
         self.author = author
         self.message = message
+        self.merge = merge
 
     def __str__(self):
         return '{}: {} @ {}, {}'.format(self.hash, self.author, self.ts, self.message)
@@ -232,6 +233,10 @@ class Dolt:
         _execute(['init'], cwd=repo_dir)
         return Dolt(repo_dir, server_config=server_config)
 
+    @staticmethod
+    def version():
+        return _execute(['version'], cwd=os.getcwd()).split(' ')[2].strip()
+
     def status(self) -> DoltStatus:
         """
         Parses the status of this repository into a `DoltStatus` object.
@@ -318,6 +323,52 @@ class Dolt:
             args.extend(['--date', str(date)])
 
         self.execute(args, restart_server=True)
+
+    def merge(self, branch: str, message: str, squash: bool = False):
+        """
+        Executes a merge operation. If conflicts result, the merge is aborted, as an interactive merge does not really
+        make sense in a scripting environment, or at least we have not figured out how to model it in a way that does.
+        :param branch:
+        :param message:
+        :param squash:
+        :return:
+        """
+        current_branch, branches = self._get_branches()
+        assert self.status().is_clean,\
+            'Changes in the working set, please commit before merging {} to {}'.format(branch, current_branch.name)
+        if branch not in [branch.name for branch in branches]:
+            raise ValueError('Trying to merge in non-existent branch {} to {}'.format(branch, current_branch.name))
+
+        logger.info('Merging {} into {}'.format(branch, current_branch.name))
+        args = ['merge']
+
+        if squash:
+            args = args.append('--squash')
+
+        args.append(branch)
+        output = self.execute(args)
+        merge_conflict_pos = 2
+
+        if len(output) == 3 and 'Fast-forward' in output[1]:
+            logger.info('Completed fast-forward merge of {} into {}'.format(branch, current_branch.name))
+            return
+
+        if len(output) == 5 and output[merge_conflict_pos].startswith('CONFLICT'):
+            logger.warning('The following merge conflict occurred merging {} to {}:\n'.format(branch,
+                                                                                              current_branch.name,
+                                                                                              output[merge_conflict_pos]))
+            logger.warning('Aborting as interactive merge not supported in Doltpy')
+            abort_args = ['merge', '--abort']
+            self.execute(abort_args)
+            return
+
+        logger.info('Merged {} into {} adding a commit'.format(current_branch.name, branch))
+        status = self.status()
+
+        for table in list(status.added_tables.keys()) + list(status.modified_tables.keys()):
+            self.add(table)
+
+        self.commit(message)
 
     def sql(self,
             query: str = None,
@@ -490,18 +541,26 @@ class Dolt:
             raise NotImplementedError()
 
         output = self.execute(args, print_output=False)
-        author_offset, date_offset, message_offset = 1, 2, 4
-
         result = OrderedDict()
         for i, line in enumerate(output):
             if line.startswith('commit'):
+                if output[i + 1].startswith('Merge'):
+                    offsets = (1, 2, 3, 5)
+                else:
+                    offsets = (None, 1, 2, 4)
+
+                merge_pos, author_offset, date_offset, message_offset = offsets
+
                 current_commit = line.split(' ')[1]
+                merge = None
+                if merge_pos:
+                    merge = tuple(output[merge_pos].split(':')[1].lstrip().split(' '))
                 author = output[i + author_offset].split(':')[1].lstrip()
                 date = datetime.strptime(output[i + date_offset].split(':', maxsplit=1)[1].lstrip(),
                                          '%a %b %d %H:%M:%S %z %Y')
                 message = output[i + message_offset].lstrip('\t')
                 assert current_commit is not None and date is not None and author is not None and message is not None
-                result[current_commit] = DoltCommit(current_commit, date, author, message)
+                result[current_commit] = DoltCommit(current_commit, date, author, message, merge)
 
         return result
 
@@ -609,7 +668,7 @@ class Dolt:
         if force:
             args.append('--force')
 
-        if branch_name and not(delete and copy and move):
+        if branch_name and not(delete or copy or move):
             args.append(branch_name)
             if start_point:
                 args.append(start_point)
@@ -735,7 +794,7 @@ class Dolt:
 
         self.execute(args)
 
-    def push(self, remote: str, refspec: str = None, set_upstream: str = None, force: bool = False):
+    def push(self, remote: str, refspec: str = None, set_upstream: bool = False, force: bool = False):
         """
         Push the to the specified remote. If set_upstream is provided will create an upstream reference of all branches
         in a repo.

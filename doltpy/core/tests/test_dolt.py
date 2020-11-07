@@ -66,6 +66,72 @@ def test_commit(create_test_table):
     assert repo.status().is_clean and len(repo.log()) == before_commit_count + 1
 
 
+def test_merge_fast_forward(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Base branch'
+    message_two = 'Other branch'
+    message_merge = 'merge'
+
+    # commit the current working set to master
+    repo.add(test_table)
+    repo.commit(message_one)
+
+    # create another branch from the working set
+    repo.branch('other')
+
+    # create a non-trivial commit against `other`
+    repo.checkout('other')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Juan Martin", 5)')
+    repo.add(test_table)
+    repo.commit(message_two)
+
+    # merge
+    repo.checkout('master')
+    repo.merge('other', message_merge)
+
+    commits = list(repo.log().values())
+    fast_forward_commit = commits[0]
+    parent = commits[1]
+
+    assert fast_forward_commit.merge is None
+    assert fast_forward_commit.message == message_two
+    assert parent.message == message_one
+
+
+def test_merge_conflict(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Base branch'
+    message_two = 'Base branch new data'
+    message_three = 'Other branch'
+    message_merge = 'merge'
+    # commit the current working set to master
+    repo.add(test_table)
+    repo.commit(message_one)
+
+    # create another branch from the working set
+    repo.branch('other')
+
+    # create a non-trivial commit against `master`
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Stan", 4)')
+    repo.add(test_table)
+    repo.commit(message_two)
+
+    # create a non-trivial commit against `other`
+    repo.checkout('other')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Marin", 4)')
+    repo.add(test_table)
+    repo.commit(message_three)
+
+    # merge
+    repo.checkout('master')
+    repo.merge('other', message_merge)
+
+    commits = list(repo.log().values())
+    head_of_master = commits[0]
+
+    assert head_of_master.message == message_two
+
+
 def test_dolt_log(create_test_table):
     repo, test_table = create_test_table
     message_one = 'Julianna, the very serious intellectual'
@@ -80,6 +146,44 @@ def test_dolt_log(create_test_table):
     previous_commit = commits[1]
     assert current_commit.message == message_two
     assert previous_commit.message == message_one
+
+
+def test_dolt_log_merge_commit(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Base branch'
+    message_two = 'Base branch new data'
+    message_three = 'Other branch'
+    message_merge = 'merge'
+    # commit the current working set to master
+    repo.add(test_table)
+    repo.commit(message_one)
+
+    # create another branch from the working set
+    repo.branch('other')
+
+    # create a non-trivial commit against `master`
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Stan", 4)')
+    repo.add(test_table)
+    repo.commit(message_two)
+
+    # create a non-trivial commit against `other`
+    repo.checkout('other')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Juan Martin", 5)')
+    repo.add(test_table)
+    repo.commit(message_three)
+
+    # merge
+    repo.checkout('master')
+    repo.merge('other', message_merge)
+
+    commits = list(repo.log().values())
+    merge_commit = commits[0]
+    first_merge_parent = commits[1]
+    second_merge_parent = commits[2]
+
+    assert merge_commit.message == message_merge
+    assert first_merge_parent.hash in merge_commit.merge
+    assert second_merge_parent.hash in merge_commit.merge
 
 
 def test_get_dirty_tables(create_test_table):

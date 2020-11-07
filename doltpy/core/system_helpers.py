@@ -2,7 +2,6 @@ import logging
 import atexit
 import psutil
 
-
 LOG_LEVEL = logging.INFO
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVEL)
