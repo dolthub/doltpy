@@ -4,23 +4,24 @@ on:
   release:
     types: [published]
 
-publish:
-  runs-on: ubuntu-latest
-  strategy:
-    matrix:
-      python_version: [3.7, 3.8]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.7, 3.8]
 
-  steps:
-  - uses: actions/checkout@v2
-  - name: Set up Python ${{ matrix.python_version }}
-    uses: actions/setup-python@v1
-    with:
-      python_version: ${{ matrix.python_version }}
-  - name: Build from source
-    run: |
-      python setup.py sdist
-  - name: Publish Doltpy to PyPI
-    uses: pypa/gh-action-pypi-publish@master
-    with:
-      user: DoltHub
-      password: ${{ secrets.pypi_password }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python_version }}
+      uses: actions/setup-python@v1
+      with:
+        python_version: ${{ matrix.python_version }}
+    - name: Build from source
+      run: |
+        python setup.py sdist
+    - name: Publish Doltpy to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: DoltHub
+        password: ${{ secrets.pypi_password }}
