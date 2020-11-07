@@ -44,15 +44,9 @@ jobs:
     - name: Build from source
       run: |
         python setup.py sdist
-    - name: Publish Doltpy to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
     - name: Publish Doltpy to PyPI
       if: startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
-        user: __token__
+        user: DoltHub
         password: ${{ secrets.pypi_password }}
