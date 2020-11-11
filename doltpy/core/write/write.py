@@ -45,7 +45,7 @@ def import_df(repo: Dolt,
 def bulk_import(repo: Dolt,
                 table_name: str,
                 data: io.StringIO,
-                primary_keys: List[str],
+                primary_keys: List[str] = None,
                 import_mode: str = None) -> None:
     """
     This takes a file like object representing a CSV and imports it to the table specified. Note that you must
@@ -82,6 +82,9 @@ def _import_helper(repo: Dolt,
             logger.info('No import mode specified, table exists, using "{}"'.format(CREATE))
             import_mode = CREATE
 
+    if import_mode == CREATE and primary_keys is None:
+        raise ValueError('Import mode CREATE requires a primary key to be specified')
+
     import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
     logger.info('Importing to table {} in dolt directory located in {}, import mode {}'.format(table_name,
                                                                                                repo.repo_dir(),
@@ -90,7 +93,10 @@ def _import_helper(repo: Dolt,
     fname = tempfile.mktemp (suffix='.csv')
     try:
         write_import_file(fname)
-        args = ['table', 'import', table_name, '--pk={}'.format(','.join(primary_keys))] + import_flags
+        args = ['table', 'import', table_name] + import_flags
+        if import_mode == CREATE:
+            args += ['--pk={}'.format(','.join(primary_keys))]
+
         repo.execute(args + [fname])
     finally:
         if os.path.exists(fname):
