@@ -25,3 +25,17 @@ jobs:
       with:
         user: DoltHub
         password: ${{ secrets.pypi_password }}
+
+  notify:
+    needs: publish
+
+    steps:
+    - name: Discord Notification
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: info
+          username: GhostOfOctacat
+          color: '#ff00aa'
+          avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+          description: "Doltpy published to PyPi"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
