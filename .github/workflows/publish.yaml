@@ -28,6 +28,7 @@ jobs:
 
   notify:
     needs: publish
+    runs-on: ubuntu-latest
 
     steps:
     - name: Discord Notification
