@@ -1,5 +1,5 @@
 import pytest
-from doltpy.core.dolt import Dolt, _execute, DoltException, DoltDirectoryException
+from doltpy.core.dolt import Dolt, _execute, DoltException
 from doltpy.core.write import UPDATE, import_df
 from doltpy.core.read import pandas_read_sql, read_table
 import shutil
@@ -296,6 +296,34 @@ def test_branch(create_test_table):
     assert different_active_branch.name == 'dosac'
 
 
+# we want to make sure that we can delte a branch atomically
+def test_branch_delete(create_test_table):
+    repo, _ = create_test_table
+
+    _verify_branches(repo, ['master'])
+
+    repo.checkout('dosac', checkout_branch=True)
+    repo.checkout('master')
+    _verify_branches(repo, ['master', 'dosac'])
+
+    repo.branch('dosac', delete=True)
+    _verify_branches(repo, ['master'])
+
+
+def test_branch_move(create_test_table):
+    repo, _ = create_test_table
+
+    _verify_branches(repo, ['master'])
+
+    repo.branch('master', move=True, new_branch='dosac')
+    _verify_branches(repo, ['dosac'])
+
+
+def _verify_branches(repo: Dolt, branch_list: List[str]):
+    _, branches = repo.branch()
+    assert set(branch.name for branch in branches) == set(branch for branch in branch_list)
+
+
 def test_remote_list(create_test_table):
     repo, _ = create_test_table
     repo.remote(add=True, name='origin', url='blah-blah')
@@ -313,6 +341,11 @@ def test_checkout_non_existent_branch(create_test_table):
 def test_ls(create_test_table):
     repo, test_table = create_test_table
     assert [table.name for table in repo.ls()] == [test_table]
+
+
+def test_ls_empty(init_empty_test_repo):
+    repo = init_empty_test_repo
+    assert len(repo.ls()) == 0
 
 
 def test_sql(create_test_table):

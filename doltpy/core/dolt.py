@@ -80,6 +80,11 @@ class DoltTable:
         self.rows = rows
         self.system = system
 
+    def __str__(self):
+        return 'DoltTable(name: {}, table_hash: , rows: {}, system: {}'.format(self.name,
+                                                                               self.table_hash,
+                                                                               self.rows,
+                                                                               self.system)
 
 class DoltCommit:
     """
@@ -668,41 +673,45 @@ class Dolt:
         if force:
             args.append('--force')
 
+        def execute_wrapper(command_args: List[str]):
+            self.execute(command_args)
+            return self._get_branches()
+
         if branch_name and not(delete or copy or move):
             args.append(branch_name)
             if start_point:
                 args.append(start_point)
-            _execute(args, self.repo_dir())
-            return self._get_branches()
+            return execute_wrapper(args)
 
         if copy:
             assert new_branch, 'must provide new_branch when copying a branch'
             args.append('--copy')
             if branch_name:
                 args.append(branch_name)
-            args.extend(new_branch)
-            self.execute(args)
+            args.append(new_branch)
+            return execute_wrapper(args)
 
         if delete:
             assert branch_name, 'must provide branch_name when deleting'
             args.extend(['--delete', branch_name])
-            self.execute(args)
+            return execute_wrapper(args)
 
         if move:
             assert new_branch, 'must provide new_branch when moving a branch'
             args.append('--move')
             if branch_name:
                 args.append(branch_name)
-            args.extend(new_branch)
-            self.execute(args)
+            args.append(new_branch)
+            return execute_wrapper(args)
 
         if branch_name:
-            args.extend(branch_name)
+            args.append(branch_name)
             if start_point:
                 args.append(start_point)
-            self.execute(args)
+            return execute_wrapper(args)
 
         return self._get_branches()
+
 
     def _get_branches(self) -> Tuple[DoltBranch, List[DoltBranch]]:
         args = ['branch', '--list', '--verbose']
@@ -1104,6 +1113,9 @@ class Dolt:
         output = self.execute(args, print_output=False)
         tables = []
         system_pos = None
+
+        if len(output) == 3 and output[0] == 'No tables in working set':
+            return tables
 
         for i, line in enumerate(output):
             if line.startswith('Tables') or not line:
