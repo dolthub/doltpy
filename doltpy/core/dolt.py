@@ -1289,17 +1289,17 @@ class Dolt:
         args = ['table', 'import']
 
         if create_table:
-            args.append('--create')
+            args.append('--create-table')
             assert pk, 'When create is set to True, pks must be provided'
         if update_table:
-            args.append('--update')
+            args.append('--update-table')
         if replace_table:
-            args.append('--replace')
+            args.append('--replace-table')
             assert pk, 'When replace is set to True, pks must be provided'
         if file_type:
-            args.extend(['--file_type', file_type])
+            args.extend(['--file-type', file_type])
         if pk:
-            args.extend(['--pks', ','.join(pk)])
+            args.extend(['--pk', ','.join(pk)])
         if mapping_file:
             args.extend(['--map', mapping_file])
         if delim:
