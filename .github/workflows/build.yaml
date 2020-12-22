@@ -26,4 +26,10 @@ jobs:
     - name: Execute pytest
       run: |
         pytest -m 'not sql_sync'
-
+    - name: Discord Notify
+      if: always()
+      uses: dolthub/ga-discord-notify@master
+      with:
+        job-status: ${{ job.status }}
+        webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+        notify-on-success: false
