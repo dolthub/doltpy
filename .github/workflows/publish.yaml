@@ -1,18 +1,46 @@
 name: Publish to PyPi
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SemVer format release tag, i.e. 0.23.4'
+        required: true
 
 jobs:
+  bump-version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Bump Version
+        uses: dolthub/ga-bump-version@master
+        with:
+          version-string: ${{ github.event.inputs.version }}
+          version-file: setup.py
+      - name: Discord Notify
+        if: always()
+        uses: dolthub/ga-discord-notify@master
+        with:
+          job-status: ${{ job.status }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          notify-on-success: false
+
   publish:
+    needs: bump-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python_version: ['3.9']
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Checkout release
+      run: |
+        git fetch --tags --all
+        git checkout tags/v${{ github.event.inputs.version }} -b v${{ github.event.inputs.version }}
     - name: Set up Python ${{ matrix.python_version }}
       uses: actions/setup-python@v1
       with:
@@ -25,22 +53,10 @@ jobs:
       with:
         user: DoltHub
         password: ${{ secrets.pypi_password }}
-
-  notify:
-    needs: publish
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Get the version
-      id: get_version
-      # GITHUB_REF is expected to be set in the format refs/tags/0.3.1
-      run: echo "::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}"
-    - name: Discord Notification
-      uses: rjstone/discord-webhook-notify@v1
-      with:
-        severity: info
-        username: GhostOfOctacat
-        color: '#ff00aa'
-        avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
-        description: "${{format('Doltpy {0}', steps.get_version.outputs.VERSION)}} pushed to PyPi"
-        webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+    - name: Discord Notify
+        if: always()
+        uses: dolthub/ga-discord-notify@master
+        with:
+          job-status: ${{ job.status }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          notify-on-success: false
