@@ -11,5 +11,5 @@ jobs:
         uses: dolthub/ga-discord-notify@master
         with:
           job-status: ${{ job.status }}
-          webhook-url: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           notify-on-success: true
