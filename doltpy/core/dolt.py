@@ -430,7 +430,7 @@ class Dolt:
             elif result_format == 'json':
                 args.extend(['--result-format', 'json'])
                 output = self.execute(args)
-                return json.load(io.StringIO('\n'.join(output)))
+                return json.load(io.StringIO(''.join(output)))
             else:
                 raise ValueError('{} is not a valid value for result_format'.format(result_format))
 
