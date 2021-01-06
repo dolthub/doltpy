@@ -863,7 +863,8 @@ class Dolt:
     @staticmethod
     def clone(remote_url: str, new_dir: str = None, remote: str = None, branch: str = None) -> 'Dolt':
         """
-        Clones a repository into the repository specified, currently only supports DoltHub as a remote.
+        Clones the specified DoltHub database into a new directory, or optionally an existing directory provided by the
+        user.
         :param remote_url:
         :param new_dir:
         :param remote:
@@ -903,7 +904,8 @@ class Dolt:
                     table_or_tables: Union[str, List[str]] = None,
                     new_dir: str = None) -> 'Dolt':
         """
-        Clones a repository into the repository specified, currently only supports DoltHub as a remote.
+        Reads the specified tables, or all the tables, from the DoltHub database specified into a new local database,
+        at the commit or branch provided. Users can optionally provide an existing directory.
         :param remote_url:
         :param committish:
         :param table_or_tables:
