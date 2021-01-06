@@ -3,7 +3,6 @@ from doltpy.core.dolt import Dolt
 import pandas as pd
 import tempfile
 from doltpy.core.system_helpers import get_logger
-from io import StringIO
 
 logger = get_logger(__name__)
 
