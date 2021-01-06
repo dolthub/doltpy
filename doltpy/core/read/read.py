@@ -3,6 +3,7 @@ from doltpy.core.dolt import Dolt
 import pandas as pd
 import tempfile
 from doltpy.core.system_helpers import get_logger
+from io import StringIO
 
 logger = get_logger(__name__)
 
@@ -20,6 +21,17 @@ def read_table(repo: Dolt, table_name: str, delimiter: str = ',') -> pd.DataFram
     repo.execute(['table', 'export', table_name, fp.name, '-f'])
     result = pd.read_csv(fp.name, delimiter=delimiter)
     return result
+
+
+def read_table_sql(repo: Dolt, sql: str) -> pd.DataFrame:
+    """
+    Reads the contents of a table and returns it as a Pandas `DataFrame`. Under the hood this uses export and the
+    filesystem, in short order we are likley to replace this with use of the MySQL Server.
+    :param repo:
+    :param sql:
+    :return:
+    """
+    return pd.DataFrame(repo.sql(sql, result_format='csv'))
 
 
 def pandas_read_sql(query: str, engine: Engine) -> pd.DataFrame:

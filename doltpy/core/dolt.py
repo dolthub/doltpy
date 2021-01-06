@@ -861,7 +861,7 @@ class Dolt:
         self.execute(args)
 
     @staticmethod
-    def clone(remote_url: str, new_dir: str = None, remote: str = None, branch: str = None):
+    def clone(remote_url: str, new_dir: str = None, remote: str = None, branch: str = None) -> 'Dolt':
         """
         Clones a repository into the repository specified, currently only supports DoltHub as a remote.
         :param remote_url:
@@ -878,16 +878,50 @@ class Dolt:
         if branch:
             args.extend(['--branch', branch])
 
+        new_dir = Dolt._new_dir_helper(new_dir, remote_url)
+        args.append(new_dir)
+
+        _execute(args, cwd=new_dir)
+
+        return Dolt(new_dir)
+
+    @classmethod
+    def _new_dir_helper(cls, new_dir: str, remote_url: str):
         if not new_dir:
             split = remote_url.split('/')
             new_dir = os.path.join(os.getcwd(), split[-1])
             if os.path.exists(new_dir):
                 raise DoltDirectoryException('Cannot create new directory {}'.format(new_dir))
             os.mkdir(new_dir)
+            return new_dir
         elif os.path.exists(os.path.join(new_dir, '.dolt')):
             raise DoltDirectoryException('{} is already a valid Dolt repo'.format(new_dir))
 
-        args.append(new_dir)
+    @staticmethod
+    def read_tables(remote_url: str,
+                    committish: str,
+                    table_or_tables: Union[str, List[str]] = None,
+                    new_dir: str = None) -> 'Dolt':
+        """
+        Clones a repository into the repository specified, currently only supports DoltHub as a remote.
+        :param remote_url:
+        :param committish:
+        :param table_or_tables:
+        :param new_dir:
+        :return:
+        """
+        if type(table_or_tables) == str:
+            to_read = [table_or_tables]
+        else:
+            to_read = table_or_tables
+
+        args = ["read-tables"]
+
+        new_dir = Dolt._new_dir_helper(new_dir, remote_url)
+        args.extend(['--dir', new_dir, remote_url, committish])
+
+        if to_read:
+            args.extend(to_read)
 
         _execute(args, cwd=new_dir)
 
