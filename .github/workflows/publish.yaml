@@ -59,4 +59,4 @@ jobs:
       with:
         job-status: ${{ job.status }}
         webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-        notify-on-success: false
+        notify-on-success: true
