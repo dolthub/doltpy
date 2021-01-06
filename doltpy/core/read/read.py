@@ -22,6 +22,17 @@ def read_table(repo: Dolt, table_name: str, delimiter: str = ',') -> pd.DataFram
     return result
 
 
+def read_table_sql(repo: Dolt, sql: str) -> pd.DataFrame:
+    """
+    Reads the contents of a table and returns it as a Pandas `DataFrame`. Under the hood this uses export and the
+    filesystem, in short order we are likley to replace this with use of the MySQL Server.
+    :param repo:
+    :param sql:
+    :return:
+    """
+    return pd.DataFrame(repo.sql(sql, result_format='csv'))
+
+
 def pandas_read_sql(query: str, engine: Engine) -> pd.DataFrame:
     """
     Execute a SQL statement against the MySQL Server running on port 3306 and return the result as a Pandas
