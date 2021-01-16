@@ -10,6 +10,3 @@ from .loaders import (get_df_table_writer,
                       create_table_from_schema_import_unique_key,
                       DoltTableWriter,
                       DoltLoader)
-from ..core.system_helpers import register_cleanup
-
-register_cleanup()

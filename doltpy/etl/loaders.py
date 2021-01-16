@@ -1,20 +1,20 @@
 from typing import Callable, List, Union
 import io
-from doltpy.core.dolt import Dolt
-from doltpy.core.write import import_df, bulk_import, UPDATE
-from doltpy.core.read import read_table
-from doltpy.core.system_helpers import get_logger
+from doltpy.cli.dolt import Dolt
+from doltpy.cli.write import write_file, write_pandas, UPDATE
+from doltpy.cli.read import read_pandas
 import pandas as pd
 import hashlib
 import itertools
 import tempfile
+import logging
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]
 DataframeTransformer = Callable[[pd.DataFrame], pd.DataFrame]
 FileTransformer = Callable[[io.StringIO], io.StringIO]
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 INSERTED_ROW_HASH_COL = 'hash_id'
 INSERTED_COUNT_COL = 'count'
 
@@ -59,7 +59,7 @@ def get_bulk_table_writer(table: str,
     def inner(repo: Dolt):
         _import_mode = import_mode or ('create' if table not in [t.name for t in repo.ls()] else 'update')
         data_to_load = _apply_file_transformers(get_data(), transformers)
-        bulk_import(repo, table, data_to_load, pk_cols, import_mode=_import_mode)
+        write_file(repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols)
         return table
 
     return inner
@@ -85,7 +85,7 @@ def get_df_table_writer(table: str,
     def inner(repo: Dolt):
         _import_mode = import_mode or ('create' if table not in [t.name for t in repo.ls()] else 'update')
         data_to_load = _apply_df_transformers(get_data(), transformers)
-        import_df(repo, table, data_to_load, pk_cols, import_mode=_import_mode)
+        write_pandas(repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols)
         return table
 
     return inner
@@ -93,8 +93,8 @@ def get_df_table_writer(table: str,
 
 def get_table_transformer(get_data: Callable[[Dolt], pd.DataFrame],
                           target_table: str,
-                          target_pk_cols: List[str],
                           transformer: DataframeTransformer,
+                          target_pk_cols: List[str] = None,
                           import_mode: str = UPDATE) -> DoltTableWriter:
     """
     A version of get_df_table writer where the input is a Dolt repository. This is used for transforming raw data into
@@ -109,7 +109,7 @@ def get_table_transformer(get_data: Callable[[Dolt], pd.DataFrame],
     def inner(repo: Dolt):
         input_data = get_data(repo)
         transformed_data = transformer(input_data)
-        import_df(repo, target_table, transformed_data, target_pk_cols, import_mode=import_mode)
+        write_pandas(repo, target_table, transformed_data, import_mode=import_mode, primary_key=target_pk_cols)
         return target_table
 
     return inner
@@ -161,7 +161,7 @@ def _get_unique_key_update_writer(table: str,
             raise ValueError('Missing table')
 
         # Get existing PKs
-        existing = read_table(repo, table)
+        existing = read_pandas(repo, table)
         existing_pks = existing[INSERTED_ROW_HASH_COL].to_list()
 
         # Get proposed PKs
@@ -184,7 +184,7 @@ def _get_unique_key_update_writer(table: str,
         new_data = data[~(data[INSERTED_ROW_HASH_COL].isin(existing_pks))]
         if not new_data.empty:
             logger.info('Importing {} records'.format(len(new_data)))
-            import_df(repo, table, new_data, [INSERTED_ROW_HASH_COL], 'update')
+            write_pandas(repo, table, new_data, import_mode=UPDATE, primary_key=[INSERTED_ROW_HASH_COL])
 
         return table
 

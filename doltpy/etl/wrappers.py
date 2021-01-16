@@ -1,11 +1,9 @@
-from doltpy.core import Dolt
-import os
-import tempfile
+from doltpy.cli import Dolt, DoltHubContext
 from doltpy.etl.loaders import DoltLoader
-from doltpy.core.system_helpers import get_logger
 from typing import List, Union
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_to_dolthub(loader_or_loaders: Union[DoltLoader, List[DoltLoader]],
@@ -32,34 +30,20 @@ def load_to_dolthub(loader_or_loaders: Union[DoltLoader, List[DoltLoader]],
     else:
         loaders = [loader_or_loaders]
 
-    if clone:
-        assert remote_url, 'If clone is True then remote must be passed'
-        temp_dir = tempfile.mkdtemp()
-        logger.info('Clone is set to true, so ignoring dolt_dir')
-        if clone:
-            logger.info('Clone set to True, cloning remote {}'.format(remote_url))
-        repo = Dolt.clone(remote_url, temp_dir)
-    else:
-        assert os.path.exists(os.path.join(dolt_dir, '.dolt')), 'Repo must exist locally if not cloned'
-        repo = Dolt(dolt_dir)
-
-    logger.info(
-        '''Commencing to load to DoltHub with the following options:
-                        - dolt_dir  {dolt_dir}
-                        - clone     {clone}
-                        - remote    {remote}
-                        - push      {push}
-        '''.format(dolt_dir=repo.repo_dir,
-                   push=push,
-                   clone=clone,
-                   remote=remote_name))
-
-    if not dry_run:
-        for dolt_loader in loaders:
-            branch = dolt_loader(repo)
-            if push:
-                logger.info('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
-                repo.push(remote_name, branch)
+    with DoltHubContext(remote_url, dolt_dir, remote_name) as dolthub_context:
+        logger.info(
+            f'''Commencing to load to DoltHub with the following options:
+                            - dolt_dir  {dolthub_context.dolt.repo_dir()}
+                            - clone     {clone}
+                            - remote    {remote_name}
+                            - push      {push}
+            ''')
+        if not dry_run:
+            for dolt_loader in loaders:
+                branch = dolt_loader(dolthub_context.dolt)
+                if push:
+                    logger.info('Pushing changes to remote {} on branch {}'.format(remote_name, branch))
+                    dolthub_context.dolt.push(remote_name, branch)
 
 
 def load_to_dolt(loader_or_loaders: Union[DoltLoader, List[DoltLoader]], dolt_dir: str, dry_run: bool):
