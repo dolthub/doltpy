@@ -1,10 +1,10 @@
 from typing import Tuple, Iterable, Mapping, Callable, List
-from doltpy.core.system_helpers import get_logger
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
 from retry import retry
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Types that reflect the different nature of the syncs
 DoltTableUpdate = Tuple[Iterable[dict], Iterable[dict]]

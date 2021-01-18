@@ -1,12 +1,12 @@
 from typing import List, Any, Mapping, Iterable, Tuple
 from doltpy.sql.schema_tools import infer_table_schema
 from doltpy.shared import columns_to_rows
+from doltpy.sql import commit_tables
 from datetime import datetime, date, time
 from sqlalchemy import MetaData, bindparam, Table
 from sqlalchemy.engine import Engine
 from sqlalchemy.sql import select
 import math
-import io
 import pandas as pd
 import csv
 import logging
@@ -167,13 +167,7 @@ def write_rows(engine: Engine,
         write_batch(engine, table, batch, on_duplicate_key_update)
 
     if commit:
-        add_query = f"SELECT DOLT_ADD('{table_name}')"
-        commit_query = f"SELECT DOLT_COMMIT('-m', '{commit_message}')"
-        with engine.connect() as conn:
-            conn.execute(add_query)
-            result = [dict(row) for row in conn.execute(commit_query)]
-            assert len(result) == 1, 'Expected a single returned row with a commit hash'
-            return result[0]['commit_hash']
+        commit_tables(engine, commit_message, table_name)
 
 
 def _coerce_dates(data: Iterable[dict]) -> List[dict]:

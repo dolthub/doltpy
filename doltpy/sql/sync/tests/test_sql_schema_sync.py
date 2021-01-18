@@ -1,7 +1,7 @@
-from doltpy.etl.sql_sync.sync_tools import sync_schema_to_dolt
-from doltpy.etl.sql_sync.postgres import POSTGRES_TO_DOLT_TYPE_MAPPINGS
-from doltpy.etl.sql_sync.mysql import MYSQL_TO_DOLT_TYPE_MAPPINGS
-from doltpy.core.dolt import Dolt
+from doltpy.sql.sync.sync_tools import sync_schema_to_dolt
+from doltpy.sql.sync.postgres import POSTGRES_TO_DOLT_TYPE_MAPPINGS
+from doltpy.sql.sync.mysql import MYSQL_TO_DOLT_TYPE_MAPPINGS
+from doltpy.cli.dolt import Dolt
 from sqlalchemy.engine import Engine
 from sqlalchemy import MetaData
 from doltpy.sql.sync.tests.helpers.schema_sync_helper import TEST_SOURCE_TABLE, TEST_TARGET_TABLE, ALTER_TABLE

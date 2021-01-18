@@ -6,7 +6,7 @@ from doltpy.sql.sync.db_tools import (get_table_metadata,
                                       DoltAsSourceUpdate,
                                       DoltAsTargetUpdate,
                                       drop_primary_keys)
-from doltpy.sql import write_rows
+from doltpy.sql import write_rows, commit_tables
 from doltpy.sql.write import get_existing_pks, hash_row_els
 from typing import List, Callable, Tuple
 from sqlalchemy.engine import Engine
@@ -17,22 +17,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
+def get_target_writer(engine: Engine,
+                      branch: str = None,
+                      commit: bool = True,
+                      message: str = None) -> DoltAsTargetWriter:
     """
     Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
     message or generates a standard one.
-    :param repo:
+    :param engine:
     :param branch:
     :param commit:
     :param message:
     :return: 
     """
     def inner(table_data_map: DoltAsTargetUpdate):
+        # TODO need to fix the branch interaction where
         current_branch, _ = repo.branch()
         if branch and branch != current_branch:
             repo.checkout(branch)
 
-        engine = repo.get_engine()
         metadata = MetaData(bind=engine)
         metadata.reflect()
 
@@ -40,13 +43,11 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
             table = metadata.tables[table_name]
             data = table_update
             drop_missing_pks(engine, table, list(data))
-            write_rows(repo, table.name, list(data), on_duplicate_key_update=True)
+            write_rows(engine, table.name, list(data), on_duplicate_key_update=True)
 
-        if commit and not repo.status().is_clean:
-            for table_name, _ in table_data_map.items():
-                repo.add(str(table_name))
-            commit_message = message or 'Execute write for sync to Dolt'
-            repo.commit(commit_message)
+        if commit:
+            tables = [table_name for table_name, _ in table_data_map.items()]
+            return commit_tables(engine, message or 'Executed SQL sync', tables, True)
 
     return inner
 

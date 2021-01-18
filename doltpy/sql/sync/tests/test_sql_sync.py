@@ -1,12 +1,12 @@
 import logging
 import pytest
-from doltpy.etl.sql_sync.mysql import get_target_writer as get_mysql_target_writer
-from doltpy.etl.sql_sync.postgres import get_target_writer as get_postgres_target_writer
-from doltpy.etl.sql_sync.oracle import get_target_writer as get_oracle_target_writer
+from doltpy.sql.sync.mysql import get_target_writer as get_mysql_target_writer
+from doltpy.sql.sync.postgres import get_target_writer as get_postgres_target_writer
+from doltpy.sql.sync.oracle import get_target_writer as get_oracle_target_writer
 from doltpy.sql.sync.db_tools import get_source_reader, get_table_reader, get_table_metadata
-from doltpy.etl.sql_sync.sync_tools import sync_to_dolt
-from doltpy.etl.sql_sync.dolt import (get_target_writer as get_dolt_target_writer,
-                                      get_table_reader as get_dolt_table_reader)
+from doltpy.sql.sync.sync_tools import sync_to_dolt
+from doltpy.sql.sync.dolt import (get_target_writer as get_dolt_target_writer,
+                                  get_table_reader as get_dolt_table_reader)
 from doltpy.sql.sync.tests.helpers.tools import validate_dolt_as_source, validate_dolt_as_target
 from doltpy.sql.sync.tests.helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deserialize_longtext
 

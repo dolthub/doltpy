@@ -1,51 +1,59 @@
-TEST_ROWS = [
-    {'name': 'Anna', 'adjective': 'tragic', 'id': '1', 'date_of_death': datetime(1877, 1, 1)},
-    {'name': 'Vronksy', 'adjective': 'honorable', 'id': '2', 'date_of_death': None},
-    {'name': 'Oblonksy', 'adjective': 'buffoon', 'id': '3', 'date_of_death': None},
-]
+import psutil
+import pytest
+from doltpy.cli import Dolt
+from doltpy.sql import DoltSQLServerManager, write_rows, commit_tables
+from doltpy.sql.tests.helpers import TEST_SERVER_CONFIG, TEST_DATA_INITIAL
 
-TEST_COLUMNS = {
-    'name': ['Anna', 'Vronksy', 'Oblonksy'],
-    'adjective': ['tragic', 'honorable', 'buffoon'],
-    'id': [1, 2, 3],
-    'date_of_birth': [date(1840, 1, 1), date(1840, 1, 1), date(1840, 1, 1)],
-    'date_of_death': [datetime(1877, 1, 1), None, None]
-}
-
-def test_sql_server(create_test_table, run_serve_mode):
-    """
-    This test ensures we can round-trip data to the database.
-    :param create_test_table:
-    :param run_serve_mode:
-    :return:
-    """
-    repo, test_table = create_test_table
-    data = pandas_read_sql('SELECT * FROM {}'.format(test_table), repo.get_engine())
-    assert list(data['id']) == [1, 2]
+TEST_TABLE_ONE, TEST_TABLE_TWO = 'foo', 'bar'
+COMMIT_MESSAGE = 'major update'
 
 
-def test_sql_server_unique(create_test_table, run_serve_mode, init_other_empty_test_repo):
-    """
-    This tests that if you fire up SQL server via Python, you get a connection to the SQL server instance that the repo
-    is running, not another repos MySQL server instance.
-    :return:
-    """
-    @retry(delay=2, tries=10, exceptions=(
-        sqlalchemy.exc.OperationalError,
-        sqlalchemy.exc.DatabaseError,
-        sqlalchemy.exc.InterfaceError,
-    ))
-    def get_databases(engine: Engine):
-        with engine.connect() as conn:
-            result = conn.execute('SHOW DATABASES')
-            return [tup[0] for tup in result]
+@pytest.fixture()
+def with_test_tables(init_empty_test_repo):
+    dolt = init_empty_test_repo
+    _add_test_table(dolt, TEST_TABLE_ONE)
+    _add_test_table(dolt, TEST_TABLE_TWO)
+    return dolt
 
-    repo, test_table = create_test_table
-    other_repo = init_other_empty_test_repo
-    other_repo.sql_server()
 
-    repo_databases = get_databases(repo.get_engine())
-    other_repo_databases = get_databases(other_repo.get_engine())
+def _add_test_table(dolt: Dolt, table_name: str):
+    dolt.sql(query=f'''
+        CREATE TABLE `{table_name}` (
+            `name` VARCHAR(32),
+            `adjective` VARCHAR(32),
+            `id` INT NOT NULL,
+            `date_of_death` DATETIME, 
+            PRIMARY KEY (`id`)
+        );
+    ''')
+    dolt.add(table_name)
+    dolt.commit('Created test table')
 
-    assert {'information_schema', repo.repo_name} == set(repo_databases)
-    assert {'information_schema', other_repo.repo_name} == set(other_repo_databases)
+
+def test_context_manager_cleanup(init_empty_test_repo):
+    dolt = init_empty_test_repo
+    with DoltSQLServerManager(dolt, TEST_SERVER_CONFIG) as _:
+        assert _count_proc_helper('running') == 1
+
+    assert _count_proc_helper('zombie') == 1
+
+
+def _count_proc_helper(status: str):
+    return len([proc for proc in psutil.Process().children(recursive=True) if proc.status() == status])
+
+
+def test_commit_tables(with_test_tables):
+    dolt = with_test_tables
+    with DoltSQLServerManager(dolt, TEST_SERVER_CONFIG) as dolt_sql_server_manager:
+        engine = dolt_sql_server_manager.engine
+        write_rows(engine, TEST_TABLE_ONE, TEST_DATA_INITIAL, commit=False)
+        write_rows(engine, TEST_TABLE_TWO, TEST_DATA_INITIAL, commit=False)
+        commit_tables(engine, COMMIT_MESSAGE, [TEST_TABLE_ONE, TEST_TABLE_TWO], False)
+
+    _, commit = dolt.log().popitem(last=False)
+    assert commit.message == COMMIT_MESSAGE
+
+
+@pytest.mark.skip()
+def test_commit_tables_empty_commit():
+    pass

@@ -7,9 +7,7 @@ from subprocess import Popen, STDOUT
 import os
 import logging
 import sqlalchemy
-from sqlalchemy import Table, select
-from datetime import datetime, date, time
-from typing import List, Iterable, Mapping
+from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
@@ -147,3 +145,18 @@ class DoltSQLServerManager:
         self.server.kill()
         self.server = None
 
+
+def commit_tables(engine: Engine,
+                  commit_message: str,
+                  table_or_tables: Union[str, List[str]],
+                  allow_emtpy: bool):
+    if type(table_or_tables) == str:
+        tables = [table_or_tables]
+    else:
+        tables = table_or_tables
+    with engine.connect() as conn:
+        for table in tables:
+            conn.execute(f"SELECT DOLT_ADD('{table}')")
+        result = [dict(row) for row in conn.execute(f"SELECT DOLT_COMMIT('-m', '{commit_message}')")]
+        assert len(result) == 1, 'Expected a single returned row with a commit hash'
+        return result[0]['commit_hash']

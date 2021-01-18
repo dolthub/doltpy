@@ -10,13 +10,13 @@ from doltpy.sql.sync.tests.helpers.data_helper import (assert_rows_equal,
                                                        TEST_DATA_APPEND_MULTIPLE_ROWS,
                                                        TEST_DATA_APPEND_SINGLE_ROW,
                                                        TEST_DATA_UPDATE_SINGLE_ROW)
-from doltpy.etl.sql_sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
+from doltpy.sql.sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
 from doltpy.sql.sync.db_tools import get_table_metadata, DoltTableUpdate
 import logging
 import pytest
 from typing import Callable, Tuple, List
 from sqlalchemy import Table
-from doltpy.core.dolt import Dolt
+from doltpy.cli import Dolt
 
 logger = logging.getLogger(__name__)
 

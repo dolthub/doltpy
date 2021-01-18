@@ -1,11 +1,10 @@
-from typing import Mapping, Callable
+from typing import Mapping
 from doltpy.sql.sync.db_tools import DoltAsTargetReader, DoltAsTargetWriter, DoltAsSourceReader, DoltAsSourceWriter
-from doltpy.core.dolt import Dolt
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, Column, MetaData
-from doltpy.core.system_helpers import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetWriter, table_map: Mapping[str, str]):
@@ -52,26 +51,26 @@ def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
     target_writer(remapped)
 
 
-def sync_schema_to_dolt(source_engine: Engine, repo: Dolt, table_map: Mapping[str, str], type_mapping: dict):
+def sync_schema_to_dolt(source_engine: Engine, target_engine: Engine, table_map: Mapping[str, str], type_mapping: dict):
     """
 
     :param source_engine:
-    :param repo:
+    :param target_engine:
     :param table_map:
     :param type_mapping:
     :return:
     """
     source_metadata = MetaData(bind=source_engine)
     source_metadata.reflect()
-    target_metadata = MetaData(bind=repo.get_engine())
+    target_metadata = MetaData(bind=target_engine)
     target_metadata.reflect()
     for source_table_name, target_table_name in table_map.items():
         source_table = source_metadata.tables[source_table_name]
         target_table = coerce_schema_to_dolt(target_table_name, source_table, type_mapping)
         if target_table_name in target_metadata.tables.keys():
-            target_table.drop(repo.get_engine())
+            target_table.drop(target_engine)
 
-        target_table.create(repo.get_engine())
+        target_table.create(target_engine)
 
 
 def coerce_schema_to_dolt(target_table_name: str,
