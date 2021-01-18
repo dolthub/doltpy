@@ -1427,3 +1427,27 @@ class Dolt:
 
         args.extend([old_table, new_table])
         self.execute(args)
+
+    def tag_create(self,
+                   tagname: str,
+                   message: str = None,
+                   ref: str = None):
+        """
+        Create a new tag with the given tagname, pointing to the current HEAD or to a specific ref if given.
+        Optionally, a tag message can be specified.
+        :param tagname: name of the tag to crate
+        :param message: optional tag message
+        :param ref: target ref for the tag (default is HEAD)
+        :return:
+        """
+        args = ['tag']
+
+        if message:
+            args.extend(['-m', message])
+
+        args.append(tagname)
+
+        if ref:
+            args.append(ref)
+
+        self.execute(args)
