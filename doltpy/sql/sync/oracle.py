@@ -2,14 +2,14 @@ from sqlalchemy .engine import Engine
 from sqlalchemy import Table, select
 from doltpy.sql.sync.db_tools import (DoltAsSourceWriter,
                                       drop_primary_keys,
-                                      DoltAsSourceUpdate,
-                                      hash_row_els)
-from doltpy.core.system_helpers import get_logger
+                                      DoltAsSourceUpdate)
+from doltpy.sql.write import hash_row_els
 from typing import List
 from sqlalchemy import MetaData, bindparam
 from copy import deepcopy
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:

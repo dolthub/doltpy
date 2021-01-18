@@ -1,21 +1,20 @@
-from doltpy.core.dolt import Dolt, DEFAULT_HOST, DEFAULT_PORT
-from doltpy.core.system_helpers import get_logger
+from doltpy.cli.dolt import Dolt
 from doltpy.sql.sync.db_tools import (get_table_metadata,
                                       DoltAsTargetWriter,
                                       DoltTableUpdate,
                                       DoltAsSourceReader,
                                       DoltAsSourceUpdate,
                                       DoltAsTargetUpdate,
-                                      drop_primary_keys,
-                                      hash_row_els)
-from doltpy.etl.sql_sync.mysql import clean_types
-from typing import List, Callable, Tuple, Mapping
-from datetime import datetime
+                                      drop_primary_keys)
+from doltpy.sql import write_rows
+from doltpy.sql.write import get_existing_pks, hash_row_els
+from typing import List, Callable, Tuple
 from sqlalchemy.engine import Engine
-from sqlalchemy import Table, select, bindparam, MetaData
-from copy import deepcopy
+from sqlalchemy import Table, MetaData
+import logging
 
-logger = get_logger(__name__)
+
+logger = logging.getLogger(__name__)
 
 
 def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
@@ -41,7 +40,7 @@ def get_target_writer(repo: Dolt, branch: str = None, commit: bool = True, messa
             table = metadata.tables[table_name]
             data = table_update
             drop_missing_pks(engine, table, list(data))
-            write_to_table(repo, table, list(data), False)
+            write_rows(repo, table.name, list(data), on_duplicate_key_update=True)
 
         if commit and not repo.status().is_clean:
             for table_name, _ in table_data_map.items():
@@ -76,20 +75,6 @@ def drop_missing_pks(engine: Engine, table: Table, data: List[dict]):
 
     if pks_to_drop:
         drop_primary_keys(engine, table, pks_to_drop)
-
-
-def get_existing_pks(engine: Engine, table: Table) -> Mapping[int, dict]:
-    """
-    Creates an index of hashes of the values of the primary keys in the table provided.
-    :param engine:
-    :param table:
-    :return:
-    """
-    with engine.connect() as conn:
-        pk_cols = [table.c[col.name] for col in table.columns if col.primary_key]
-        query = select(pk_cols)
-        result = conn.execute(query)
-        return {hash_row_els(dict(row), [col.name for col in pk_cols]): dict(row) for row in result}
 
 
 def get_source_reader(repo: Dolt, reader: Callable[[str, Dolt], DoltTableUpdate]) -> DoltAsSourceReader:
@@ -249,65 +234,3 @@ def _query_helper(engine: Engine, query: str):
     with engine.connect() as conn:
         result = conn.execute(query)
         return [dict(row) for row in result]
-
-
-def write_to_table(repo: Dolt, table: Table, data: List[dict], commit: bool = False, message: str = None):
-    """
-    Given a repo, table, and data, will try and use the repo's MySQL Server instance to write the provided data to the
-    table. Since Dolt does not yet support ON DUPLICATE KEY clause to INSERT statements we also have to separate
-    updates from inserts and run sets of statements.
-    :param repo:
-    :param table:
-    :param data:
-    :param commit:
-    :param message:
-    :return:
-    """
-    coerced_data = list(clean_types(data))
-    inserts, updates = get_inserts_and_updates(repo.get_engine(), table, coerced_data)
-    if inserts:
-        logger.info('Inserting {} rows'.format(len(inserts)))
-        with repo.get_engine().connect() as conn:
-            conn.execute(table.insert(), inserts)
-
-    # We need to prefix the columns with "_" in order to use bindparam properly
-    _updates = deepcopy(updates)
-    for dic in _updates:
-        for col in list(dic.keys()):
-            dic['_{}'.format(col)] = dic.pop(col)
-
-    if _updates:
-        logger.info('Updating {} rows'.format(len(_updates)))
-        with repo.get_engine().connect() as conn:
-            statement = table.update()
-            for pk_col in [col.name for col in table.columns if col.primary_key]:
-                statement = statement.where(table.c[pk_col] == bindparam('_{}'.format(pk_col)))
-            non_pk_cols = [col.name for col in table.columns if not col.primary_key]
-            statement = statement.values({col: bindparam('_{}'.format(col)) for col in non_pk_cols})
-            conn.execute(statement, _updates)
-
-    if commit:
-        repo.add(str(table.name))
-        message = message or 'Inserting {} records at '.format(len(data), datetime.now())
-        repo.commit(message)
-
-
-def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> Tuple[List[dict], List[dict]]:
-    existing_pks = get_existing_pks(engine, table)
-    if not existing_pks:
-        return data, []
-
-    existing_pks_set = set(existing_pks.keys())
-    pk_cols = [col.name for col in table.columns if col.primary_key]
-    inserts, updates = [], []
-    for row in data:
-        row_hash = hash_row_els(row, pk_cols)
-
-        if row_hash in existing_pks_set:
-            updates.append(row)
-        else:
-            inserts.append(row)
-
-    return inserts, updates
-
-

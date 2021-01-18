@@ -1,7 +1,7 @@
 from typing import List, Callable, Mapping, Any
 import pandas as pd
 from doltpy.cli import Dolt
-from doltpy.cli.helpers import columns_to_rows
+from doltpy.shared.helpers import columns_to_rows
 import logging
 import io
 import tempfile

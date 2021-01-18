@@ -4,7 +4,7 @@ import pytest
 from doltpy.cli.write import write_rows, CREATE, UPDATE
 from doltpy.cli.tests import compare_rows_helper
 from doltpy.cli.read import read_rows, read_pandas, read_columns
-from doltpy.cli.helpers import columns_to_rows
+from doltpy.shared.helpers import columns_to_rows
 
 TEST_TABLE = 'characters'
 TEST_DATA_INITIAL = [

@@ -1,4 +1,4 @@
-from typing import List, Mapping
+from typing import Iterable, Mapping, List
 
 
 def columns_to_rows(columns: Mapping[str, list]) -> List[dict]:
@@ -11,7 +11,7 @@ def columns_to_rows(columns: Mapping[str, list]) -> List[dict]:
     return rows
 
 
-def rows_to_columns(rows: List[dict]):
+def rows_to_columns(rows: Iterable[dict]):
     columns = {}
     for i, row in enumerate(list(rows)):
         for col, val in row.items():

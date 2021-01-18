@@ -3,10 +3,10 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import Table
 from sqlalchemy.dialects import mysql, postgresql
 from doltpy.sql.sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
-from doltpy.core.system_helpers import get_logger
 from typing import List
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 POSTGRES_TO_DOLT_TYPE_MAPPINGS = {

@@ -2,15 +2,19 @@ from doltpy.cli import Dolt
 from retry import retry
 from sqlalchemy.engine import Engine
 from sqlalchemy import create_engine
-from doltpy.shared import SQL_LOG_FILE
+# from doltpy.shared import SQL_LOG_FILE
 from subprocess import Popen, STDOUT
 import os
-from doltpy.shared import get_logger
+import logging
 import sqlalchemy
+from sqlalchemy import Table, select
+from datetime import datetime, date, time
+from typing import List, Iterable, Mapping
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
+SQL_LOG_FILE = 'temp_log'
 
 
 class ServerConfig:
@@ -44,33 +48,32 @@ class DoltSQLServerManager:
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
         self.dolt = dolt
         self.server_config = server_config
-        self.engine = self._get_engine()
+        self.engine = self.get_engine()
         self.server = None
 
     def __enter__(self):
         self.start_server()
+        self.verify_connection()
+        return self
 
-    def __exit__(self):
+    def __exit__(self, *args):
         self.stop_server()
 
-    def _get_engine(self) -> Engine:
+    def get_engine(self) -> Engine:
         """
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
         :param echo:
         :return:
         """
-        database = self.dolt.repo_name()
+        database = self.dolt.repo_name
         user = self.server_config.user
         host = self.server_config.host
         port = self.server_config.port
 
-        logger.info('Creating engine for Dolt SQL Server instance running on {}:{}'.format(host, port))
+        logger.info(f'Creating engine for Dolt SQL Server instance running on {host}:{port}')
 
         def inner():
-            return create_engine('mysql+mysqlconnector://{user}@{host}:{port}/{database}'.format(user=user,
-                                                                                                 host=host,
-                                                                                                 port=port,
-                                                                                                 database=database),
+            return create_engine(f'mysql+mysqlconnector://{user}@{host}:{port}/{database}',
                                  echo=self.server_config.echo)
 
         return inner()
@@ -90,7 +93,7 @@ class DoltSQLServerManager:
             log_file = SQL_LOG_FILE or os.path.join(self.repo_dir(), 'mysql_server.log')
 
             proc = Popen(args=['dolt'] + server_args,
-                         cwd=self.repo_dir(),
+                         cwd=self.dolt.repo_dir(),
                          stdout=open(log_file, 'w'),
                          stderr=STDOUT)
 
@@ -143,3 +146,4 @@ class DoltSQLServerManager:
 
         self.server.kill()
         self.server = None
+
