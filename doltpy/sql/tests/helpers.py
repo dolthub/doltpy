@@ -1,6 +1,7 @@
 from doltpy.sql import ServerConfig
 from typing import List
 from datetime import datetime
+import pandas as pd
 
 TEST_SERVER_CONFIG = ServerConfig(user='root')
 
@@ -28,6 +29,7 @@ def compare_rows(left: List[dict], right: List[dict], sorting_key: str):
         for key in keys:
             l_val, r_val = l[key], r[key]
             if l_val != r_val:
-                errors.append(f'{l_val} != {r_val}')
+                if not (l_val is None and pd.isna(r_val)):
+                    errors.append(f'{l_val} != {r_val}')
 
     assert not errors, f'The following errors occurred {errors}'
