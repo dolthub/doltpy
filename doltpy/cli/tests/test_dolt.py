@@ -51,7 +51,7 @@ def test_init(tmp_path):
 
 def test_bad_repo_path(tmp_path):
     bad_repo_path = tmp_path
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         Dolt(bad_repo_path)
 
 

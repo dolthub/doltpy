@@ -1,6 +1,5 @@
 import os
-from typing import Tuple
-from typing import List
+from typing import Tuple, List
 
 
 def get_repo_path_tmp_path(path: str, subpath: str = None) -> Tuple[str, str]:

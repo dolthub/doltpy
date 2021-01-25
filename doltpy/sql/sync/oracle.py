@@ -1,9 +1,7 @@
 from sqlalchemy .engine import Engine
 from sqlalchemy import Table, select
-from doltpy.sql.sync.db_tools import (DoltAsSourceWriter,
-                                      drop_primary_keys,
-                                      DoltAsSourceUpdate)
-from doltpy.sql.write import hash_row_els
+from doltpy.sql.sync.db_tools import DoltAsSourceWriter, drop_primary_keys, DoltAsSourceUpdate
+from doltpy.sql.helpers import hash_row_els
 from typing import List
 from sqlalchemy import MetaData, bindparam
 from copy import deepcopy
@@ -60,7 +58,7 @@ def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict], 
     _updates = deepcopy(updates)
     for dic in _updates:
         for col in list(dic.keys()):
-            dic['_{}'.format(col)] = dic.pop(col)
+            dic[f'_{col}'] = dic.pop(col)
 
     with engine.connect() as conn:
         for insert in inserts:
@@ -69,6 +67,6 @@ def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict], 
         if update_on_duplicate and _updates:
             update_statement = table.update()
             for pk_col in pk_cols:
-                update_statement = update_statement.where(table.c[pk_col] == bindparam('_{}'.format(pk_col)))
-            update_statement = update_statement.values({col: bindparam('_{}'.format(col)) for col in non_pk_cols})
+                update_statement = update_statement.where(table.c[pk_col] == bindparam(f'_{pk_col}'))
+            update_statement = update_statement.values({col: bindparam(f'_{col}') for col in non_pk_cols})
             conn.execute(update_statement, _updates)

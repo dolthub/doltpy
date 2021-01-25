@@ -1,11 +1,10 @@
 from doltpy.cli import Dolt
 import pandas as pd
-from doltpy.shared import get_logger
 from doltpy.shared.helpers import rows_to_columns
 from typing import List, Mapping
+import logging
 
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def read_columns(dolt: Dolt, table: str, as_of: str = None) -> Mapping[str, list]:
@@ -21,8 +20,9 @@ def read_pandas(dolt: Dolt, table: str, as_of: str = None) -> pd.DataFrame:
 
 
 def _get_read_table_asof_query(table: str, as_of: str = None) -> str:
-    base_query = f'SELECT * FROM {table}'
+    base_query = f'SELECT * FROM `{table}`'
     return f'{base_query} AS OF "{as_of}"' if as_of else base_query
+
 
 def read_columns_sql(dolt: Dolt, sql: str) -> Mapping[str, list]:
     rows = _read_table_sql(dolt, sql)

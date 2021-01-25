@@ -56,7 +56,8 @@ def write_columns(dolt: Dolt,
     :return:
     """
     def writer(filepath: str):
-        assert len(list(set(len(col) for col in columns.values()))) == 1, 'Must pass columns of identical length'
+        if len(list(set(len(col) for col in columns.values()))) != 1:
+            raise ValueError('Must pass columns of identical length')
 
         with open(filepath, 'w') as f:
             csv_writer = csv.DictWriter(f, columns.keys())
@@ -160,7 +161,8 @@ def _import_helper(dolt: Dolt,
 def _get_import_mode_and_flags(dolt: Dolt, import_mode: str, table: str) -> str:
     import_modes = IMPORT_MODES_TO_FLAGS.keys()
     if import_mode is not None:
-        assert import_mode in import_modes, f'update_mode must be one of: {import_modes}'
+        if import_mode not in import_modes:
+            raise ValueError(f'update_mode must be one of: {import_modes}')
     else:
         if table in [table.name for table in dolt.ls()]:
             logger.info(f'No import mode specified, table exists, using "{UPDATE}"')

@@ -146,7 +146,8 @@ class DoltHubContext:
             logger.info(f'Dolt database found at path provided ({self.path}), pulling from remote "{self.remote}"')
             dolt.pull(self.remote)
         except AssertionError:
-            assert self.db_path is not None, 'Cannot clone remote data without db_path set'
+            if self.db_path is None:
+                raise ValueError('Cannot clone remote data without db_path set')
             if self.tables_to_read:
                 logger.info(f'Running read-tables, creating a fresh copy of {self.db_path}')
                 dolt = Dolt.read_tables(self.db_path, 'master', table_or_tables=self.tables_to_read)
@@ -170,8 +171,8 @@ class Dolt:
     def __init__(self, repo_dir: str):
         self._repo_dir = repo_dir
 
-        not_valid_dir_error_message = f'{self.repo_dir()} is not a valid Dolt repository'
-        assert os.path.exists(os.path.join(self.repo_dir(), '.dolt')), not_valid_dir_error_message
+        if not os.path.exists(os.path.join(self.repo_dir(), '.dolt')):
+            raise ValueError(f'{self.repo_dir()} is not a valid Dolt repository')
 
     def repo_dir(self):
         """
@@ -285,7 +286,8 @@ class Dolt:
 
         args = ['reset']
 
-        assert not(hard and soft), 'Cannot reset hard and soft'
+        if hard and soft:
+            raise ValueError('Cannot reset hard and soft')
 
         if hard:
             args.append('--hard')
@@ -323,8 +325,9 @@ class Dolt:
         :return:
         """
         current_branch, branches = self._get_branches()
-        assert self.status().is_clean,\
-            f'Changes in the working set, please commit before merging {branch} to {current_branch.name}'
+        if not self.status().is_clean:
+            err = f'Changes in the working set, please commit before merging {branch} to {current_branch.name}'
+            raise ValueError(err)
         if branch not in [branch.name for branch in branches]:
             raise ValueError(f'Trying to merge in non-existent branch {branch} to {current_branch.name}')
 
@@ -384,12 +387,14 @@ class Dolt:
         args = ['sql']
 
         if list_saved:
-            assert not any([query, result_format, save, message, batch, multi_db_dir])
+            if any([query, result_format, save, message, batch, multi_db_dir]):
+                raise ValueError('Incompatible arguments provided')
             args.append('--list-saved')
             self.execute(args)
 
         if execute:
-            assert not any([query, save, message, list_saved, batch, multi_db_dir])
+            if any([query, save, message, list_saved, batch, multi_db_dir]):
+                raise ValueError(f'Incompatible arguments provided')
             args.extend(['--execute', execute])
 
         if multi_db_dir:
@@ -405,7 +410,8 @@ class Dolt:
 
         # do something with result format
         if result_format:
-            assert query, 'Must provide a query in order to specify a result format'
+            if not query:
+                raise ValueError('Must provide a query in order to specify a result format')
             args.extend(['--query', query])
             if result_format in ['csv', 'tabular']:
                 args.extend(['--result-format', 'csv'])
@@ -463,7 +469,9 @@ class Dolt:
                 date = datetime.strptime(output[i + date_offset].split(':', maxsplit=1)[1].lstrip(),
                                          '%a %b %d %H:%M:%S %z %Y')
                 message = output[i + message_offset].lstrip('\t')
-                assert current_commit is not None and date is not None and author is not None and message is not None
+                commit_metadata = (current_commit, date, author, message)
+                if None in commit_metadata:
+                    raise ValueError(f'Invalid commit metadata: {commit_metadata}')
                 result[current_commit] = DoltCommit(current_commit, date, author, message, merge)
 
         return result
@@ -493,7 +501,8 @@ class Dolt:
         :return:
         """
         switch_count = [el for el in [data, schema, summary] if el]
-        assert len(switch_count) <= 1, 'At most one of delete, copy, move can be set to True'
+        if len(switch_count) > 1:
+            raise ValueError('At most one of delete, copy, move can be set to True')
 
         if type(table_or_tables) == str:
             tables = [table_or_tables]
@@ -562,10 +571,14 @@ class Dolt:
         :return:
         """
         switch_count = [el for el in [delete, copy, move] if el]
-        assert len(switch_count) <= 1, 'At most one of delete, copy, move can be set to True'
+        if len(switch_count) > 1:
+            raise ValueError('At most one of delete, copy, move can be set to True')
 
         if not any([branch_name, delete, copy, move]):
-            assert not force, 'force is not valid without providing a new branch name, or copy, move, or delete being true'
+            if force:
+                raise ValueError(
+                    'force is not valid without providing a new branch name, or copy, move, or delete being true'
+                )
             return self._get_branches()
 
         args = ['branch']
@@ -583,7 +596,8 @@ class Dolt:
             return execute_wrapper(args)
 
         if copy:
-            assert new_branch, 'must provide new_branch when copying a branch'
+            if not new_branch:
+                raise ValueError('must provide new_branch when copying a branch')
             args.append('--copy')
             if branch_name:
                 args.append(branch_name)
@@ -591,12 +605,14 @@ class Dolt:
             return execute_wrapper(args)
 
         if delete:
-            assert branch_name, 'must provide branch_name when deleting'
+            if not branch_name:
+                raise ValueError('must provide branch_name when deleting')
             args.extend(['--delete', branch_name])
             return execute_wrapper(args)
 
         if move:
-            assert new_branch, 'must provide new_branch when moving a branch'
+            if not new_branch:
+                raise ValueError('must provide new_branch when moving a branch')
             args.append('--move')
             if branch_name:
                 args.append(branch_name)
@@ -610,7 +626,6 @@ class Dolt:
             return execute_wrapper(args)
 
         return self._get_branches()
-
 
     def _get_branches(self) -> Tuple[DoltBranch, List[DoltBranch]]:
         args = ['branch', '--list', '--verbose']
@@ -653,7 +668,8 @@ class Dolt:
             tables = table_or_tables
 
         if branch:
-            assert not table_or_tables, 'No table_or_tables '
+            if table_or_tables:
+                raise ValueError('No table_or_tables may be provided when creating a branch with checkout')
             if checkout_branch:
                 args.append('-b')
                 if start_point:
@@ -661,7 +677,8 @@ class Dolt:
             args.append(branch)
 
         if tables:
-            assert not branch, 'Passing a branch not compatible with tables'
+            if branch:
+                raise ValueError('Passing a branch not compatible with checking out tables')
             args.append(' '.join(tables))
 
         self.execute(args)
@@ -692,12 +709,15 @@ class Dolt:
             return remotes
 
         if remove:
-            assert not add, 'add and remove are not comptaibe '
-            assert name, 'Must provide the name of a remote to move'
+            if add:
+                raise ValueError('add and remove are not comptaibe ')
+            if not name:
+                raise ValueError('Must provide the name of a remote to move')
             args.extend(['remove', name])
 
         if add:
-            assert name and url, 'Must provide name and url to add'
+            if not (name and url):
+                raise ValueError('Must provide name and url to add')
             args.extend(['add', name, url])
 
         self.execute(args)
@@ -997,7 +1017,8 @@ class Dolt:
                        unset: bool = False) -> Mapping[str, str]:
 
         switch_count = [el for el in [add, list, get, unset] if el]
-        assert len(switch_count) == 1, 'Exactly one of add, list, get, unset must be True'
+        if len(switch_count) != 1:
+            raise ValueError('Exactly one of add, list, get, unset must be True')
 
         args = ['config']
 
@@ -1009,16 +1030,20 @@ class Dolt:
             raise ValueError('Must pass either global_config')
 
         if add:
-            assert name and value, 'For add, name and value must be set'
+            if not(name and value):
+                raise ValueError('For add, name and value must be set')
             args.extend(['--add', name, value])
         if list:
-            assert not(name or value), 'For list, no name and value provided'
+            if name or value:
+                raise ValueError('For list, no name and value provided')
             args.append('--list')
         if get:
-            assert name and not value, 'For get, only name is provided'
+            if not name and value:
+                raise ValueError('For get, only name is provided')
             args.extend(['--get', name])
         if unset:
-            assert name and not value, 'For get, only name is provided'
+            if not name and value:
+                raise ValueError('For get, only name is provided')
             args.extend(['--unset', name])
 
         output = _execute(args, cwd).split('\n')
@@ -1125,18 +1150,21 @@ class Dolt:
         :return:
         """
         switch_count = [el for el in [create, update, replace] if el]
-        assert len(switch_count) == 1, 'Exactly one of create, update, replace must be True'
+        if len(switch_count) != 1:
+            raise ValueError('Exactly one of create, update, replace must be True')
 
         args = ['schema', 'import']
 
         if create:
             args.append('--create')
-            assert pks, 'When create is set to True, pks must be provided'
+            if not pks:
+                raise ValueError('When create is set to True, pks must be provided')
         if update:
             args.append('--update')
         if replace:
             args.append('--replace')
-            assert pks, 'When replace is set to True, pks must be provided'
+            if not pks:
+                raise ValueError('When replace is set to True, pks must be provided')
         if dry_run:
             args.append('--dry-run')
         if keep_types:
@@ -1220,18 +1248,21 @@ class Dolt:
         :return:
         """
         switch_count = [el for el in [create_table, update_table, replace_table] if el]
-        assert len(switch_count) == 1, 'Exactly one of create, update, replace must be True'
+        if len(switch_count) != 1:
+            raise ValueError('Exactly one of create, update, replace must be True')
 
         args = ['table', 'import']
 
         if create_table:
             args.append('--create-table')
-            assert pk, 'When create is set to True, pks must be provided'
+            if not pk:
+                raise ValueError('When create is set to True, pks must be provided')
         if update_table:
             args.append('--update-table')
         if replace_table:
             args.append('--replace-table')
-            assert pk, 'When replace is set to True, pks must be provided'
+            if not pk:
+                raise ValueError('When replace is set to True, pks must be provided')
         if file_type:
             args.extend(['--file-type', file_type])
         if pk:

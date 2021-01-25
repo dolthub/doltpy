@@ -1,7 +1,7 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, MetaData
 import pytest
-from doltpy.etl.sql_sync.tests.fixtures.db_fixtures_helper import engine_helper
+from doltpy.sql.sync.tests.fixtures.db_fixtures_helper import engine_helper
 from doltpy.sql.sync.tests.helpers.data_helper import TEST_TABLE_METADATA
 from doltpy.sql.sync.tests.helpers.schema_sync_helper import MYSQL_TABLE as MYSQL_SCHEMA_SYNC_TEST_TABLE
 from typing import Tuple

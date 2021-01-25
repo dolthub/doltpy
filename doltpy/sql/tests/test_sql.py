@@ -1,7 +1,7 @@
 import psutil
 import pytest
 from doltpy.cli import Dolt
-from doltpy.sql import DoltSQLServerManager, write_rows, commit_tables
+from doltpy.sql import DoltSQLServerContext
 from doltpy.sql.tests.helpers import TEST_SERVER_CONFIG, TEST_DATA_INITIAL
 
 TEST_TABLE_ONE, TEST_TABLE_TWO = 'foo', 'bar'
@@ -32,7 +32,7 @@ def _add_test_table(dolt: Dolt, table_name: str):
 
 def test_context_manager_cleanup(init_empty_test_repo):
     dolt = init_empty_test_repo
-    with DoltSQLServerManager(dolt, TEST_SERVER_CONFIG) as _:
+    with DoltSQLServerContext(dolt, TEST_SERVER_CONFIG) as _:
         assert _count_proc_helper('running') == 1
 
     assert _count_proc_helper('zombie') == 1
@@ -44,11 +44,10 @@ def _count_proc_helper(status: str):
 
 def test_commit_tables(with_test_tables):
     dolt = with_test_tables
-    with DoltSQLServerManager(dolt, TEST_SERVER_CONFIG) as dolt_sql_server_manager:
-        engine = dolt_sql_server_manager.engine
-        write_rows(engine, TEST_TABLE_ONE, TEST_DATA_INITIAL, commit=False)
-        write_rows(engine, TEST_TABLE_TWO, TEST_DATA_INITIAL, commit=False)
-        commit_tables(engine, COMMIT_MESSAGE, [TEST_TABLE_ONE, TEST_TABLE_TWO], False)
+    with DoltSQLServerContext(dolt, TEST_SERVER_CONFIG) as dssc:
+        dssc.write_rows(TEST_TABLE_ONE, TEST_DATA_INITIAL, commit=False)
+        dssc.write_rows(TEST_TABLE_TWO, TEST_DATA_INITIAL, commit=False)
+        dssc.commit_tables(COMMIT_MESSAGE, [TEST_TABLE_ONE, TEST_TABLE_TWO], False)
 
     _, commit = dolt.log().popitem(last=False)
     assert commit.message == COMMIT_MESSAGE

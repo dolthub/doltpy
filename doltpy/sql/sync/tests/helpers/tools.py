@@ -1,28 +1,28 @@
-from doltpy.etl.sql_sync.tests.helpers import (TEST_TABLE_METADATA,
-                                               TEST_DATA_INITIAL,
-                                               TEST_DATA_APPEND_SINGLE_ROW,
-                                               TEST_DATA_APPEND_MULTIPLE_ROWS,
-                                               TEST_DATA_UPDATE_SINGLE_ROW,
-                                               TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE,
-                                               get_data_for_comparison,
-                                               assert_rows_equal,
-                                               FIRST_UPDATE,
-                                               SECOND_UPDATE,
-                                               THIRD_UPDATE,
-                                               FOURTH_UPDATE,
-                                               get_expected_data)
-from doltpy.etl.sql_sync.dolt import (get_source_reader as get_dolt_source_reader,
-                                      get_target_writer as get_dolt_target_writer,
-                                      get_table_reader_diffs as get_dolt_table_reader_diffs,
-                                      get_table_reader as get_dolt_table_reader)
-from doltpy.etl.sql_sync.sync_tools import sync_to_dolt, sync_from_dolt, DoltAsSourceWriter
-from doltpy.sql.sync.tests import get_table_metadata, drop_primary_keys
+from doltpy.sql.sync.tests.helpers import (TEST_TABLE_METADATA,
+                                           TEST_DATA_INITIAL,
+                                           TEST_DATA_APPEND_SINGLE_ROW,
+                                           TEST_DATA_APPEND_MULTIPLE_ROWS,
+                                           TEST_DATA_UPDATE_SINGLE_ROW,
+                                           TEST_DATA_APPEND_MULTIPLE_ROWS_WITH_DELETE,
+                                           get_data_for_comparison,
+                                           assert_rows_equal,
+                                           FIRST_UPDATE,
+                                           SECOND_UPDATE,
+                                           THIRD_UPDATE,
+                                           FOURTH_UPDATE,
+                                           get_expected_data)
+from doltpy.sql.sync.dolt import (get_source_reader as get_dolt_source_reader,
+                                  get_target_writer as get_dolt_target_writer,
+                                  get_table_reader_diffs as get_dolt_table_reader_diffs,
+                                  get_table_reader as get_dolt_table_reader)
+from doltpy.sql.sync.sync_tools import sync_to_dolt, sync_from_dolt, DoltAsSourceWriter
+from doltpy.sql.sync import get_table_metadata, drop_primary_keys
 from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table
-from doltpy.core.system_helpers import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def validate_get_table_metadata(engine: Engine, table_name: str):
@@ -82,7 +82,7 @@ def validate_dolt_as_target(db_engine: Engine,
                             get_db_source_reader,
                             get_db_target_writer,
                             get_db_table_reader,
-                            dolt_repo,
+                            dssc,
                             dolt_table,
                             datetime_strict: bool = True):
     """
@@ -95,27 +95,27 @@ def validate_dolt_as_target(db_engine: Engine,
     :param get_db_source_reader:
     :param get_db_target_writer:
     :param get_db_table_reader:
-    :param dolt_repo:
+    :param dssc:
     :param dolt_table:
     :param datetime_strict:
     :return:
     """
     def sync_to_dolt_helper():
         source_reader = get_db_source_reader(db_engine, get_db_table_reader())
-        target_writer = get_dolt_target_writer(dolt_repo, commit=True)
+        target_writer = get_dolt_target_writer(dssc, commit=True)
         sync_to_dolt(source_reader, target_writer, {str(db_table.name): str(dolt_table.name)})
 
     def assertion_helper(commit: str, expected_diff: List[dict]):
         """
-        Validates that both the HEAD of the current branch of the Dolt repo match MySQL, and that the diffs created by
+        Validates that both the HEAD of the current branch of the Dolt repo match MySQL, and that the difIfs created by
         the write match what is expected.
         """
-        _, dolt_data = get_dolt_table_reader(commit)(str(dolt_table.name), dolt_repo)
+        _, dolt_data = get_dolt_table_reader(commit)(str(dolt_table.name), dssc)
         db_table_metadata = get_table_metadata(db_engine, str(db_table.name))
         db_data = get_db_table_reader()(db_engine, db_table_metadata)
         assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
 
-        _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(str(dolt_table.name), dolt_repo)
+        _, dolt_diff_data = get_dolt_table_reader_diffs(commit)(str(dolt_table.name), dssc)
         assert_rows_equal(expected_diff, list(dolt_diff_data), datetime_strict=datetime_strict)
 
     update_sequence = [
@@ -128,18 +128,18 @@ def validate_dolt_as_target(db_engine: Engine,
     for update_data in update_sequence:
         get_db_target_writer(db_engine)({str(db_table.name): ([], update_data)})
         sync_to_dolt_helper()
-        latest_commit = list(dolt_repo.log().keys())[0]
+        latest_commit = list(dssc.dolt.log().keys())[0]
         assertion_helper(latest_commit, update_data)
 
     with db_engine.connect() as conn:
         conn.execute(db_table.delete().where(db_table.c.first_name == 'Novak'))
 
     sync_to_dolt_helper()
-    latest_commit = list(dolt_repo.log().keys())[0]
-    _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dolt_repo)
+    latest_commit = list(dssc.dolt.log().keys())[0]
+    _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dssc)
     db_data = get_db_table_reader()(db_engine, db_table)
     assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)
-    dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(str(dolt_table.name), dolt_repo)
+    dropped_pks, _ = get_dolt_table_reader_diffs(latest_commit)(str(dolt_table.name), dssc)
     assert dropped_pks == [{'first_name': 'Novak', 'last_name': 'Djokovic'}]
 
 

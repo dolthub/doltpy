@@ -47,7 +47,7 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableU
         metadata.reflect()
 
         for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
-            logger.info('Reading tables {}'.format(table))
+            logger.info(f'Reading tables {table}')
             result[table.name] = reader(engine, table)
 
         return result

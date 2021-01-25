@@ -56,7 +56,7 @@ DICT_OF_LISTS_UNEVEN_LENGTHS = {
 
 def test_write_columns_uneven(init_empty_test_repo):
     repo = init_empty_test_repo
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         write_columns(repo, 'players', DICT_OF_LISTS_UNEVEN_LENGTHS, CREATE, ['name'])
 
 

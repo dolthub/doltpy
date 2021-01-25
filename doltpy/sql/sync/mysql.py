@@ -5,7 +5,7 @@ from sqlalchemy.dialects import mysql
 from doltpy.sql.sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
 from typing import List
 import logging
-from doltpy.sql.write import clean_types
+from doltpy.sql.helpers import clean_types
 
 logger = logging.getLogger(__name__)
 
