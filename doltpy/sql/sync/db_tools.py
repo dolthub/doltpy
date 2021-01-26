@@ -21,7 +21,9 @@ DoltAsSourceReader = Callable[[List[str]], DoltAsSourceUpdate]
 DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
 
 
-def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None) -> DoltAsTargetReader:
+def get_source_reader(
+    engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None
+) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
     the contents of each of the tables.
@@ -33,7 +35,9 @@ def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dic
     return build_source_reader(engine, reader_function)
 
 
-def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableUpdate]) -> DoltAsTargetReader:
+def build_source_reader(
+    engine: Engine, reader: Callable[[Engine, Table], TableUpdate]
+) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
     the contents of each of the tables.
@@ -41,13 +45,18 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableU
     :param reader:
     :return:
     """
+
     def inner(tables: List[str]) -> DoltAsTargetUpdate:
         result = {}
         metadata = MetaData(bind=engine)
         metadata.reflect()
 
-        for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
-            logger.info(f'Reading tables {table}')
+        for table in [
+            table
+            for table_name, table in metadata.tables.items()
+            if table_name in tables
+        ]:
+            logger.info(f"Reading tables {table}")
             result[table.name] = reader(engine, table)
 
         return result
@@ -61,6 +70,7 @@ def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
     state, that is the current state. We simply capture this state by reading out all the data in the database.
     :return:
     """
+
     def inner(engine: Engine, table: Table) -> List[dict]:
         with engine.connect() as conn:
             result = conn.execute(table.select())
@@ -77,10 +87,12 @@ def get_table_metadata(engine: Engine, table_name: str) -> Table:
     return metadata.tables[table_name]
 
 
-def get_target_writer_helper(engine: Engine,
-                             get_upsert_statement,
-                             update_on_duplicate: bool,
-                             clean_types: Callable[[Iterable[dict]], List[dict]] = None) -> DoltAsSourceWriter:
+def get_target_writer_helper(
+    engine: Engine,
+    get_upsert_statement,
+    update_on_duplicate: bool,
+    clean_types: Callable[[Iterable[dict]], List[dict]] = None,
+) -> DoltAsSourceWriter:
     """
     Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
     apply the table update. A table update consists of primary key values to drop, and data to insert/update.
@@ -90,6 +102,7 @@ def get_target_writer_helper(engine: Engine,
     :param clean_types: an optional function to clean up the types being written
     :return:
     """
+
     def inner(table_data_map: DoltAsSourceUpdate):
         metadata = MetaData(bind=engine)
         metadata.reflect()
@@ -123,5 +136,7 @@ def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict])
         pks = [col.name for col in table.columns if col.primary_key]
         statement = table.delete()
         for pk in pks:
-            statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
+            statement = statement.where(
+                table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop])
+            )
         conn.execute(statement)

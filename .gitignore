@@ -9,3 +9,4 @@ dist
 .eggs/
 .sqlhistory
 Pipfile*
+doltpy.egg-info

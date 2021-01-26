@@ -29,7 +29,9 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
                 if not val:
                     row_copy[col] = None
                 else:
-                    row_copy[col] = ','.join(str(el) if el is not None else 'NULL' for el in val)
+                    row_copy[col] = ",".join(
+                        str(el) if el is not None else "NULL" for el in val
+                    )
             elif type(val) == dict:
                 row_copy[col] = str(val)
             elif pd.isna(val):
@@ -53,14 +55,19 @@ def get_existing_pks(engine: Engine, table: Table) -> Mapping[int, dict]:
         pk_cols = [table.c[col.name] for col in table.columns if col.primary_key]
         query = select(pk_cols)
         result = conn.execute(query)
-        return {hash_row_els(dict(row), [col.name for col in pk_cols]): dict(row) for row in result}
+        return {
+            hash_row_els(dict(row), [col.name for col in pk_cols]): dict(row)
+            for row in result
+        }
 
 
 def hash_row_els(row: dict, cols: List[str]) -> int:
     return hash(frozenset({col: row[col] for col in cols}.items()))
 
 
-def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> Tuple[List[dict], List[dict]]:
+def get_inserts_and_updates(
+    engine: Engine, table: Table, data: List[dict]
+) -> Tuple[List[dict], List[dict]]:
     existing_pks = get_existing_pks(engine, table)
     if not existing_pks:
         return data, []
@@ -79,7 +86,9 @@ def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> T
     return inserts, updates
 
 
-def infer_table_schema(metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: List[str]):
+def infer_table_schema(
+    metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: List[str]
+):
     # generate and execute a create table statement
     cols_to_types = {}
     columns = rows_to_columns(rows)
@@ -90,7 +99,7 @@ def infer_table_schema(metadata: MetaData, table_name: str, rows: Iterable[dict]
             if val is not None:
                 first_non_null = val
                 break
-            raise ValueError('Cannot provide an empty list, types cannot be inferred')
+            raise ValueError("Cannot provide an empty list, types cannot be inferred")
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
     table = _get_table_def(metadata, table_name, cols_to_types, primary_key)
@@ -109,11 +118,18 @@ def _get_col_type(sample_value: Any, values: Any):
     elif type(sample_value) == date:
         return Date
     else:
-        raise ValueError('Value of type {} is unsupported'.format(type(sample_value)))
+        raise ValueError("Value of type {} is unsupported".format(type(sample_value)))
 
 
-def _get_table_def(metadata, table_name: str, cols_with_types: Mapping[str, str], primary_key: List[str] = None):
+def _get_table_def(
+    metadata,
+    table_name: str,
+    cols_with_types: Mapping[str, str],
+    primary_key: List[str] = None,
+):
     _primary_key = primary_key or []
-    columns = [Column(col_name, col_type, primary_key=col_name in _primary_key)
-               for col_name, col_type in cols_with_types.items()]
+    columns = [
+        Column(col_name, col_type, primary_key=col_name in _primary_key)
+        for col_name, col_type in cols_with_types.items()
+    ]
     return Table(table_name, metadata, *columns)

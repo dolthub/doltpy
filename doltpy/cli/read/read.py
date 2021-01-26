@@ -1,5 +1,5 @@
 from doltpy.cli import Dolt
-import pandas as pd
+import pandas as pd # type: ignore
 from doltpy.shared.helpers import rows_to_columns
 from typing import List, Mapping
 import logging
@@ -20,7 +20,7 @@ def read_pandas(dolt: Dolt, table: str, as_of: str = None) -> pd.DataFrame:
 
 
 def _get_read_table_asof_query(table: str, as_of: str = None) -> str:
-    base_query = f'SELECT * FROM `{table}`'
+    base_query = f"SELECT * FROM `{table}`"
     return f'{base_query} AS OF "{as_of}"' if as_of else base_query
 
 
@@ -40,4 +40,4 @@ def read_pandas_sql(dolt: Dolt, sql: str) -> pd.DataFrame:
 
 
 def _read_table_sql(dolt: Dolt, sql: str) -> List[dict]:
-    return dolt.sql(sql, result_format='csv')
+    return dolt.sql(sql, result_format="csv")
