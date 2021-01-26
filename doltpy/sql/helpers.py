@@ -2,9 +2,9 @@ from sqlalchemy import String, DateTime, Date, Integer, Float, Table, MetaData, 
 from datetime import datetime, date, time
 from doltpy.shared import rows_to_columns
 from typing import List, Mapping, Iterable, Tuple, Any
-from sqlalchemy.engine import Engine
-from sqlalchemy.sql import select
-import pandas as pd
+from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy.sql import select # type: ignore
+import pandas as pd # type: ignore
 import logging
 
 logger = logging.getLogger(__name__)

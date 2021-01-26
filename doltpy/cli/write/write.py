@@ -37,14 +37,14 @@ def write_file(
             f.writelines(file_handle.readlines())
 
     _import_helper(
-        dolt,
-        table,
-        writer,
-        primary_key,
-        import_mode,
-        commit,
-        commit_message,
-        commit_date,
+        dolt=dolt,
+        table=table,
+        write_import_file=writer,
+        primary_key=primary_key,
+        import_mode=import_mode,
+        commit=commit,
+        commit_message=commit_message,
+        commit_date=commit_date,
     )
 
 
@@ -82,14 +82,14 @@ def write_columns(
             csv_writer.writerows(rows)
 
     _import_helper(
-        dolt,
-        table,
-        writer,
-        primary_key,
-        import_mode,
-        commit,
-        commit_message,
-        commit_date,
+        dolt=dolt,
+        table=table,
+        write_import_file=writer,
+        primary_key=primary_key,
+        import_mode=import_mode,
+        commit=commit,
+        commit_message=commit_message,
+        commit_date=commit_date,
     )
 
 
@@ -127,14 +127,14 @@ def write_rows(
             csv_writer.writerows(rows)
 
     _import_helper(
-        dolt,
-        table,
-        writer,
-        primary_key,
-        import_mode,
-        commit,
-        commit_message,
-        commit_date,
+        dolt=dolt,
+        table=table,
+        write_import_file=writer,
+        primary_key=primary_key,
+        import_mode=import_mode,
+        commit=commit,
+        commit_message=commit_message,
+        commit_date=commit_date,
     )
 
 
@@ -166,14 +166,14 @@ def write_pandas(
         clean.to_csv(filepath, index=False)
 
     _import_helper(
-        dolt,
-        table,
-        writer,
-        primary_key,
-        import_mode,
-        commit,
-        commit_message,
-        commit_date,
+        dolt=dolt,
+        table=table,
+        write_import_file=writer,
+        primary_key=primary_key,
+        import_mode=import_mode,
+        commit=commit,
+        commit_message=commit_message,
+        commit_date=commit_date,
     )
 
 

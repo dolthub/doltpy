@@ -5,8 +5,8 @@ from doltpy.sql.sync.db_tools import (
     DoltAsSourceReader,
     DoltAsSourceWriter,
 )
-from sqlalchemy.engine import Engine
-from sqlalchemy import Table, Column, MetaData
+from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy import Table, Column, MetaData # type: ignore
 import logging
 
 logger = logging.getLogger(__name__)

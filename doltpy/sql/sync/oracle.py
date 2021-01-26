@@ -1,5 +1,5 @@
-from sqlalchemy.engine import Engine
-from sqlalchemy import Table, select
+from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy import Table, select # type: ignore
 from doltpy.sql.sync.db_tools import (
     DoltAsSourceWriter,
     drop_primary_keys,
@@ -7,7 +7,7 @@ from doltpy.sql.sync.db_tools import (
 )
 from doltpy.sql.helpers import hash_row_els
 from typing import List
-from sqlalchemy import MetaData, bindparam
+from sqlalchemy import MetaData, bindparam # type: ignore
 from copy import deepcopy
 import logging
 

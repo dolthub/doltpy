@@ -1,13 +1,13 @@
 from doltpy.cli import Dolt
 from retry import retry
-from sqlalchemy.engine import Engine
-from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy import create_engine # type: ignore
 
 # from doltpy.shared import SQL_LOG_FILE
 from subprocess import Popen, STDOUT
 import os
 import logging
-import sqlalchemy as sa
+import sqlalchemy as sa # type: ignore
 from typing import List, Union, Mapping, Any, Iterable
 from datetime import datetime, date, time
 import csv
