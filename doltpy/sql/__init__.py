@@ -3,7 +3,8 @@ from .sql import (DEFAULT_HOST,
                   DoltSQLContext,
                   DoltSQLServerContext,
                   DoltSQLEngineContext,
-                  ServerConfig)
+                  ServerConfig,
+                  DoltCommit)
 from doltpy.shared import register_cleanup
 
 register_cleanup()

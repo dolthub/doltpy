@@ -1,4 +1,3 @@
-# from doltpy.cli.dolt import Dolt
 from doltpy.sql.sync.db_tools import (get_table_metadata,
                                       DoltAsTargetWriter,
                                       DoltTableUpdate,
@@ -6,9 +5,9 @@ from doltpy.sql.sync.db_tools import (get_table_metadata,
                                       DoltAsSourceUpdate,
                                       DoltAsTargetUpdate,
                                       drop_primary_keys)
-from doltpy.sql import DoltSQLContext
+from doltpy.sql import DoltSQLContext, DoltCommit
 from doltpy.sql.helpers import get_existing_pks, hash_row_els
-from typing import List, Callable, Tuple
+from typing import List, Callable
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, MetaData
 import logging
@@ -17,25 +16,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_target_writer(dsc: DoltSQLContext,
-                      branch: str = None,
-                      commit: bool = True,
-                      message: str = None) -> DoltAsTargetWriter:
+def get_target_writer(dsc: DoltSQLContext, commit: bool = True, message: str = None) -> DoltAsTargetWriter:
     """
     Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
     message or generates a standard one.
-    :param dssc:
-    :param branch:
+    :param dsc:
     :param commit:
     :param message:
     :return: 
     """
     def inner(table_data_map: DoltAsTargetUpdate):
-        # TODO do this in SQL
-        current_branch, _ = dsc.dolt.branch()
-        if branch and branch != current_branch:
-            dsc.dolt.checkout(branch)
-
         metadata = MetaData(bind=dsc.engine)
         metadata.reflect()
 
@@ -94,7 +84,7 @@ def get_source_reader(dsc: DoltSQLContext,
         dolt_tables = [table.name for table in dsc.dolt.ls()]
         missing_tables = [table for table in tables if table not in dolt_tables]
         if missing_tables:
-            logger.error(f'The following tables are missign, exiting:\n{missing_tables}')
+            logger.error(f'The following tables are missing, exiting:\n{missing_tables}')
             raise ValueError(f'Missing tables {missing_tables}')
 
         for table in tables:
@@ -106,39 +96,33 @@ def get_source_reader(dsc: DoltSQLContext,
     return inner
 
 
-def get_table_reader_diffs(commit_ref: str = None,
-                           branch: str = None) -> Callable[[str, DoltSQLContext], DoltTableUpdate]:
+def get_table_reader_diffs(commit_ref: str = None) -> Callable[[str, DoltSQLContext], DoltTableUpdate]:
     """
     Returns a function that reads the diff from a commit and/or branch, defaults to the HEAD of the current branch if
     neither are provided.
     :param commit_ref:
-    :param branch:
     :return:
     """
     def inner(table_name: str, dsc: DoltSQLContext) -> DoltTableUpdate:
-        current_branch, _ = dsc.dolt.branch()
-        if branch and branch != current_branch:
-            dsc.dolt.checkout(branch)
 
-        from_commit, to_commit = get_from_commit_to_commit(dsc, commit_ref)
+        commit = get_from_commit_to_commit(dsc, commit_ref)
         metadata = MetaData(bind=dsc.engine)
         metadata.reflect()
         table = metadata.tables[table_name]
-        pks_to_drop = get_dropped_pks(dsc.engine, table, from_commit, to_commit)
-        result = _read_from_dolt_diff(dsc.engine, table, from_commit, to_commit)
+        pks_to_drop = get_dropped_pks(dsc.engine, table, commit)
+        result = _read_from_dolt_diff(dsc.engine, table, commit)
         return pks_to_drop, result
 
     return inner
 
 
-def get_dropped_pks(engine: Engine, table: Table, from_commit: str, to_commit: str) -> List[dict]:
+def get_dropped_pks(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
     """
     Given table_metadata, a connection, and a pair of commits, will return the list of pks that were dropped between
     the two commits.
     :param engine:
     :param table:
-    :param from_commit:
-    :param to_commit:
+    :param dolt_commit:
     :return:
     """
     pks = [col.name for col in table.columns if col.primary_key]
@@ -148,15 +132,14 @@ def get_dropped_pks(engine: Engine, table: Table, from_commit: str, to_commit: s
         FROM
             dolt_diff_{table.name}
         WHERE
-            from_commit = '{from_commit}'
-            AND to_commit = '{to_commit}'
+            {_get_diff_table_clause(dolt_commit)}
             AND diff_type = 'removed'
     '''
 
     return _query_helper(engine, query)
 
 
-def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: str = None) -> Tuple[str, str]:
+def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: str = None) -> DoltCommit:
     """
     Given a repo and commit it returns the commit and its parent, if no commit is provided the head and the parent of
     head are returned.
@@ -165,50 +148,41 @@ def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: str = None) -> Tu
     :return:
     """
     # TODO do this in SQL
-    commits = list(dsc.dolt.log().keys())
-    commit_ref_index = None
-    if not commit_ref:
-        commit_ref_index = 0
+    commits = dsc.log()
+    if not commit_ref or len(commits) == 1:
+        _, commit = commits.popitem()
     else:
-        for i, commit in enumerate(commits):
-            if commit == commit_ref:
-                commit_ref_index = i
-                break
-    assert commit_ref_index is not None, 'commit_ref not found in commit index'
-    return commits[commit_ref_index + 1], commits[commit_ref_index]
+        _, commit = commits[commit_ref]
+
+    return commit
 
 
-def get_table_reader(commit_ref: str = None, branch: str = None) -> Callable[[str, DoltSQLContext], DoltTableUpdate]:
+def get_table_reader(commit_ref: str = None) -> Callable[[str, DoltSQLContext], DoltTableUpdate]:
     """
     Returns a function that reads the entire table at a commit and/or branch, and returns the data.
     :param commit_ref:
-    :param branch:
     :return:
     """
-    # TODO do this in SQL
     def inner(table_name: str, dsc: DoltSQLContext) -> DoltTableUpdate:
-        if branch and branch != dsc.dolt.log():
-            dsc.dolt.checkout(branch)
-
+        # TODO do this in SQL
         query_commit = commit_ref or list(dsc.dolt.log().keys())[0]
         table = get_table_metadata(dsc.engine, table_name)
-        from_commit, to_commit = get_from_commit_to_commit(dsc, query_commit)
-        pks_to_drop = get_dropped_pks(dsc.engine, table, from_commit, to_commit)
+        commit = get_from_commit_to_commit(dsc, query_commit)
+        pks_to_drop = get_dropped_pks(dsc.engine, table, commit)
         result = _read_from_dolt_history(dsc.engine, table, query_commit)
         return pks_to_drop, result
 
     return inner
 
 
-def _read_from_dolt_diff(engine: Engine, table: Table, from_commit: str, to_commit: str) -> List[dict]:
+def _read_from_dolt_diff(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
     query = f'''
         SELECT
             {','.join(f'`to_{col.name}` as {col.name}' for col in table.columns)}
         FROM
             dolt_diff_{table.name}
         WHERE
-            from_commit = '{from_commit}'
-            AND to_commit = '{to_commit}'
+            {_get_diff_table_clause(dolt_commit)}
             AND diff_type != 'removed'
     '''
 
@@ -232,3 +206,16 @@ def _query_helper(engine: Engine, query: str):
     with engine.connect() as conn:
         result = conn.execute(query)
         return [dict(row) for row in result]
+
+
+def _get_diff_table_clause(dolt_commit: DoltCommit) -> str:
+    if dolt_commit.is_merge():
+        merge_parent, other_merge_parent = dolt_commit.parent_or_parents
+        return f'''
+            (
+                (from_commit = '{merge_parent}' OR from_commit = '{other_merge_parent}')
+                AND to_commit = '{dolt_commit.hash}'
+            )
+        '''
+    else:
+        return f'''(from_commit = '{dolt_commit.parent_or_parents}' AND to_commit = '{dolt_commit.hash}')'''
