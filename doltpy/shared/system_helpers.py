@@ -1,5 +1,6 @@
-import logging
 import atexit
+import logging
+
 import psutil
 
 HANDLERS = []

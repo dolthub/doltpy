@@ -1,7 +1,8 @@
+import logging
+from typing import List, Union
+
 from doltpy.cli import Dolt, DoltHubContext
 from doltpy.etl.loaders import DoltLoader
-from typing import List, Union
-import logging
 
 logger = logging.getLogger(__name__)
 

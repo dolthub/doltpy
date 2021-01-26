@@ -1,6 +1,6 @@
 import abc
 import datetime
-from typing import Generic, List, Mapping, OrderedDict, TypeVar, Tuple, Union
+from typing import Generic, List, Mapping, OrderedDict, Tuple, TypeVar, Union
 
 __all__ = ["DoltT"]
 

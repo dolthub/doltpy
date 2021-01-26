@@ -1,11 +1,13 @@
-from sqlalchemy import String, DateTime, Date, Integer, Float, Table, MetaData, Column
-from datetime import datetime, date, time
-from doltpy.shared import rows_to_columns
-from typing import List, Mapping, Iterable, Tuple, Any
-from sqlalchemy.engine import Engine # type: ignore
-from sqlalchemy.sql import select # type: ignore
-import pandas as pd # type: ignore
 import logging
+from datetime import date, datetime, time
+from typing import Any, Iterable, List, Mapping, Tuple
+
+import pandas as pd  # type: ignore
+from sqlalchemy import Column, Date, DateTime, Float, Integer, MetaData, String, Table
+from sqlalchemy.engine import Engine  # type: ignore
+from sqlalchemy.sql import select  # type: ignore
+
+from doltpy.shared import rows_to_columns
 
 logger = logging.getLogger(__name__)
 

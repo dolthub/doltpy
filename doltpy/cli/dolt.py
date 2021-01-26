@@ -1,13 +1,13 @@
-from datetime import datetime
-from typing import List, Union, Mapping, Tuple
-from subprocess import Popen, PIPE
-import os
-from collections import OrderedDict
-import json
 import csv
 import io
-import tempfile
+import json
 import logging
+import os
+import tempfile
+from collections import OrderedDict
+from datetime import datetime
+from subprocess import PIPE, Popen
+from typing import List, Mapping, Tuple, Union
 
 from ..types.dolt import DoltT
 

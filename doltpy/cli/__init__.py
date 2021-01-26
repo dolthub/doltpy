@@ -1,1 +1,1 @@
-from .dolt import Dolt, DoltException, DoltCommit, DoltHubContext
+from .dolt import Dolt, DoltCommit, DoltException, DoltHubContext

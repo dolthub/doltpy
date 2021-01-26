@@ -1,8 +1,10 @@
-from doltpy.cli import Dolt
-import pandas as pd # type: ignore
-from doltpy.shared.helpers import rows_to_columns
-from typing import List, Mapping
 import logging
+from typing import List, Mapping
+
+import pandas as pd  # type: ignore
+
+from doltpy.cli import Dolt
+from doltpy.shared.helpers import rows_to_columns
 
 logger = logging.getLogger(__name__)
 

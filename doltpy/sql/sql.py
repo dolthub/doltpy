@@ -1,21 +1,23 @@
-from doltpy.cli import Dolt
-from retry import retry
-from sqlalchemy.engine import Engine # type: ignore
-from sqlalchemy import create_engine # type: ignore
+import copy
+import csv
+import logging
+import math
+import os
+from datetime import date, datetime, time
 
 # from doltpy.shared import SQL_LOG_FILE
-from subprocess import Popen, STDOUT
-import os
-import logging
-import sqlalchemy as sa # type: ignore
-from typing import List, Union, Mapping, Any, Iterable
-from datetime import datetime, date, time
-import csv
+from subprocess import STDOUT, Popen
+from typing import Any, Iterable, List, Mapping, Union
+
 import pandas as pd
-import math
+import sqlalchemy as sa  # type: ignore
+from retry import retry
+from sqlalchemy import create_engine  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
+from doltpy.cli import Dolt
 from doltpy.shared import columns_to_rows, rows_to_columns
-from doltpy.sql.helpers import infer_table_schema, get_inserts_and_updates, clean_types
-import copy
+from doltpy.sql.helpers import clean_types, get_inserts_and_updates, infer_table_schema
 
 logger = logging.getLogger(__name__)
 

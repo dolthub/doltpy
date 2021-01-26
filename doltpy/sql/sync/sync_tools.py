@@ -1,13 +1,15 @@
+import logging
 from typing import Mapping
+
+from sqlalchemy import Column, MetaData, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
 from doltpy.sql.sync.db_tools import (
-    DoltAsTargetReader,
-    DoltAsTargetWriter,
     DoltAsSourceReader,
     DoltAsSourceWriter,
+    DoltAsTargetReader,
+    DoltAsTargetWriter,
 )
-from sqlalchemy.engine import Engine # type: ignore
-from sqlalchemy import Table, Column, MetaData # type: ignore
-import logging
 
 logger = logging.getLogger(__name__)
 

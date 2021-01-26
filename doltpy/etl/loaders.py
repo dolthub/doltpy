@@ -1,13 +1,15 @@
-from typing import Callable, List, Union
-import io
-from doltpy.cli.dolt import Dolt
-from doltpy.cli.write import write_file, write_pandas, UPDATE
-from doltpy.cli.read import read_pandas
-import pandas as pd
 import hashlib
+import io
 import itertools
-import tempfile
 import logging
+import tempfile
+from typing import Callable, List, Union
+
+import pandas as pd
+
+from doltpy.cli.dolt import Dolt
+from doltpy.cli.read import read_pandas
+from doltpy.cli.write import UPDATE, write_file, write_pandas
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]

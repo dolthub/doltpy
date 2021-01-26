@@ -1,11 +1,13 @@
-from sqlalchemy.engine import Engine # type: ignore
-from sqlalchemy.dialects.mysql import insert # type: ignore
-from sqlalchemy import Table # type: ignore
-from sqlalchemy.dialects import mysql # type: ignore
-from doltpy.sql.sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
-from typing import List
 import logging
+from typing import List
+
+from sqlalchemy import Table  # type: ignore
+from sqlalchemy.dialects import mysql  # type: ignore
+from sqlalchemy.dialects.mysql import insert  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
 from doltpy.sql.helpers import clean_types
+from doltpy.sql.sync.db_tools import DoltAsSourceWriter, get_target_writer_helper
 
 logger = logging.getLogger(__name__)
 

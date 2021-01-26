@@ -1,20 +1,21 @@
 # from doltpy.cli.dolt import Dolt
+import logging
+from typing import Callable, List, Tuple
+
+from sqlalchemy import MetaData, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
+from doltpy.sql import DoltSQLContext
+from doltpy.sql.helpers import get_existing_pks, hash_row_els
 from doltpy.sql.sync.db_tools import (
-    get_table_metadata,
-    DoltAsTargetWriter,
-    DoltTableUpdate,
     DoltAsSourceReader,
     DoltAsSourceUpdate,
     DoltAsTargetUpdate,
+    DoltAsTargetWriter,
+    DoltTableUpdate,
     drop_primary_keys,
+    get_table_metadata,
 )
-from doltpy.sql import DoltSQLContext
-from doltpy.sql.helpers import get_existing_pks, hash_row_els
-from typing import List, Callable, Tuple
-from sqlalchemy.engine import Engine # type: ignore
-from sqlalchemy import Table, MetaData #type: ignore
-import logging
-
 
 logger = logging.getLogger(__name__)
 

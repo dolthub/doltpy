@@ -1,8 +1,9 @@
-from typing import Tuple, Iterable, Mapping, Callable, List
+import logging
+from typing import Callable, Iterable, List, Mapping, Tuple
+
+from retry import retry
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
-from retry import retry
-import logging
 
 logger = logging.getLogger(__name__)
 
