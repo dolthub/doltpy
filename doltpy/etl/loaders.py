@@ -5,7 +5,7 @@ import logging
 import tempfile
 from typing import Callable, List, Union, Optional
 
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 
 from doltpy.cli.dolt import Dolt
 from doltpy.cli.read import read_pandas

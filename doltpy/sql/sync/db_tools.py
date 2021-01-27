@@ -2,8 +2,8 @@ import logging
 from typing import Callable, Iterable, List, Mapping, Tuple
 
 from retry import retry
-from sqlalchemy import MetaData, Table # type: ignore
-from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy import MetaData, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
 
 logger = logging.getLogger(__name__)
 

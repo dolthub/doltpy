@@ -21,7 +21,13 @@ class DoltException(Exception):
     A class representing a Dolt exception.
     """
 
-    def __init__(self, exec_args, stdout: Optional[Union[str, bytes]] = None, stderr: Optional[Union[str, bytes]] = None, exitcode: Optional[int] = 1):
+    def __init__(
+        self,
+        exec_args,
+        stdout: Optional[Union[str, bytes]] = None,
+        stderr: Optional[Union[str, bytes]] = None,
+        exitcode: Optional[int] = 1,
+    ):
         super().__init__(exec_args)
         self.exec_args = exec_args
         self.stdout = stdout
@@ -80,7 +86,11 @@ class DoltTable:
     """
 
     def __init__(
-        self, name: str, table_hash: Optional[str] = None, rows: Optional[int] = None, system: bool = False
+        self,
+        name: str,
+        table_hash: Optional[str] = None,
+        rows: Optional[int] = None,
+        system: bool = False,
     ):
         self.name = name
         self.table_hash = table_hash
@@ -261,7 +271,7 @@ class Dolt(DoltT):
         Parses the status of this repository into a `DoltStatus` object.
         :return:
         """
-        new_tables: Dict[str, bool]  = {}
+        new_tables: Dict[str, bool] = {}
         changes: Dict[str, bool] = {}
 
         output = self.execute(["status"], print_output=False)
@@ -333,7 +343,10 @@ class Dolt(DoltT):
         self.execute(args + to_reset)
 
     def commit(
-        self, message: str = "", allow_empty: bool = False, date: datetime.datetime = None
+        self,
+        message: str = "",
+        allow_empty: bool = False,
+        date: datetime.datetime = None,
     ):
         """
         Create a commit with the currents in the working set that are currently in staging.
@@ -488,7 +501,9 @@ class Dolt(DoltT):
         dict_reader = csv.DictReader(io.StringIO("\n".join(output)))
         return list(dict_reader)
 
-    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
+    def log(
+        self, number: Optional[int] = None, commit: Optional[str] = None
+    ) -> OrderedDict:
         """
         Parses the log created by running the log command into instances of `DoltCommit` that provide detail of the
         commit, including timestamp and hash.
@@ -756,7 +771,11 @@ class Dolt(DoltT):
         self.execute(args)
 
     def remote(
-        self, add: bool = False, name: Optional[str] = None, url: Optional[str] = None, remove: bool = None
+        self,
+        add: bool = False,
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        remove: bool = None,
     ):
         """
         Add or remove remotes to this repository. Note we do not currently support some more esoteric options for using
@@ -866,7 +885,10 @@ class Dolt(DoltT):
 
     @staticmethod
     def clone(
-        remote_url: str, new_dir: Optional[str] = None, remote: Optional[str] = None, branch: Optional[str] = None
+        remote_url: str,
+        new_dir: Optional[str] = None,
+        remote: Optional[str] = None,
+        branch: Optional[str] = None,
     ) -> "Dolt":
         """
         Clones the specified DoltHub database into a new directory, or optionally an existing directory provided by the
@@ -896,7 +918,9 @@ class Dolt(DoltT):
         return Dolt(new_dir)
 
     @classmethod
-    def _new_dir_helper(cls, new_dir: Optional[str] = None, remote_url: Optional[str] = None):
+    def _new_dir_helper(
+        cls, new_dir: Optional[str] = None, remote_url: Optional[str] = None
+    ):
         if not (new_dir or remote_url):
             raise ValueError("Provide either new_dir or remote_url")
         elif remote_url and not new_dir:
@@ -1001,7 +1025,9 @@ class Dolt(DoltT):
 
         return creds
 
-    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
+    def creds_check(
+        self, endpoint: Optional[str] = None, creds: Optional[str] = None
+    ) -> bool:
         """
         Check that credentials authenticate with the specified endpoint, return True if authorized, False otherwise.
         :param endpoint: the endpoint to check
@@ -1293,7 +1319,9 @@ class Dolt(DoltT):
 
         self.execute(args)
 
-    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
+    def schema_show(
+        self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None
+    ):
         """
         Dislay the schema of the specified table or tables at the (optionally) specified commit, defaulting to the tip
         of master on the current branch.
@@ -1453,7 +1481,11 @@ class Dolt(DoltT):
         self.execute(args)
 
     def table_cp(
-        self, old_table: str, new_table: str, commit: Optional[str] = None, force: bool = False
+        self,
+        old_table: str,
+        new_table: str,
+        commit: Optional[str] = None,
+        force: bool = False,
     ):
         """
         Copy an existing table to a new table, optionally at a specified commit.

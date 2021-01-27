@@ -3,7 +3,7 @@ import datetime
 from typing import Any, Iterable, List, Mapping, Tuple, Optional, Dict
 
 import pandas as pd  # type: ignore
-from sqlalchemy import Column, Date, DateTime, Float, Integer, MetaData, String, Table # type: ignore
+from sqlalchemy import Column, Date, DateTime, Float, Integer, MetaData, String, Table  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
 from sqlalchemy.sql import select  # type: ignore
 
@@ -89,7 +89,10 @@ def get_inserts_and_updates(
 
 
 def infer_table_schema(
-    metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: Optional[List[str]]
+    metadata: MetaData,
+    table_name: str,
+    rows: Iterable[dict],
+    primary_key: Optional[List[str]],
 ):
     # generate and execute a create table statement
     cols_to_types = {}

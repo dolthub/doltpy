@@ -2,7 +2,7 @@ import atexit
 import logging
 from typing import List
 
-import psutil # type: ignore
+import psutil  # type: ignore
 
 HANDLERS: List[str] = []
 SQL_LOG_FILE = None
