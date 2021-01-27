@@ -1,9 +1,10 @@
 import atexit
 import logging
+from typing import List
 
-import psutil
+import psutil # type: ignore
 
-HANDLERS = []
+HANDLERS: List[str] = []
 SQL_LOG_FILE = None
 
 

@@ -1,6 +1,6 @@
 import abc
 import datetime
-from typing import Generic, List, Mapping, OrderedDict, Tuple, TypeVar, Union
+from typing import Generic, List, Mapping, OrderedDict, Tuple, TypeVar, Union, Optional
 
 __all__ = ["DoltT"]
 
@@ -26,7 +26,7 @@ class DoltT(Generic[_T]):
 
     @staticmethod
     @abc.abstractmethod
-    def init(repo_dir: str = None) -> "Dolt":  # type: ignore
+    def init(repo_dir: Optional[str] = None) -> "Dolt":  # type: ignore
         ...
 
     @staticmethod
@@ -54,9 +54,9 @@ class DoltT(Generic[_T]):
     @abc.abstractmethod
     def commit(
         self,
-        message: str = None,
+        message: str = "",
         allow_empty: bool = False,
-        date: datetime.datetime = None,
+        date: Optional[datetime.datetime] = None,
     ):
         ...
 
@@ -67,14 +67,14 @@ class DoltT(Generic[_T]):
     @abc.abstractmethod
     def sql(
         self,
-        query: str = None,
-        result_format: str = None,
+        query: Optional[str] = None,
+        result_format: Optional[str] = None,
         execute: bool = False,
-        save: str = None,
-        message: str = None,
+        save: Optional[str] = None,
+        message: Optional[str] = None,
         list_saved: bool = False,
         batch: bool = False,
-        multi_db_dir: str = None,
+        multi_db_dir: Optional[str] = None,
     ):
         ...
 
@@ -83,34 +83,34 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def log(self, number: int = None, commit: str = None) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
         ...
 
     @abc.abstractmethod
     def diff(
         self,
-        commit: str = None,
-        other_commit: str = None,
-        table_or_tables: Union[str, List[str]] = None,
+        commit: Optional[str] = None,
+        other_commit: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
         data: bool = False,
         schema: bool = False,  # can we even support this?
         summary: bool = False,
         sql: bool = False,
-        where: str = None,
-        limit: int = None,
+        where: Optional[str] = None,
+        limit: Optional[int] = None,
     ):
         ...
 
     @abc.abstractmethod
-    def blame(self, table_name: str, rev: str = None):
+    def blame(self, table_name: str, rev: Optional[str] = None):
         ...
 
     @abc.abstractmethod
     def branch(
         self,
-        branch_name: str = None,
-        start_point: str = None,
-        new_branch: str = None,
+        branch_name: Optional[str] = None,
+        start_point: Optional[str] = None,
+        new_branch: Optional[str] = None,
         force: bool = False,
         delete: bool = False,
         copy: bool = False,
@@ -125,16 +125,16 @@ class DoltT(Generic[_T]):
     @abc.abstractmethod
     def checkout(
         self,
-        branch: str = None,
-        table_or_tables: Union[str, List[str]] = None,
+        branch: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
         checkout_branch: bool = False,
-        start_point: str = None,
+        start_point: Optional[str] = None,
     ):
         ...
 
     @abc.abstractmethod
     def remote(
-        self, add: bool = False, name: str = None, url: str = None, remove: bool = None
+        self, add: bool = False, name: Optional[str] = None, url: Optional[str] = None, remove: Optional[bool] = None
     ):
         ...
 
@@ -142,7 +142,7 @@ class DoltT(Generic[_T]):
     def push(
         self,
         remote: str,
-        refspec: str = None,
+        refspec: Optional[str] = None,
         set_upstream: bool = False,
         force: bool = False,
     ):
@@ -156,14 +156,14 @@ class DoltT(Generic[_T]):
     def fetch(
         self,
         remote: str = "origin",
-        refspec_or_refspecs: Union[str, List[str]] = None,
+        refspec_or_refspecs: Optional[Union[str, List[str]]] = None,
         force: bool = False,
     ):
         ...
 
     @staticmethod
     @abc.abstractmethod
-    def clone(remote_url: str, new_dir: str = None, remote: str = None, branch: str = None) -> "Dolt":  # type: ignore
+    def clone(remote_url: str, new_dir: Optional[str] = None, remote: Optional[str] = None, branch: Optional[str] = None) -> "Dolt":  # type: ignore
         ...
 
     @classmethod
@@ -176,8 +176,8 @@ class DoltT(Generic[_T]):
     def read_tables(
         remote_url: str,
         committish: str,
-        table_or_tables: Union[str, List[str]] = None,
-        new_dir: str = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
+        new_dir: Optional[str] = None,
     ) -> "Dolt":  # type: ignore
         ...
 
@@ -194,7 +194,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def creds_check(self, endpoint: str = None, creds: str = None) -> bool:
+    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
         ...
 
     @abc.abstractmethod
@@ -209,8 +209,8 @@ class DoltT(Generic[_T]):
     @abc.abstractmethod
     def config_global(
         cls,
-        name: str = None,
-        value: str = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
@@ -221,8 +221,8 @@ class DoltT(Generic[_T]):
     @abc.abstractmethod
     def config_local(
         self,
-        name: str = None,
-        value: str = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
@@ -236,9 +236,9 @@ class DoltT(Generic[_T]):
         cls,
         global_config: bool = False,
         local_config: bool = False,
-        cwd: str = None,
-        name: str = None,
-        value: str = None,
+        cwd: Optional[str] = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
@@ -251,7 +251,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def schema_export(self, table: str, filename: str = None):
+    def schema_export(self, table: str, filename: Optional[str] = None):
         ...
 
     @abc.abstractmethod
@@ -264,16 +264,16 @@ class DoltT(Generic[_T]):
         replace: bool = False,
         dry_run: bool = False,
         keep_types: bool = False,
-        file_type: bool = False,
-        pks: List[str] = None,
-        map: str = None,
-        float_threshold: float = None,
-        delim: str = None,
+        file_type: Optional[str] = None,
+        pks: Optional[List[str]] = None,
+        map: Optional[str] = None,
+        float_threshold: Optional[float] = None,
+        delim: Optional[str] = None,
     ):
         ...
 
     @abc.abstractmethod
-    def schema_show(self, table_or_tables: Union[str, List[str]], commit: str = None):
+    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
         ...
 
     @abc.abstractmethod
@@ -288,12 +288,12 @@ class DoltT(Generic[_T]):
         create_table: bool = False,
         update_table: bool = False,
         force: bool = False,
-        mapping_file: str = None,
-        pk: List[str] = None,
+        mapping_file: Optional[str] = None,
+        pk: Optional[List[str]] = None,
         replace_table: bool = False,
-        file_type: bool = None,
+        file_type: Optional[str] = None,
         continue_importing: bool = False,
-        delim: bool = None,
+        delim: Optional[str] = None,
     ):
         ...
 
@@ -303,10 +303,10 @@ class DoltT(Generic[_T]):
         table: str,
         filename: str,
         force: bool = False,
-        schema: str = None,
-        mapping_file: str = None,
-        pk: List[str] = None,
-        file_type: str = None,
+        schema: Optional[str] = None,
+        mapping_file: Optional[str] = None,
+        pk: Optional[List[str]] = None,
+        file_type: Optional[str] = None,
         continue_exporting: bool = False,
     ):
         ...
@@ -317,6 +317,6 @@ class DoltT(Generic[_T]):
 
     @abc.abstractmethod
     def table_cp(
-        self, old_table: str, new_table: str, commit: str = None, force: bool = False
+        self, old_table: str, new_table: str, commit: Optional[str] = None, force: bool = False
     ):
         ...

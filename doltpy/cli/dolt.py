@@ -5,9 +5,9 @@ import logging
 import os
 import tempfile
 from collections import OrderedDict
-from datetime import datetime
+import datetime
 from subprocess import PIPE, Popen
-from typing import List, Mapping, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 
 from ..types.dolt import DoltT
 
@@ -64,8 +64,8 @@ class DoltStatus:
     def __init__(
         self,
         is_clean: bool,
-        modified_tables: Mapping[str, bool],
-        added_tables: Mapping[str, bool],
+        modified_tables: Dict[str, bool],
+        added_tables: Dict[str, bool],
     ):
         self.is_clean = is_clean
         self.modified_tables = modified_tables
@@ -78,7 +78,7 @@ class DoltTable:
     """
 
     def __init__(
-        self, name: str, table_hash: str = None, rows: int = None, system: bool = False
+        self, name: str, table_hash: Optional[str] = None, rows: Optional[int] = None, system: bool = False
     ):
         self.name = name
         self.table_hash = table_hash
@@ -98,7 +98,7 @@ class DoltCommit:
     def __init__(
         self,
         ref: str,
-        ts: datetime,
+        ts: datetime.datetime,
         author: str,
         message: str,
         merge: Tuple[str, str] = None,
@@ -151,7 +151,7 @@ class DoltHubContext:
     def __init__(
         self,
         db_path: str,
-        path: str = None,
+        path: Optional[str] = None,
         remote: str = "origin",
         tables_to_read: List[str] = None,
     ):
@@ -228,7 +228,7 @@ class Dolt(DoltT):
         return output.split("\n")
 
     @staticmethod
-    def init(repo_dir: str = None) -> "Dolt":
+    def init(repo_dir: Optional[str] = None) -> "Dolt":
         """
         Creates a new repository in the directory specified, creating the directory if `create_dir` is passed, and returns
         a `Dolt` object representing the newly created repo.
@@ -259,7 +259,8 @@ class Dolt(DoltT):
         Parses the status of this repository into a `DoltStatus` object.
         :return:
         """
-        new_tables, changes = {}, {}
+        new_tables: Dict[str, bool]  = {}
+        changes: Dict[str, bool] = {}
 
         output = self.execute(["status"], print_output=False)
 
@@ -284,16 +285,17 @@ class Dolt(DoltT):
 
         return DoltStatus(False, changes, new_tables)
 
-    def add(self, table_or_tables: Union[str, List[str]]):
+    def add(self, table_or_tables: Union[str, List[str]]) -> DoltStatus:
         """
         Adds the table or list of tables in the working tree to staging.
         :param table_or_tables:
         :return:
         """
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             to_add = [table_or_tables]
         else:
             to_add = table_or_tables
+
         self.execute(["add"] + to_add)
         return self.status()
 
@@ -311,7 +313,7 @@ class Dolt(DoltT):
         :param soft:
         :return:
         """
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             to_reset = [table_or_tables]
         else:
             to_reset = table_or_tables
@@ -329,7 +331,7 @@ class Dolt(DoltT):
         self.execute(args + to_reset)
 
     def commit(
-        self, message: str = None, allow_empty: bool = False, date: datetime = None
+        self, message: str = "", allow_empty: bool = False, date: datetime.datetime = None
     ):
         """
         Create a commit with the currents in the working set that are currently in staging.
@@ -371,7 +373,7 @@ class Dolt(DoltT):
         args = ["merge"]
 
         if squash:
-            args = args.append("--squash")
+            args.append("--squash")
 
         args.append(branch)
         output = self.execute(args)
@@ -407,14 +409,14 @@ class Dolt(DoltT):
 
     def sql(
         self,
-        query: str = None,
-        result_format: str = None,
+        query: Optional[str] = None,
+        result_format: Optional[str] = None,
         execute: bool = False,
-        save: str = None,
-        message: str = None,
+        save: Optional[str] = None,
+        message: Optional[str] = None,
         list_saved: bool = False,
         batch: bool = False,
-        multi_db_dir: str = None,
+        multi_db_dir: Optional[str] = None,
     ):
         """
         Execute a SQL query, using the options to dictate how it is executed, and where the output goes.
@@ -439,7 +441,7 @@ class Dolt(DoltT):
         if execute:
             if any([query, save, message, list_saved, batch, multi_db_dir]):
                 raise ValueError(f"Incompatible arguments provided")
-            args.extend(["--execute", execute])
+            args.extend(["--execute", str(execute)])
 
         if multi_db_dir:
             args.extend(["--multi-db-dir", multi_db_dir])
@@ -474,7 +476,8 @@ class Dolt(DoltT):
                 )
 
         logger.warning("Must provide a value for result_format to get output back")
-        args.extend(["--query", query])
+        if query:
+            args.extend(["--query", query])
         self.execute(args)
 
     def _parse_tabluar_output_to_dict(self, args: List[str]):
@@ -483,7 +486,7 @@ class Dolt(DoltT):
         dict_reader = csv.DictReader(io.StringIO("\n".join(output)))
         return list(dict_reader)
 
-    def log(self, number: int = None, commit: str = None) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
         """
         Parses the log created by running the log command into instances of `DoltCommit` that provide detail of the
         commit, including timestamp and hash.
@@ -494,7 +497,7 @@ class Dolt(DoltT):
         args = ["log"]
 
         if number:
-            args.extend(["--number", number])
+            args.extend(["--number", str(number)])
         if commit:
             raise NotImplementedError()
 
@@ -514,7 +517,7 @@ class Dolt(DoltT):
                 if merge_pos:
                     merge = tuple(output[merge_pos].split(":")[1].lstrip().split(" "))
                 author = output[i + author_offset].split(":")[1].lstrip()
-                date = datetime.strptime(
+                date = datetime.datetime.strptime(
                     output[i + date_offset].split(":", maxsplit=1)[1].lstrip(),
                     "%a %b %d %H:%M:%S %z %Y",
                 )
@@ -530,15 +533,15 @@ class Dolt(DoltT):
 
     def diff(
         self,
-        commit: str = None,
-        other_commit: str = None,
-        table_or_tables: Union[str, List[str]] = None,
+        commit: Optional[str] = None,
+        other_commit: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
         data: bool = False,
         schema: bool = False,  # can we even support this?
         summary: bool = False,
         sql: bool = False,
-        where: str = None,
-        limit: int = None,
+        where: Optional[str] = None,
+        limit: Optional[int] = None,
     ):
         """
         Executes a diff command and prints the output. In the future we plan to create a diff object that will allow
@@ -558,7 +561,7 @@ class Dolt(DoltT):
         if len(switch_count) > 1:
             raise ValueError("At most one of delete, copy, move can be set to True")
 
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             tables = [table_or_tables]
         else:
             tables = table_or_tables
@@ -590,7 +593,7 @@ class Dolt(DoltT):
 
         self.execute(args)
 
-    def blame(self, table_name: str, rev: str = None):
+    def blame(self, table_name: str, rev: Optional[str] = None):
         """
         Executes a blame command that prints out a table that shows the authorship of the last change to a row.
         :param table_name:
@@ -607,9 +610,9 @@ class Dolt(DoltT):
 
     def branch(
         self,
-        branch_name: str = None,
-        start_point: str = None,
-        new_branch: str = None,
+        branch_name: Optional[str] = None,
+        start_point: Optional[str] = None,
+        new_branch: Optional[str] = None,
         force: bool = False,
         delete: bool = False,
         copy: bool = False,
@@ -704,10 +707,10 @@ class Dolt(DoltT):
 
     def checkout(
         self,
-        branch: str = None,
-        table_or_tables: Union[str, List[str]] = None,
+        branch: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
         checkout_branch: bool = False,
-        start_point: str = None,
+        start_point: Optional[str] = None,
     ):
         """
         Checkout an existing branch, or create a new one, optionally at a specified commit. Or, checkout a table or list
@@ -720,7 +723,7 @@ class Dolt(DoltT):
         """
         args = ["checkout"]
 
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             tables = [table_or_tables]
         else:
             tables = table_or_tables
@@ -746,7 +749,7 @@ class Dolt(DoltT):
         self.execute(args)
 
     def remote(
-        self, add: bool = False, name: str = None, url: str = None, remove: bool = None
+        self, add: bool = False, name: Optional[str] = None, url: Optional[str] = None, remove: bool = None
     ):
         """
         Add or remove remotes to this repository. Note we do not currently support some more esoteric options for using
@@ -789,7 +792,7 @@ class Dolt(DoltT):
     def push(
         self,
         remote: str,
-        refspec: str = None,
+        refspec: Optional[str] = None,
         set_upstream: bool = False,
         force: bool = False,
     ):
@@ -840,7 +843,7 @@ class Dolt(DoltT):
         """
         args = ["fetch"]
 
-        if type(refspec_or_refspecs) == str:
+        if isinstance(refspec_or_refspecs, str):
             refspecs = [refspec_or_refspecs]
         else:
             refspecs = refspec_or_refspecs
@@ -856,7 +859,7 @@ class Dolt(DoltT):
 
     @staticmethod
     def clone(
-        remote_url: str, new_dir: str = None, remote: str = None, branch: str = None
+        remote_url: str, new_dir: Optional[str] = None, remote: Optional[str] = None, branch: Optional[str] = None
     ) -> "Dolt":
         """
         Clones the specified DoltHub database into a new directory, or optionally an existing directory provided by the
@@ -898,8 +901,8 @@ class Dolt(DoltT):
     def read_tables(
         remote_url: str,
         committish: str,
-        table_or_tables: Union[str, List[str]] = None,
-        new_dir: str = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
+        new_dir: Optional[str] = None,
     ) -> "Dolt":
         """
         Reads the specified tables, or all the tables, from the DoltHub database specified into a new local database,
@@ -910,7 +913,7 @@ class Dolt(DoltT):
         :param new_dir:
         :return:
         """
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             to_read = [table_or_tables]
         else:
             to_read = table_or_tables
@@ -983,7 +986,7 @@ class Dolt(DoltT):
 
         return creds
 
-    def creds_check(self, endpoint: str = None, creds: str = None) -> bool:
+    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
         """
         Check that credentials authenticate with the specified endpoint, return True if authorized, False otherwise.
         :param endpoint: the endpoint to check
@@ -1033,13 +1036,13 @@ class Dolt(DoltT):
     @classmethod
     def config_global(
         cls,
-        name: str = None,
-        value: str = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
         unset: bool = False,
-    ) -> Mapping[str, str]:
+    ) -> Dict[str, str]:
         """
         Class method for manipulating global configs.
         :param name:
@@ -1063,13 +1066,13 @@ class Dolt(DoltT):
 
     def config_local(
         self,
-        name: str = None,
-        value: str = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
         unset: bool = False,
-    ) -> Mapping[str, str]:
+    ) -> Dict[str, str]:
         """
         Instance method for manipulating configs local to a repository.
         :param name:
@@ -1096,14 +1099,14 @@ class Dolt(DoltT):
         cls,
         global_config: bool = False,
         local_config: bool = False,
-        cwd: str = None,
-        name: str = None,
-        value: str = None,
+        cwd: Optional[str] = None,
+        name: Optional[str] = None,
+        value: Optional[str] = None,
         add: bool = False,
         list: bool = False,
         get: bool = False,
         unset: bool = False,
-    ) -> Mapping[str, str]:
+    ) -> Dict[str, str]:
 
         switch_count = [el for el in [add, list, get, unset] if el]
         if len(switch_count) != 1:
@@ -1188,7 +1191,7 @@ class Dolt(DoltT):
 
         return tables
 
-    def schema_export(self, table: str, filename: str = None):
+    def schema_export(self, table: str, filename: Optional[str] = None):
         """
         Export the scehma of the table specified to the file path specified.
         :param table:
@@ -1215,11 +1218,11 @@ class Dolt(DoltT):
         replace: bool = False,
         dry_run: bool = False,
         keep_types: bool = False,
-        file_type: bool = False,
+        file_type: Optional[str] = None,
         pks: List[str] = None,
-        map: str = None,
+        map: Optional[str] = None,
         float_threshold: float = None,
-        delim: str = None,
+        delim: Optional[str] = None,
     ):
         """
         This implements schema import from Dolt, it works by inferring a schema from the file provided. It operates in
@@ -1267,7 +1270,7 @@ class Dolt(DoltT):
         if map:
             args.extend(["--map", map])
         if float_threshold:
-            args.extend(["--float-threshold", float_threshold])
+            args.extend(["--float-threshold", str(float_threshold)])
         if delim:
             args.extend(["--delim", delim])
 
@@ -1275,7 +1278,7 @@ class Dolt(DoltT):
 
         self.execute(args)
 
-    def schema_show(self, table_or_tables: Union[str, List[str]], commit: str = None):
+    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
         """
         Dislay the schema of the specified table or tables at the (optionally) specified commit, defaulting to the tip
         of master on the current branch.
@@ -1283,7 +1286,7 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             to_show = [table_or_tables]
         else:
             to_show = table_or_tables
@@ -1303,7 +1306,7 @@ class Dolt(DoltT):
         :param table_or_tables:
         :return:
         """
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             tables = [table_or_tables]
         else:
             tables = table_or_tables
@@ -1317,12 +1320,12 @@ class Dolt(DoltT):
         create_table: bool = False,
         update_table: bool = False,
         force: bool = False,
-        mapping_file: str = None,
+        mapping_file: Optional[str] = None,
         pk: List[str] = None,
         replace_table: bool = False,
-        file_type: bool = None,
+        file_type: Optional[str] = None,
         continue_importing: bool = False,
-        delim: bool = None,
+        delim: str = None,
     ):
         """
         Import a table from a filename, inferring the schema from the file. Operates in two possible modes, update,
@@ -1377,10 +1380,10 @@ class Dolt(DoltT):
         table: str,
         filename: str,
         force: bool = False,
-        schema: str = None,
-        mapping_file: str = None,
+        schema: Optional[str] = None,
+        mapping_file: Optional[str] = None,
         pk: List[str] = None,
-        file_type: str = None,
+        file_type: Optional[str] = None,
         continue_exporting: bool = False,
     ):
         """
@@ -1435,7 +1438,7 @@ class Dolt(DoltT):
         self.execute(args)
 
     def table_cp(
-        self, old_table: str, new_table: str, commit: str = None, force: bool = False
+        self, old_table: str, new_table: str, commit: Optional[str] = None, force: bool = False
     ):
         """
         Copy an existing table to a new table, optionally at a specified commit.
