@@ -83,7 +83,9 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
+    def log(
+        self, number: Optional[int] = None, commit: Optional[str] = None
+    ) -> OrderedDict:
         ...
 
     @abc.abstractmethod
@@ -134,7 +136,11 @@ class DoltT(Generic[_T]):
 
     @abc.abstractmethod
     def remote(
-        self, add: bool = False, name: Optional[str] = None, url: Optional[str] = None, remove: Optional[bool] = None
+        self,
+        add: bool = False,
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        remove: Optional[bool] = None,
     ):
         ...
 
@@ -194,7 +200,9 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
+    def creds_check(
+        self, endpoint: Optional[str] = None, creds: Optional[str] = None
+    ) -> bool:
         ...
 
     @abc.abstractmethod
@@ -273,7 +281,9 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
+    def schema_show(
+        self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None
+    ):
         ...
 
     @abc.abstractmethod
@@ -317,6 +327,10 @@ class DoltT(Generic[_T]):
 
     @abc.abstractmethod
     def table_cp(
-        self, old_table: str, new_table: str, commit: Optional[str] = None, force: bool = False
+        self,
+        old_table: str,
+        new_table: str,
+        commit: Optional[str] = None,
+        force: bool = False,
     ):
         ...

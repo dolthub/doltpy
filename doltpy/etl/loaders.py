@@ -3,9 +3,9 @@ import io
 import itertools
 import logging
 import tempfile
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 
 from doltpy.cli.dolt import Dolt
 from doltpy.cli.read import read_pandas
@@ -22,7 +22,7 @@ INSERTED_COUNT_COL = "count"
 
 
 def _apply_df_transformers(
-    data: pd.DataFrame, transformers: List[DataframeTransformer]
+    data: pd.DataFrame, transformers: Optional[List[DataframeTransformer]] = None
 ) -> pd.DataFrame:
     if not transformers:
         return data
@@ -33,7 +33,7 @@ def _apply_df_transformers(
 
 
 def _apply_file_transformers(
-    data: io.StringIO, transformers: List[FileTransformer]
+    data: io.StringIO, transformers: Optional[List[FileTransformer]] = None
 ) -> io.StringIO:
     data.seek(0)
     if not transformers:
@@ -196,7 +196,7 @@ def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
 def _get_unique_key_update_writer(
     table: str,
     get_data: Callable[[], pd.DataFrame],
-    transformers: List[DataframeTransformer] = None,
+    transformers: Optional[List[DataframeTransformer]] = None,
 ) -> DoltTableWriter:
     def inner(repo: Dolt):
         _transformers = (
@@ -267,7 +267,7 @@ def get_dolt_loader(
     :param transaction_mode:
     :return: the branch written to
     """
-    if type(writer_or_writers) == list:
+    if isinstance(writer_or_writers, list):
         writers = writer_or_writers
     else:
         writers = [writer_or_writers]
@@ -325,7 +325,7 @@ def get_dolt_loader(
     return inner
 
 
-def get_branch_creator(new_branch_name: str, refspec: str = None):
+def get_branch_creator(new_branch_name: str, refspec: Optional[str] = None):
     """
     Returns a function that creates a branch at the specified refspec.
     :param new_branch_name:
@@ -357,7 +357,7 @@ def create_table_from_schema_import(
     pks: List[str],
     path: str,
     commit: bool = True,
-    commit_message: str = None,
+    commit_message: Optional[str] = None,
 ):
     """
     Execute Dolt.schema_import_create(...) against a file with a specified set of primary key columns, and optionally
@@ -404,9 +404,9 @@ def _create_table_from_schema_import_helper(
     table: str,
     pks: List[str],
     path: str,
-    transformers: List[DataframeTransformer] = None,
+    transformers: Optional[List[DataframeTransformer]] = None,
     commit: bool = True,
-    commit_message: str = None,
+    commit_message: Optional[str] = None,
 ):
     if transformers:
         fp = tempfile.NamedTemporaryFile(suffix=".csv")

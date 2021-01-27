@@ -7,7 +7,8 @@ import tempfile
 from collections import OrderedDict
 import datetime
 from subprocess import PIPE, Popen
-from typing import List, Dict, Tuple, Union, Optional
+import sys
+from typing import cast, List, Dict, Tuple, Union, Optional
 
 from ..types.dolt import DoltT
 
@@ -20,7 +21,14 @@ class DoltException(Exception):
     A class representing a Dolt exception.
     """
 
-    def __init__(self, exec_args, stdout, stderr, exitcode):
+    def __init__(
+        self,
+        exec_args,
+        stdout: Optional[Union[str, bytes]] = None,
+        stderr: Optional[Union[str, bytes]] = None,
+        exitcode: Optional[int] = 1,
+    ):
+        super().__init__(exec_args)
         self.exec_args = exec_args
         self.stdout = stdout
         self.stderr = stderr
@@ -42,7 +50,7 @@ class DoltDirectoryException(Exception):
         self.message = message
 
 
-def _execute(args: List[str], cwd: str):
+def _execute(args: List[str], cwd: Optional[str] = None):
     _args = ["dolt"] + args
     proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
@@ -78,7 +86,11 @@ class DoltTable:
     """
 
     def __init__(
-        self, name: str, table_hash: Optional[str] = None, rows: Optional[int] = None, system: bool = False
+        self,
+        name: str,
+        table_hash: Optional[str] = None,
+        rows: Optional[int] = None,
+        system: bool = False,
     ):
         self.name = name
         self.table_hash = table_hash
@@ -101,7 +113,7 @@ class DoltCommit:
         ts: datetime.datetime,
         author: str,
         message: str,
-        merge: Tuple[str, str] = None,
+        merge: Optional[Tuple[str, ...]] = None,
     ):
         self.hash = ref
         self.ts = ts
@@ -153,7 +165,7 @@ class DoltHubContext:
         db_path: str,
         path: Optional[str] = None,
         remote: str = "origin",
-        tables_to_read: List[str] = None,
+        tables_to_read: Optional[List[str]] = None,
     ):
         self.db_path = db_path
         self.path = tempfile.mkdtemp() if not path else path
@@ -184,7 +196,7 @@ class DoltHubContext:
 
         self.dolt = dolt
 
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):
         pass
 
 
@@ -259,7 +271,7 @@ class Dolt(DoltT):
         Parses the status of this repository into a `DoltStatus` object.
         :return:
         """
-        new_tables: Dict[str, bool]  = {}
+        new_tables: Dict[str, bool] = {}
         changes: Dict[str, bool] = {}
 
         output = self.execute(["status"], print_output=False)
@@ -331,7 +343,10 @@ class Dolt(DoltT):
         self.execute(args + to_reset)
 
     def commit(
-        self, message: str = "", allow_empty: bool = False, date: datetime.datetime = None
+        self,
+        message: str = "",
+        allow_empty: bool = False,
+        date: datetime.datetime = None,
     ):
         """
         Create a commit with the currents in the working set that are currently in staging.
@@ -486,7 +501,9 @@ class Dolt(DoltT):
         dict_reader = csv.DictReader(io.StringIO("\n".join(output)))
         return list(dict_reader)
 
-    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
+    def log(
+        self, number: Optional[int] = None, commit: Optional[str] = None
+    ) -> OrderedDict:
         """
         Parses the log created by running the log command into instances of `DoltCommit` that provide detail of the
         commit, including timestamp and hash.
@@ -505,6 +522,7 @@ class Dolt(DoltT):
         result = OrderedDict()
         for i, line in enumerate(output):
             if line.startswith("commit"):
+                offsets: Optional[Tuple[Optional[int], int, int, int]] = None
                 if output[i + 1].startswith("Merge"):
                     offsets = (1, 2, 3, 5)
                 else:
@@ -525,6 +543,7 @@ class Dolt(DoltT):
                 commit_metadata = (current_commit, date, author, message)
                 if None in commit_metadata:
                     raise ValueError(f"Invalid commit metadata: {commit_metadata}")
+
                 result[current_commit] = DoltCommit(
                     current_commit, date, author, message, merge
                 )
@@ -563,7 +582,7 @@ class Dolt(DoltT):
 
         if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        else:
+        elif isinstance(table_or_tables, list):
             tables = table_or_tables
 
         args = ["diff"]
@@ -572,7 +591,7 @@ class Dolt(DoltT):
             if where:
                 args.extend(["--where", where])
             if limit:
-                args.extend(["--limit", limit])
+                args.extend(["--limit", str(limit)])
 
         if summary:
             args.append("--summary")
@@ -703,6 +722,9 @@ class Dolt(DoltT):
                 branch, commit = split[0], split[1]
                 branches.append(DoltBranch(branch, commit))
 
+        if not active_branch:
+            raise DoltException("Failed to set active branch")
+
         return active_branch, branches
 
     def checkout(
@@ -725,7 +747,7 @@ class Dolt(DoltT):
 
         if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        else:
+        elif isinstance(table_or_tables, list):
             tables = table_or_tables
 
         if branch:
@@ -749,7 +771,11 @@ class Dolt(DoltT):
         self.execute(args)
 
     def remote(
-        self, add: bool = False, name: Optional[str] = None, url: Optional[str] = None, remove: bool = None
+        self,
+        add: bool = False,
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        remove: bool = None,
     ):
         """
         Add or remove remotes to this repository. Note we do not currently support some more esoteric options for using
@@ -845,7 +871,7 @@ class Dolt(DoltT):
 
         if isinstance(refspec_or_refspecs, str):
             refspecs = [refspec_or_refspecs]
-        else:
+        elif isinstance(refspec_or_refspecs, list):
             refspecs = refspec_or_refspecs
 
         if force:
@@ -859,7 +885,10 @@ class Dolt(DoltT):
 
     @staticmethod
     def clone(
-        remote_url: str, new_dir: Optional[str] = None, remote: Optional[str] = None, branch: Optional[str] = None
+        remote_url: str,
+        new_dir: Optional[str] = None,
+        remote: Optional[str] = None,
+        branch: Optional[str] = None,
     ) -> "Dolt":
         """
         Clones the specified DoltHub database into a new directory, or optionally an existing directory provided by the
@@ -879,6 +908,9 @@ class Dolt(DoltT):
             args.extend(["--branch", branch])
 
         new_dir = Dolt._new_dir_helper(new_dir, remote_url)
+        if not new_dir:
+            raise ValueError("Unable to infer new_dir")
+
         args.append(new_dir)
 
         _execute(args, cwd=new_dir)
@@ -886,15 +918,19 @@ class Dolt(DoltT):
         return Dolt(new_dir)
 
     @classmethod
-    def _new_dir_helper(cls, new_dir: str, remote_url: str):
-        if not new_dir:
+    def _new_dir_helper(
+        cls, new_dir: Optional[str] = None, remote_url: Optional[str] = None
+    ):
+        if not (new_dir or remote_url):
+            raise ValueError("Provide either new_dir or remote_url")
+        elif remote_url and not new_dir:
             split = remote_url.split("/")
             new_dir = os.path.join(os.getcwd(), split[-1])
             if os.path.exists(new_dir):
                 raise DoltDirectoryException(f"Cannot create new directory {new_dir}")
             os.mkdir(new_dir)
             return new_dir
-        elif os.path.exists(os.path.join(new_dir, ".dolt")):
+        elif new_dir and os.path.exists(os.path.join(new_dir, ".dolt")):
             raise DoltDirectoryException(f"{new_dir} is already a valid Dolt repo")
 
     @staticmethod
@@ -915,12 +951,15 @@ class Dolt(DoltT):
         """
         if isinstance(table_or_tables, str):
             to_read = [table_or_tables]
-        else:
+        elif isinstance(table_or_tables, list):
             to_read = table_or_tables
 
         args = ["read-tables"]
 
         new_dir = Dolt._new_dir_helper(new_dir, remote_url)
+        if not new_dir:
+            raise ValueError("Unable to infer new_dir")
+
         args.extend(["--dir", new_dir, remote_url, committish])
 
         if to_read:
@@ -986,7 +1025,9 @@ class Dolt(DoltT):
 
         return creds
 
-    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
+    def creds_check(
+        self, endpoint: Optional[str] = None, creds: Optional[str] = None
+    ) -> bool:
         """
         Check that credentials authenticate with the specified endpoint, return True if authorized, False otherwise.
         :param endpoint: the endpoint to check
@@ -1130,11 +1171,11 @@ class Dolt(DoltT):
                 raise ValueError("For list, no name and value provided")
             args.append("--list")
         if get:
-            if not name and value:
+            if not name or value:
                 raise ValueError("For get, only name is provided")
             args.extend(["--get", name])
         if unset:
-            if not name and value:
+            if not name or value:
                 raise ValueError("For get, only name is provided")
             args.extend(["--unset", name])
 
@@ -1164,7 +1205,7 @@ class Dolt(DoltT):
             args.append("--system")
 
         output = self.execute(args, print_output=False)
-        tables = []
+        tables: List[DoltTable] = []
         system_pos = None
 
         if len(output) == 3 and output[0] == "No tables in working set":
@@ -1180,7 +1221,7 @@ class Dolt(DoltT):
                 if not line:
                     pass
                 split = line.lstrip().split()
-                tables.append(DoltTable(split[0], split[1], split[2]))
+                tables.append(DoltTable(split[0], split[1], int(split[2])))
 
         if system_pos:
             for line in output[system_pos:]:
@@ -1278,7 +1319,9 @@ class Dolt(DoltT):
 
         self.execute(args)
 
-    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
+    def schema_show(
+        self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None
+    ):
         """
         Dislay the schema of the specified table or tables at the (optionally) specified commit, defaulting to the tip
         of master on the current branch.
@@ -1438,7 +1481,11 @@ class Dolt(DoltT):
         self.execute(args)
 
     def table_cp(
-        self, old_table: str, new_table: str, commit: Optional[str] = None, force: bool = False
+        self,
+        old_table: str,
+        new_table: str,
+        commit: Optional[str] = None,
+        force: bool = False,
     ):
         """
         Copy an existing table to a new table, optionally at a specified commit.

@@ -18,10 +18,9 @@ extensions = [
     "sphinx_issues",
     "sphinxcontrib.log_cabinet",
     "sphinx_markdown_builder",
-
 ]
 intersphinx_mapping = {"python": ("https://docs.python.org/3/", None)}
-#issues_github_path = ""
+# issues_github_path = ""
 
 # HTML -----------------------------------------------------------------
 
@@ -39,14 +38,12 @@ html_sidebars = {
     "**": ["localtoc.html", "relations.html", "searchbox.html"],
 }
 singlehtml_sidebars = {"index": ["project.html", "localtoc.html"]}
-#html_static_path = ["_static"]
-#html_favicon = "_static/favicon.ico"
-#html_logo = "_static/werkzeug.png"
+# html_static_path = ["_static"]
+# html_favicon = "_static/favicon.ico"
+# html_logo = "_static/werkzeug.png"
 html_title = f"Doltpy Documentation ({version})"
 html_show_sourcelink = False
 
 # LaTeX ----------------------------------------------------------------
 
-latex_documents = [
-    (master_doc, f"Doltpy-{version}.tex", html_title, author, "manual")
-]
+latex_documents = [(master_doc, f"Doltpy-{version}.tex", html_title, author, "manual")]
