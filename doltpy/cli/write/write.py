@@ -4,9 +4,9 @@ import io
 import logging
 import os
 import tempfile
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional, Set
 
-import pandas as pd
+import pandas as pd # type: ignore
 
 from doltpy.cli import Dolt
 from doltpy.shared.helpers import columns_to_rows
@@ -120,7 +120,7 @@ def write_rows(
 
     def writer(filepath: str):
         with open(filepath, "w") as f:
-            fieldnames = set()
+            fieldnames: Set[str] = set()
             for row in rows:
                 fieldnames = fieldnames.union(set(row.keys()))
 
@@ -182,14 +182,14 @@ def write_pandas(
 def _import_helper(
     dolt: Dolt,
     table: str,
-    write_import_file: Optional[Callable[[str], None]],
+    write_import_file: Callable[[str], None],
     import_mode: Optional[str] = None,
     primary_key: Optional[List[str]] = None,
     commit: Optional[bool] = False,
     commit_message: Optional[str] = None,
     commit_date: Optional[datetime.datetime] = None,
 ) -> None:
-    import_mode = _get_import_mode_and_flags(dolt, import_mode, table)
+    import_mode = _get_import_mode_and_flags(dolt, table, import_mode)
     logger.info(
         f"Importing to table {table} in dolt directory located in {dolt.repo_dir()}, import mode {import_mode}"
     )
@@ -216,11 +216,10 @@ def _import_helper(
             os.remove(fname)
 
 
-def _get_import_mode_and_flags(dolt: Dolt, import_mode: str, table: str) -> str:
+def _get_import_mode_and_flags(dolt: Dolt, table: str, import_mode: Optional[str] = None) -> str:
     import_modes = IMPORT_MODES_TO_FLAGS.keys()
-    if import_mode is not None:
-        if import_mode not in import_modes:
-            raise ValueError(f"update_mode must be one of: {import_modes}")
+    if import_mode and import_mode not in import_modes:
+        raise ValueError(f"update_mode must be one of: {import_modes}")
     else:
         if table in [table.name for table in dolt.ls()]:
             logger.info(f'No import mode specified, table exists, using "{UPDATE}"')
