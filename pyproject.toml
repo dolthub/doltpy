@@ -36,6 +36,10 @@ psycopg2-binary = "2.8.5"
 cx-Oracle = ">=8.0.1"
 mysql-connector-python = "8.0.20"
 isort = "^5.7.0"
+sphinx-markdown-builder = "^0.5.4"
+pallets_sphinx_themes = "^1.2.3"
+sphinx_issues = "^1.2.0"
+"sphinxcontrib.log_cabinet" = "^1.0.1"
 
 [tool.poetry.extras]
 pg = ["psycopg2-binary"]
