@@ -3,13 +3,13 @@ import csv
 import logging
 import math
 import os
-from datetime import date, datetime, time
+import datetime
 
 # from doltpy.shared import SQL_LOG_FILE
 from subprocess import STDOUT, Popen
-from typing import Any, Iterable, List, Mapping, Union
+from typing import Any, Iterable, List, Mapping, Union, Optional
 
-import pandas as pd
+import pandas as pd # type: ignore
 import sqlalchemy as sa  # type: ignore
 from retry import retry
 from sqlalchemy import create_engine  # type: ignore
@@ -29,16 +29,16 @@ DEFAULT_BATCH_SIZE = 100000
 class ServerConfig:
     def __init__(
         self,
-        branch: str = None,
-        config: str = None,
+        branch: Optional[str] = None,
+        config: Optional[str] = None,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
-        user: str = None,
-        password: str = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
         timeout: int = None,
         readonly: bool = None,
-        loglevel: str = None,
-        multi_db_dir: str = None,
+        loglevel: Optional[str] = None,
+        multi_db_dir: Optional[str] = None,
         no_auto_commit: bool = None,
         echo: bool = False,
     ):
@@ -99,13 +99,13 @@ class DoltSQLContext:
 
     def commit_tables(
         self,
-        commit_message: str,
-        table_or_tables: Union[str, List[str]] = None,
+        commit_message: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
         allow_emtpy: bool = False,
     ) -> str:
-        if type(table_or_tables) == str:
+        if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        else:
+        elif isinstance(table_or_tables, list):
             tables = table_or_tables
         with self.engine.connect() as conn:
             if tables:
@@ -125,7 +125,7 @@ class DoltSQLContext:
         self,
         sql: str,
         commit: bool = False,
-        commit_message: str = None,
+        commit_message: Optional[str] = None,
         allow_emtpy: bool = False,
     ):
         with self.engine.connect() as conn:
@@ -142,10 +142,10 @@ class DoltSQLContext:
         columns: Mapping[str, List[Any]],
         on_duplicate_key_update: bool = True,
         create_if_not_exists: bool = False,
-        primary_key: List[str] = None,
+        primary_key: Optional[List[str]] = None,
         commit: bool = True,
-        commit_message: str = None,
-        commit_date: datetime = None,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
         allow_empty: bool = False,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
@@ -170,10 +170,10 @@ class DoltSQLContext:
         file_path: str,
         on_duplicate_key_update: bool = True,
         create_if_not_exists: bool = False,
-        primary_key: List[str] = None,
+        primary_key: Optional[List[str]] = None,
         commit: bool = True,
-        commit_message: str = None,
-        commit_date: datetime = None,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
         allow_empty: bool = False,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
@@ -200,10 +200,10 @@ class DoltSQLContext:
         df: pd.DataFrame,
         on_duplicate_key_update: bool = True,
         create_if_not_exists: bool = False,
-        primary_key: List[str] = None,
+        primary_key: Optional[List[str]] = None,
         commit: bool = False,
-        commit_message: str = None,
-        commit_date: datetime = None,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
         allow_empty: bool = False,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
@@ -227,10 +227,10 @@ class DoltSQLContext:
         rows: Iterable[dict],
         on_duplicate_key_update: bool = True,
         create_if_not_exists: bool = False,
-        primary_key: List[str] = None,
+        primary_key: Optional[List[str]] = None,
         commit: bool = False,
-        commit_message: str = None,
-        commit_date: datetime = None,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
         allow_empty: bool = False,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
@@ -268,8 +268,8 @@ class DoltSQLContext:
         for row in data:
             row_copy = {}
             for col, val in row.items():
-                if type(val) == date:
-                    row_copy[col] = datetime.combine(val, time())
+                if isinstance(val, datetime.date):
+                    row_copy[col] = datetime.datetime.combine(val, datetime.time())
                 else:
                     row_copy[col] = val
             data_copy.append(row_copy)
@@ -312,17 +312,17 @@ class DoltSQLContext:
                 )
                 conn.execute(statement, _updates)
 
-    def read_columns(self, table: str, as_of: str = None) -> Mapping[str, list]:
+    def read_columns(self, table: str, as_of: Optional[str] = None) -> Mapping[str, list]:
         return self.read_columns_sql(self._get_read_table_asof_query(table, as_of))
 
-    def read_rows(self, table: str, as_of: str = None) -> List[dict]:
+    def read_rows(self, table: str, as_of: Optional[str] = None) -> List[dict]:
         return self.read_rows_sql(self._get_read_table_asof_query(table, as_of))
 
-    def read_pandas(self, table: str, as_of: str = None) -> pd.DataFrame:
+    def read_pandas(self, table: str, as_of: Optional[str] = None) -> pd.DataFrame:
         return self.read_pandas_sql(self._get_read_table_asof_query(table, as_of))
 
     @classmethod
-    def _get_read_table_asof_query(cls, table: str, as_of: str = None) -> str:
+    def _get_read_table_asof_query(cls, table: str, as_of: Optional[str] = None) -> str:
         base_query = f"SELECT * FROM `{table}`"
         return f'{base_query} AS OF "{as_of}"' if as_of else base_query
 

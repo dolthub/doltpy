@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import List, Union, Optional
 
 from doltpy.cli import Dolt, DoltHubContext
 from doltpy.etl.loaders import DoltLoader
@@ -13,7 +13,7 @@ def load_to_dolthub(
     push: bool,
     remote_name: str,
     remote_url: str,
-    dolt_dir: str = None,
+    dolt_dir: Optional[str] = None,
     dry_run: bool = False,
 ):
     """
@@ -28,7 +28,7 @@ def load_to_dolthub(
     :param remote_url:
     :return:
     """
-    if type(loader_or_loaders) == list:
+    if isinstance(loader_or_loaders, list):
         loaders = loader_or_loaders
     else:
         loaders = [loader_or_loaders]
@@ -65,7 +65,7 @@ def load_to_dolt(
     :param dry_run:
     :return:
     """
-    if type(loader_or_loaders) == list:
+    if isinstance(loader_or_loaders, list):
         loaders = loader_or_loaders
     else:
         loaders = [loader_or_loaders]

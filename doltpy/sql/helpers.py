@@ -89,7 +89,7 @@ def get_inserts_and_updates(
 
 
 def infer_table_schema(
-    metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: List[str]
+    metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: Optional[List[str]]
 ):
     # generate and execute a create table statement
     cols_to_types = {}

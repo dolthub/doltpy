@@ -36,6 +36,7 @@ psycopg2-binary = "2.8.5"
 cx-Oracle = ">=8.0.1"
 mysql-connector-python = "8.0.20"
 isort = "^5.7.0"
+ipython = "^7.19.0"
 
 [tool.poetry.extras]
 pg = ["psycopg2-binary"]
