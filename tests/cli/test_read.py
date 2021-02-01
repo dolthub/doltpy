@@ -2,9 +2,25 @@ from doltpy.cli import Dolt
 from typing import List
 import pytest
 from doltpy.cli.write import write_rows, CREATE, UPDATE
-from doltpy.cli.tests import compare_rows_helper
+from .helpers import compare_rows_helper
 from doltpy.cli.read import read_rows, read_pandas, read_columns
 from doltpy.shared.helpers import columns_to_rows
+
+def compare_rows_helper(expected: List[dict], actual: List[dict]):
+    assert len(expected) == len(actual), f'Unequal row counts: {len(expected)} != {len(actual)}'
+    errors = []
+    for l, r in zip(expected, actual):
+        l_cols, r_cols = set(l.keys()), set(r.keys())
+        assert l_cols == r_cols, f'Unequal sets of columns: {l_cols} != {r_cols}'
+        for col in l_cols:
+            l_val, r_val = l[col], r[col]
+            if col.startswith('date'):
+                l_val, r_val = l_val[:10], r_val[:10]
+            if l_val != r_val and not (l_val is None and r_val == ''):
+                errors.append(f'{col}: {l_val} != {r_val}')
+
+    error_str = '\n'.join(errors)
+    assert not errors, f'Failed with the following unequal columns:\n{error_str}'
 
 TEST_TABLE = 'characters'
 TEST_DATA_INITIAL = [

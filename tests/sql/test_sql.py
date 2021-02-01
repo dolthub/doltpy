@@ -2,7 +2,7 @@ import psutil
 import pytest
 from doltpy.cli import Dolt
 from doltpy.sql import DoltSQLServerContext
-from doltpy.sql.tests.helpers import TEST_SERVER_CONFIG, TEST_DATA_INITIAL
+from .helpers import TEST_SERVER_CONFIG, TEST_DATA_INITIAL
 
 TEST_TABLE_ONE, TEST_TABLE_TWO = 'foo', 'bar'
 COMMIT_MESSAGE = 'major update'

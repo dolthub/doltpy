@@ -1,4 +1,4 @@
-from doltpy.sql.sync.tests.helpers.data_helper import (assert_rows_equal,
+from .helpers.data_helper import (assert_rows_equal,
                                                        get_expected_data,
                                                        get_expected_dolt_diffs,
                                                        FIRST_UPDATE,

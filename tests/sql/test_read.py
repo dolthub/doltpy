@@ -1,6 +1,6 @@
 from doltpy.sql import DoltSQLServerContext
 from doltpy.shared import columns_to_rows
-from doltpy.sql.tests.helpers import (TEST_SERVER_CONFIG,
+from .helpers import (TEST_SERVER_CONFIG,
                                       TEST_TABLE,
                                       TEST_DATA_INITIAL,
                                       TEST_DATA_UPDATE,

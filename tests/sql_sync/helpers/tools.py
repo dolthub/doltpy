@@ -1,4 +1,4 @@
-from doltpy.sql.sync.tests.helpers import (TEST_TABLE_METADATA,
+from . import (TEST_TABLE_METADATA,
                                            TEST_DATA_INITIAL,
                                            TEST_DATA_APPEND_SINGLE_ROW,
                                            TEST_DATA_APPEND_MULTIPLE_ROWS,

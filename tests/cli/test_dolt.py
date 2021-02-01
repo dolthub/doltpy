@@ -7,7 +7,7 @@ import pandas as pd
 import uuid
 import os
 from typing import Tuple, List
-from doltpy.cli.tests.helpers import get_repo_path_tmp_path
+from .helpers import get_repo_path_tmp_path
 
 
 BASE_TEST_ROWS = [

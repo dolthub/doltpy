@@ -4,7 +4,7 @@ from doltpy.sql.sync.mysql import MYSQL_TO_DOLT_TYPE_MAPPINGS
 from doltpy.cli.dolt import Dolt
 from sqlalchemy.engine import Engine
 from sqlalchemy import MetaData
-from doltpy.sql.sync.tests.helpers.schema_sync_helper import TEST_SOURCE_TABLE, TEST_TARGET_TABLE, ALTER_TABLE
+from .helpers.schema_sync_helper import TEST_SOURCE_TABLE, TEST_TARGET_TABLE, ALTER_TABLE
 import pytest
 
 TABLE_MAP = {TEST_SOURCE_TABLE: TEST_TARGET_TABLE}

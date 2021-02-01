@@ -7,8 +7,8 @@ from doltpy.sql.sync.db_tools import get_source_reader, get_table_reader, get_ta
 from doltpy.sql.sync.sync_tools import sync_to_dolt
 from doltpy.sql.sync.dolt import (get_target_writer as get_dolt_target_writer,
                                   get_table_reader as get_dolt_table_reader)
-from doltpy.sql.sync.tests.helpers.tools import validate_dolt_as_source, validate_dolt_as_target
-from doltpy.sql.sync.tests.helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deserialize_longtext
+from .helpers.tools import validate_dolt_as_source, validate_dolt_as_target
+from .helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deserialize_longtext
 
 logger = logging.getLogger(__name__)
 

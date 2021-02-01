@@ -1,5 +1,5 @@
 from doltpy.sql import DoltSQLServerContext
-from doltpy.sql.tests.helpers import (TEST_SERVER_CONFIG,
+from .helpers import (TEST_SERVER_CONFIG,
                                       TEST_TABLE,
                                       TEST_DATA_INITIAL,
                                       TEST_DATA_UPDATE,
