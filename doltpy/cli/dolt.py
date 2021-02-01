@@ -560,11 +560,6 @@ class Dolt(DoltT):
         if len(switch_count) > 1:
             raise ValueError("At most one of delete, copy, move can be set to True")
 
-        if isinstance(table_or_tables, str):
-            tables = [table_or_tables]
-        else:
-            tables = table_or_tables
-
         args = ["diff"]
 
         if data:
@@ -587,8 +582,10 @@ class Dolt(DoltT):
         if other_commit:
             args.append(other_commit)
 
-        if tables:
-            args.append(" ".join(tables))
+        if isinstance(table_or_tables, str):
+            args.append(table_or_tables)
+        elif isinstance(table_or_tables, list):
+            args.append(" ".join(table_or_tables))
 
         self.execute(args)
 
@@ -723,26 +720,21 @@ class Dolt(DoltT):
         :param start_point: tip of new branch
         :return:
         """
+        if table_or_tables and branch:
+            raise ValueError("No table_or_tables may be provided when creating a branch with checkout")
         args = ["checkout"]
 
-        if isinstance(table_or_tables, str):
-            tables = [table_or_tables]
-        else:
-            tables = table_or_tables
-
         if branch:
-            if table_or_tables:
-                raise ValueError("No table_or_tables may be provided when creating a branch with checkout")
             if checkout_branch:
                 args.append("-b")
                 if start_point:
                     args.append(start_point)
             args.append(branch)
 
-        if tables:
-            if branch:
-                raise ValueError("Passing a branch not compatible with checking out tables")
-            args.append(" ".join(tables))
+        elif isinstance(table_or_tables, str):
+            args.append(table_or_tables)
+        elif isinstance(table_or_tables, list):
+            args.append(" ".join(table_or_tables))
 
         self.execute(args)
 
@@ -845,17 +837,14 @@ class Dolt(DoltT):
         """
         args = ["fetch"]
 
-        if isinstance(refspec_or_refspecs, str):
-            refspecs = [refspec_or_refspecs]
-        else:
-            refspecs = refspec_or_refspecs
-
         if force:
             args.append("--force")
         if remote:
             args.append(remote)
-        if refspec_or_refspecs:
-            args.extend(refspecs)
+        if isinstance(refspec_or_refspecs, str):
+            args.extend([refspec_or_refspecs])
+        elif isinstance(refspec_or_refspecs, list):
+            args.extend(refspec_or_refspecs)
 
         self.execute(args)
 
@@ -923,11 +912,6 @@ class Dolt(DoltT):
         :param new_dir:
         :return:
         """
-        if isinstance(table_or_tables, str):
-            to_read = [table_or_tables]
-        else:
-            to_read = table_or_tables
-
         args = ["read-tables"]
 
         new_dir = Dolt._new_dir_helper(new_dir, remote_url)
@@ -936,8 +920,10 @@ class Dolt(DoltT):
 
         args.extend(["--dir", new_dir, remote_url, committish])
 
-        if to_read:
-            args.extend(to_read)
+        if isinstance(table_or_tables, str):
+            args.extend([table_or_tables])
+        elif isinstance(table_or_tables, list):
+            args.extend(table_or_tables)
 
         _execute(args, cwd=new_dir)
 
