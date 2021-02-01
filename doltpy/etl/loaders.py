@@ -32,9 +32,7 @@ def _apply_df_transformers(
     return temp
 
 
-def _apply_file_transformers(
-    data: io.StringIO, transformers: Optional[List[FileTransformer]] = None
-) -> io.StringIO:
+def _apply_file_transformers(data: io.StringIO, transformers: Optional[List[FileTransformer]] = None) -> io.StringIO:
     data.seek(0)
     if not transformers:
         return data
@@ -66,13 +64,9 @@ def get_bulk_table_writer(
     """
 
     def inner(repo: Dolt):
-        _import_mode = import_mode or (
-            "create" if table not in [t.name for t in repo.ls()] else "update"
-        )
+        _import_mode = import_mode or ("create" if table not in [t.name for t in repo.ls()] else "update")
         data_to_load = _apply_file_transformers(get_data(), transformers)
-        write_file(
-            repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols
-        )
+        write_file(repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols)
         return table
 
     return inner
@@ -99,13 +93,9 @@ def get_df_table_writer(
     """
 
     def inner(repo: Dolt):
-        _import_mode = import_mode or (
-            "create" if table not in [t.name for t in repo.ls()] else "update"
-        )
+        _import_mode = import_mode or ("create" if table not in [t.name for t in repo.ls()] else "update")
         data_to_load = _apply_df_transformers(get_data(), transformers)
-        write_pandas(
-            repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols
-        )
+        write_pandas(repo, table, data_to_load, import_mode=_import_mode, primary_key=pk_cols)
         return table
 
     return inner
@@ -159,12 +149,8 @@ def get_unique_key_table_writer(
     :param transformers:
     :return:
     """
-    _transformers = (
-        transformers + [insert_unique_key] if transformers else [insert_unique_key]
-    )
-    create = get_df_table_writer(
-        table, get_data, [INSERTED_ROW_HASH_COL], import_mode, _transformers
-    )
+    _transformers = transformers + [insert_unique_key] if transformers else [insert_unique_key]
+    create = get_df_table_writer(table, get_data, [INSERTED_ROW_HASH_COL], import_mode, _transformers)
     update = _get_unique_key_update_writer(table, get_data, transformers)
     return create if import_mode != UPDATE else update
 
@@ -181,9 +167,7 @@ def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
         INSERTED_ROW_HASH_COL not in df.columns and INSERTED_COUNT_COL not in df.columns
     ), "Require hash_id and count not in df"
     ids = df.apply(
-        lambda r: hashlib.md5(
-            ",".join([str(el) for el in r]).encode("utf-8")
-        ).hexdigest(),
+        lambda r: hashlib.md5(",".join([str(el) for el in r]).encode("utf-8")).hexdigest(),
         axis=1,
     )
     with_id = df.assign(hash_id=ids).set_index(INSERTED_ROW_HASH_COL)
@@ -199,9 +183,7 @@ def _get_unique_key_update_writer(
     transformers: Optional[List[DataframeTransformer]] = None,
 ) -> DoltTableWriter:
     def inner(repo: Dolt):
-        _transformers = (
-            transformers + [insert_unique_key] if transformers else [insert_unique_key]
-        )
+        _transformers = transformers + [insert_unique_key] if transformers else [insert_unique_key]
         data = _apply_df_transformers(get_data(), _transformers)
         if table not in [t.name for t in repo.ls()]:
             raise ValueError("Missing table")
@@ -212,9 +194,7 @@ def _get_unique_key_update_writer(
 
         # Get proposed PKs
         proposed_pks = data[INSERTED_ROW_HASH_COL].to_list()
-        to_drop = [
-            existing for existing in existing_pks if existing not in proposed_pks
-        ]
+        to_drop = [existing for existing in existing_pks if existing not in proposed_pks]
 
         if to_drop:
             iterator = iter(to_drop)
@@ -223,9 +203,7 @@ def _get_unique_key_update_writer(
                 if len(batch) == 0:
                     break
 
-            logger.info(
-                "Dropping batch of {} IDs from table {}".format(len(batch), table)
-            )
+            logger.info("Dropping batch of {} IDs from table {}".format(len(batch), table))
             drop_statement = """
             DELETE FROM {table} WHERE {pk} in ("{pks_to_drop}")
             """.format(
@@ -277,16 +255,10 @@ def get_dolt_loader(
         original_branch = current_branch.name
 
         if branch != original_branch and not commit:
-            raise ValueError(
-                "If writes are to another branch, and commit is not True, writes will be lost"
-            )
+            raise ValueError("If writes are to another branch, and commit is not True, writes will be lost")
 
         if current_branch.name != branch:
-            logger.info(
-                "Current branch is {}, checking out {}".format(
-                    current_branch.name, branch
-                )
-            )
+            logger.info("Current branch is {}, checking out {}".format(current_branch.name, branch))
             if branch not in [b.name for b in current_branch_list]:
                 logger.info("{} does not exist, creating".format(branch))
                 repo.branch(branch_name=branch)
@@ -299,11 +271,7 @@ def get_dolt_loader(
 
         if commit:
             if not repo.status().is_clean:
-                logger.info(
-                    "Committing to repo located in {} for tables:\n{}".format(
-                        repo.repo_dir, tables_updated
-                    )
-                )
+                logger.info("Committing to repo located in {} for tables:\n{}".format(repo.repo_dir, tables_updated))
                 for table in tables_updated:
                     repo.add(table)
                 repo.commit(message)
@@ -336,13 +304,9 @@ def get_branch_creator(new_branch_name: str, refspec: Optional[str] = None):
     def inner(repo: Dolt):
         _, current_branches = repo.branch()
         branches = [branch.name for branch in current_branches]
-        assert new_branch_name not in branches, "Branch {} already exists".format(
-            new_branch_name
-        )
+        assert new_branch_name not in branches, "Branch {} already exists".format(new_branch_name)
         logger.info(
-            "Creating new branch on repo in {} named {} at refspec {}".format(
-                repo.repo_dir, new_branch_name, refspec
-            )
+            "Creating new branch on repo in {} named {} at refspec {}".format(repo.repo_dir, new_branch_name, refspec)
         )
         repo.branch(new_branch_name)
 
@@ -370,9 +334,7 @@ def create_table_from_schema_import(
     :param commit_message:
     :return:
     """
-    _create_table_from_schema_import_helper(
-        repo, table, pks, path, commit=commit, commit_message=commit_message
-    )
+    _create_table_from_schema_import_helper(repo, table, pks, path, commit=commit, commit_message=commit_message)
 
 
 def create_table_from_schema_import_unique_key(

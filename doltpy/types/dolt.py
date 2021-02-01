@@ -83,9 +83,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def log(
-        self, number: Optional[int] = None, commit: Optional[str] = None
-    ) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
         ...
 
     @abc.abstractmethod
@@ -200,9 +198,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def creds_check(
-        self, endpoint: Optional[str] = None, creds: Optional[str] = None
-    ) -> bool:
+    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
         ...
 
     @abc.abstractmethod
@@ -281,9 +277,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def schema_show(
-        self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None
-    ):
+    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
         ...
 
     @abc.abstractmethod

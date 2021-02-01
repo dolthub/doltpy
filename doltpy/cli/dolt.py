@@ -176,20 +176,14 @@ class DoltHubContext:
     def __enter__(self):
         try:
             dolt = Dolt(self.path)
-            logger.info(
-                f'Dolt database found at path provided ({self.path}), pulling from remote "{self.remote}"'
-            )
+            logger.info(f'Dolt database found at path provided ({self.path}), pulling from remote "{self.remote}"')
             dolt.pull(self.remote)
         except AssertionError:
             if self.db_path is None:
                 raise ValueError("Cannot clone remote data without db_path set")
             if self.tables_to_read:
-                logger.info(
-                    f"Running read-tables, creating a fresh copy of {self.db_path}"
-                )
-                dolt = Dolt.read_tables(
-                    self.db_path, "master", table_or_tables=self.tables_to_read
-                )
+                logger.info(f"Running read-tables, creating a fresh copy of {self.db_path}")
+                dolt = Dolt.read_tables(self.db_path, "master", table_or_tables=self.tables_to_read)
             else:
                 logger.info(f"Running clone, cloning remote {self.db_path}")
                 dolt = Dolt.clone(self.db_path, self.path)
@@ -380,9 +374,7 @@ class Dolt(DoltT):
             err = f"Changes in the working set, please commit before merging {branch} to {current_branch.name}"
             raise ValueError(err)
         if branch not in [branch.name for branch in branches]:
-            raise ValueError(
-                f"Trying to merge in non-existent branch {branch} to {current_branch.name}"
-            )
+            raise ValueError(f"Trying to merge in non-existent branch {branch} to {current_branch.name}")
 
         logger.info(f"Merging {branch} into {current_branch.name}")
         args = ["merge"]
@@ -395,9 +387,7 @@ class Dolt(DoltT):
         merge_conflict_pos = 2
 
         if len(output) == 3 and "Fast-forward" in output[1]:
-            logger.info(
-                f"Completed fast-forward merge of {branch} into {current_branch.name}"
-            )
+            logger.info(f"Completed fast-forward merge of {branch} into {current_branch.name}")
             return
 
         if len(output) == 5 and output[merge_conflict_pos].startswith("CONFLICT"):
@@ -415,9 +405,7 @@ class Dolt(DoltT):
         logger.info(f"Merged {current_branch.name} into {branch} adding a commit")
         status = self.status()
 
-        for table in list(status.added_tables.keys()) + list(
-            status.modified_tables.keys()
-        ):
+        for table in list(status.added_tables.keys()) + list(status.modified_tables.keys()):
             self.add(table)
 
         self.commit(message)
@@ -472,9 +460,7 @@ class Dolt(DoltT):
         # do something with result format
         if result_format:
             if not query:
-                raise ValueError(
-                    "Must provide a query in order to specify a result format"
-                )
+                raise ValueError("Must provide a query in order to specify a result format")
             args.extend(["--query", query])
             if result_format in ["csv", "tabular"]:
                 args.extend(["--result-format", "csv"])
@@ -486,9 +472,7 @@ class Dolt(DoltT):
                 output = self.execute(args)
                 return json.load(io.StringIO("".join(output)))
             else:
-                raise ValueError(
-                    f"{result_format} is not a valid value for result_format"
-                )
+                raise ValueError(f"{result_format} is not a valid value for result_format")
 
         logger.warning("Must provide a value for result_format to get output back")
         if query:
@@ -501,9 +485,7 @@ class Dolt(DoltT):
         dict_reader = csv.DictReader(io.StringIO("\n".join(output)))
         return list(dict_reader)
 
-    def log(
-        self, number: Optional[int] = None, commit: Optional[str] = None
-    ) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
         """
         Parses the log created by running the log command into instances of `DoltCommit` that provide detail of the
         commit, including timestamp and hash.
@@ -544,9 +526,7 @@ class Dolt(DoltT):
                 if None in commit_metadata:
                     raise ValueError(f"Invalid commit metadata: {commit_metadata}")
 
-                result[current_commit] = DoltCommit(
-                    current_commit, date, author, message, merge
-                )
+                result[current_commit] = DoltCommit(current_commit, date, author, message, merge)
 
         return result
 
@@ -752,9 +732,7 @@ class Dolt(DoltT):
 
         if branch:
             if table_or_tables:
-                raise ValueError(
-                    "No table_or_tables may be provided when creating a branch with checkout"
-                )
+                raise ValueError("No table_or_tables may be provided when creating a branch with checkout")
             if checkout_branch:
                 args.append("-b")
                 if start_point:
@@ -763,9 +741,7 @@ class Dolt(DoltT):
 
         if tables:
             if branch:
-                raise ValueError(
-                    "Passing a branch not compatible with checking out tables"
-                )
+                raise ValueError("Passing a branch not compatible with checking out tables")
             args.append(" ".join(tables))
 
         self.execute(args)
@@ -918,9 +894,7 @@ class Dolt(DoltT):
         return Dolt(new_dir)
 
     @classmethod
-    def _new_dir_helper(
-        cls, new_dir: Optional[str] = None, remote_url: Optional[str] = None
-    ):
+    def _new_dir_helper(cls, new_dir: Optional[str] = None, remote_url: Optional[str] = None):
         if not (new_dir or remote_url):
             raise ValueError("Provide either new_dir or remote_url")
         elif remote_url and not new_dir:
@@ -1025,9 +999,7 @@ class Dolt(DoltT):
 
         return creds
 
-    def creds_check(
-        self, endpoint: Optional[str] = None, creds: Optional[str] = None
-    ) -> bool:
+    def creds_check(self, endpoint: Optional[str] = None, creds: Optional[str] = None) -> bool:
         """
         Check that credentials authenticate with the specified endpoint, return True if authorized, False otherwise.
         :param endpoint: the endpoint to check
@@ -1319,9 +1291,7 @@ class Dolt(DoltT):
 
         self.execute(args)
 
-    def schema_show(
-        self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None
-    ):
+    def schema_show(self, table_or_tables: Union[str, List[str]], commit: Optional[str] = None):
         """
         Dislay the schema of the specified table or tables at the (optionally) specified commit, defaulting to the tip
         of master on the current branch.

@@ -46,17 +46,11 @@ def load_to_dolthub(
             for dolt_loader in loaders:
                 branch = dolt_loader(dolthub_context.dolt)
                 if push:
-                    logger.info(
-                        "Pushing changes to remote {} on branch {}".format(
-                            remote_name, branch
-                        )
-                    )
+                    logger.info("Pushing changes to remote {} on branch {}".format(remote_name, branch))
                     dolthub_context.dolt.push(remote_name, branch)
 
 
-def load_to_dolt(
-    loader_or_loaders: Union[DoltLoader, List[DoltLoader]], dolt_dir: str, dry_run: bool
-):
+def load_to_dolt(loader_or_loaders: Union[DoltLoader, List[DoltLoader]], dolt_dir: str, dry_run: bool):
     """
     This function takes a `DoltLoaderBuilder`, repo and remote settings, and attempts to execute the loaders returned
     by the builder.

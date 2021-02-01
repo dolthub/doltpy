@@ -62,10 +62,7 @@ def sync_from_dolt(
 
 def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
     to_sync = source_reader(list(table_map.keys()))
-    remapped = {
-        table_map[source_table]: source_data
-        for source_table, source_data in to_sync.items()
-    }
+    remapped = {table_map[source_table]: source_data for source_table, source_data in to_sync.items()}
     target_writer(remapped)
 
 
@@ -89,18 +86,14 @@ def sync_schema_to_dolt(
     target_metadata.reflect()
     for source_table_name, target_table_name in table_map.items():
         source_table = source_metadata.tables[source_table_name]
-        target_table = coerce_schema_to_dolt(
-            target_table_name, source_table, type_mapping
-        )
+        target_table = coerce_schema_to_dolt(target_table_name, source_table, type_mapping)
         if target_table_name in target_metadata.tables.keys():
             target_table.drop(target_engine)
 
         target_table.create(target_engine)
 
 
-def coerce_schema_to_dolt(
-    target_table_name: str, table: Table, type_mapping: dict
-) -> Table:
+def coerce_schema_to_dolt(target_table_name: str, table: Table, type_mapping: dict) -> Table:
     target_cols = []
     for col in table.columns:
         target_col = coerce_column_to_dolt(col, type_mapping)
@@ -120,9 +113,7 @@ def coerce_column_to_dolt(column: Column, type_mapping: dict):
     """
     return Column(
         column.name,
-        type_mapping[type(column.type)]
-        if type(column.type) in type_mapping
-        else column.type,
+        type_mapping[type(column.type)] if type(column.type) in type_mapping else column.type,
         primary_key=column.primary_key,
         autoincrement=column.autoincrement,
         nullable=column.nullable,

@@ -190,9 +190,7 @@ def _import_helper(
     commit_date: Optional[datetime.datetime] = None,
 ) -> None:
     import_mode = _get_import_mode_and_flags(dolt, table, import_mode)
-    logger.info(
-        f"Importing to table {table} in dolt directory located in {dolt.repo_dir()}, import mode {import_mode}"
-    )
+    logger.info(f"Importing to table {table} in dolt directory located in {dolt.repo_dir()}, import mode {import_mode}")
 
     fname = tempfile.mktemp(suffix=".csv")
     import_flags = IMPORT_MODES_TO_FLAGS[import_mode]
@@ -205,10 +203,7 @@ def _import_helper(
         dolt.execute(args + [fname])
 
         if commit:
-            msg = (
-                commit_message
-                or f"Committing write to table {table} in {import_mode} mode"
-            )
+            msg = commit_message or f"Committing write to table {table} in {import_mode} mode"
             dolt.add(table)
             dolt.commit(msg, date=commit_date)
     finally:
@@ -216,9 +211,7 @@ def _import_helper(
             os.remove(fname)
 
 
-def _get_import_mode_and_flags(
-    dolt: Dolt, table: str, import_mode: Optional[str] = None
-) -> str:
+def _get_import_mode_and_flags(dolt: Dolt, table: str, import_mode: Optional[str] = None) -> str:
     import_modes = IMPORT_MODES_TO_FLAGS.keys()
     if import_mode and import_mode not in import_modes:
         raise ValueError(f"update_mode must be one of: {import_modes}")
