@@ -39,11 +39,11 @@ jobs:
         run: poetry run mypy doltpy
       - name: Execute pytest
         run: |
-          pytest --ignore tests/sql --ignore tests/sql_sync/ .
+          pytest --ignore tests/sql --ignore tests/sql_sync/ . --cov=doltpy_integrations --cov-report=term --cov-report xml
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: ./coverage-${{ runner.os }}-${{ matrix.python-version }}.xml
+          #files: ./coverage-${{ runner.os }}-${{ matrix.python-version }}.xml
           name: codecov-umbrella-${{ runner.os }}-${{ matrix.python-version }} # optional
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
