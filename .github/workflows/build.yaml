@@ -39,7 +39,7 @@ jobs:
         run: poetry run mypy doltpy
       - name: Execute pytest
         run: |
-          pytest --ignore tests/sql --ignore tests/sql_sync/ . --cov=doltpy_integrations --cov-report=term --cov-report xml
+          pytest --ignore tests/sql --ignore tests/sql_sync/ . --cov=doltpy --cov-report=term --cov-report xml
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos

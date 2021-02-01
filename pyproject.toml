@@ -39,6 +39,7 @@ sphinx_issues = "^1.2.0"
 ipython = "^7.19.0"
 pytest = "^6.2.2"
 pytest-docker = "^0.10.1"
+pytest-cov = "^2.11.1"
 
 [tool.poetry.extras]
 pg = ["psycopg2-binary"]
