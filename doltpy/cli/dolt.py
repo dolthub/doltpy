@@ -562,7 +562,7 @@ class Dolt(DoltT):
 
         if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        elif isinstance(table_or_tables, list):
+        else:
             tables = table_or_tables
 
         args = ["diff"]
@@ -727,7 +727,7 @@ class Dolt(DoltT):
 
         if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        elif isinstance(table_or_tables, list):
+        else:
             tables = table_or_tables
 
         if branch:
@@ -847,7 +847,7 @@ class Dolt(DoltT):
 
         if isinstance(refspec_or_refspecs, str):
             refspecs = [refspec_or_refspecs]
-        elif isinstance(refspec_or_refspecs, list):
+        else:
             refspecs = refspec_or_refspecs
 
         if force:
@@ -925,7 +925,7 @@ class Dolt(DoltT):
         """
         if isinstance(table_or_tables, str):
             to_read = [table_or_tables]
-        elif isinstance(table_or_tables, list):
+        else:
             to_read = table_or_tables
 
         args = ["read-tables"]
