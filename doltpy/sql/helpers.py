@@ -31,9 +31,7 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
                 if not val:
                     row_copy[col] = None
                 else:
-                    row_copy[col] = ",".join(
-                        str(el) if el is not None else "NULL" for el in val
-                    )
+                    row_copy[col] = ",".join(str(el) if el is not None else "NULL" for el in val)
             elif isinstance(val, dict):
                 row_copy[col] = str(val)
             elif pd.isna(val):
@@ -57,19 +55,14 @@ def get_existing_pks(engine: Engine, table: Table) -> Mapping[int, dict]:
         pk_cols = [table.c[col.name] for col in table.columns if col.primary_key]
         query = select(pk_cols)
         result = conn.execute(query)
-        return {
-            hash_row_els(dict(row), [col.name for col in pk_cols]): dict(row)
-            for row in result
-        }
+        return {hash_row_els(dict(row), [col.name for col in pk_cols]): dict(row) for row in result}
 
 
 def hash_row_els(row: dict, cols: List[str]) -> int:
     return hash(frozenset({col: row[col] for col in cols}.items()))
 
 
-def get_inserts_and_updates(
-    engine: Engine, table: Table, data: List[dict]
-) -> Tuple[List[dict], List[dict]]:
+def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> Tuple[List[dict], List[dict]]:
     existing_pks = get_existing_pks(engine, table)
     if not existing_pks:
         return data, []

@@ -20,9 +20,7 @@ from doltpy.sql.sync.db_tools import (
 logger = logging.getLogger(__name__)
 
 
-def get_target_writer(
-    dsc: DoltSQLContext, commit: bool = True, message: Optional[str] = None
-) -> DoltAsTargetWriter:
+def get_target_writer(dsc: DoltSQLContext, commit: bool = True, message: Optional[str] = None) -> DoltAsTargetWriter:
     """
     Given a repo, writes to the specified branch (defaults to current), and optionally commits with the provided
     message or generates a standard one.
@@ -93,9 +91,7 @@ def get_source_reader(
         dolt_tables = [table.name for table in dsc.dolt.ls()]
         missing_tables = [table for table in tables if table not in dolt_tables]
         if missing_tables:
-            logger.error(
-                f"The following tables are missing, exiting:\n{missing_tables}"
-            )
+            logger.error(f"The following tables are missing, exiting:\n{missing_tables}")
             raise ValueError(f"Missing tables {missing_tables}")
 
         for table in tables:
@@ -130,9 +126,7 @@ def get_table_reader_diffs(
     return inner
 
 
-def get_dropped_pks(
-    engine: Engine, table: Table, dolt_commit: DoltCommit
-) -> List[dict]:
+def get_dropped_pks(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
     """
     Given table_metadata, a connection, and a pair of commits, will return the list of pks that were dropped between
     the two commits.
@@ -155,9 +149,7 @@ def get_dropped_pks(
     return _query_helper(engine, query)
 
 
-def get_from_commit_to_commit(
-    dsc: DoltSQLContext, commit_ref: Optional[str] = None
-) -> DoltCommit:
+def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: Optional[str] = None) -> DoltCommit:
     """
     Given a repo and commit it returns the commit and its parent, if no commit is provided the head and the parent of
     head are returned.
@@ -196,9 +188,7 @@ def get_table_reader(
     return inner
 
 
-def _read_from_dolt_diff(
-    engine: Engine, table: Table, dolt_commit: DoltCommit
-) -> List[dict]:
+def _read_from_dolt_diff(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
     query = f"""
         SELECT
             {','.join(f'`to_{col.name}` as {col.name}' for col in table.columns)}
@@ -212,9 +202,7 @@ def _read_from_dolt_diff(
     return _query_helper(engine, query)
 
 
-def _read_from_dolt_history(
-    engine: Engine, table: Table, commit_ref: str
-) -> List[dict]:
+def _read_from_dolt_history(engine: Engine, table: Table, commit_ref: str) -> List[dict]:
     query = f"""
         SELECT
             {','.join(f'`{col.name}`' for col in table.columns)}

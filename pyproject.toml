@@ -2,7 +2,7 @@
 name = "doltpy"
 version = "0.1.0"
 description = ""
-authors = ["Max Hoffman <max@dolthub.com>"]
+authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -46,6 +46,15 @@ ipython = "^7.19.0"
 pg = ["psycopg2-binary"]
 oracle = ["cx-oracle"]
 mysql = ["mysql-connector-python"]
+
+[tool.black]
+line-length = 120
+
+[mypy]
+python_version = 3.7
+
+[mypy-doltpy]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]

@@ -15,9 +15,7 @@ from doltpy.sql.sync.db_tools import (
 logger = logging.getLogger(__name__)
 
 
-def get_target_writer(
-    engine: Engine, update_on_duplicate: bool = True
-) -> DoltAsSourceWriter:
+def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
     """
     Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
     apply the table update. A table update consists of primary key values to drop, and data to insert/update.
@@ -41,16 +39,12 @@ def get_target_writer(
 
             # Now we can perform our inserts
             if data:
-                execute_updates_and_inserts(
-                    engine, table, clean_data, update_on_duplicate
-                )
+                execute_updates_and_inserts(engine, table, clean_data, update_on_duplicate)
 
     return inner
 
 
-def execute_updates_and_inserts(
-    engine: Engine, table: Table, data: List[dict], update_on_duplicate: bool
-):
+def execute_updates_and_inserts(engine: Engine, table: Table, data: List[dict], update_on_duplicate: bool):
     # get the existing pks as dicts
     pk_cols = [col.name for col in table.columns if col.primary_key]
     non_pk_cols = [col.name for col in table.columns if not col.primary_key]
@@ -79,10 +73,6 @@ def execute_updates_and_inserts(
         if update_on_duplicate and _updates:
             update_statement = table.update()
             for pk_col in pk_cols:
-                update_statement = update_statement.where(
-                    table.c[pk_col] == bindparam(f"_{pk_col}")
-                )
-            update_statement = update_statement.values(
-                {col: bindparam(f"_{col}") for col in non_pk_cols}
-            )
+                update_statement = update_statement.where(table.c[pk_col] == bindparam(f"_{pk_col}"))
+            update_statement = update_statement.values({col: bindparam(f"_{col}") for col in non_pk_cols})
             conn.execute(update_statement, _updates)

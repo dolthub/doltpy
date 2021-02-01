@@ -23,9 +23,7 @@ POSTGRES_TO_DOLT_TYPE_MAPPINGS = {
 }
 
 
-def get_target_writer(
-    engine: Engine, update_on_duplicate: bool = True
-) -> DoltAsSourceWriter:
+def get_target_writer(engine: Engine, update_on_duplicate: bool = True) -> DoltAsSourceWriter:
     """
     Given a psycopg2 connection returns a function that takes a map of tables names (optionally schema prefixed) to
     list of tuples and writes the list of tuples to the table in question. Each tuple must have the data in the order of
@@ -41,7 +39,5 @@ def upsert_helper(table: Table, data: List[dict]):
     # TODO this does not work yet
     insert_statement = insert(table).values(data)
     update = {col.name: col for col in insert_statement.excluded}
-    upsert_statement = insert_statement.on_conflict_do_update(
-        constraint=table.primary_key, set_=update
-    )
+    upsert_statement = insert_statement.on_conflict_do_update(constraint=table.primary_key, set_=update)
     return upsert_statement

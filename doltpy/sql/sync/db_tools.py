@@ -22,9 +22,7 @@ DoltAsSourceReader = Callable[[List[str]], DoltAsSourceUpdate]
 DoltAsSourceWriter = Callable[[DoltAsSourceUpdate], None]
 
 
-def get_source_reader(
-    engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None
-) -> DoltAsTargetReader:
+def get_source_reader(engine: Engine, reader: Callable[[Engine, Table], List[dict]] = None) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
     the contents of each of the tables.
@@ -36,9 +34,7 @@ def get_source_reader(
     return build_source_reader(engine, reader_function)
 
 
-def build_source_reader(
-    engine: Engine, reader: Callable[[Engine, Table], TableUpdate]
-) -> DoltAsTargetReader:
+def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableUpdate]) -> DoltAsTargetReader:
     """
     Given a connection and a reader provides a function that turns a set of tables in to a data structure containing
     the contents of each of the tables.
@@ -52,11 +48,7 @@ def build_source_reader(
         metadata = MetaData(bind=engine)
         metadata.reflect()
 
-        for table in [
-            table
-            for table_name, table in metadata.tables.items()
-            if table_name in tables
-        ]:
+        for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
             logger.info(f"Reading tables {table}")
             result[table.name] = reader(engine, table)
 
@@ -137,7 +129,5 @@ def drop_primary_keys(engine: Engine, table: Table, pks_to_drop: Iterable[dict])
         pks = [col.name for col in table.columns if col.primary_key]
         statement = table.delete()
         for pk in pks:
-            statement = statement.where(
-                table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop])
-            )
+            statement = statement.where(table.c[pk].in_([pks_for_row[pk] for pks_for_row in pks_to_drop]))
         conn.execute(statement)

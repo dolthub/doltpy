@@ -108,9 +108,7 @@ class DoltSQLContext:
         host = self.server_config.host
         port = self.server_config.port
 
-        logger.info(
-            f"Creating engine for Dolt SQL Server instance running on {host}:{port}"
-        )
+        logger.info(f"Creating engine for Dolt SQL Server instance running on {host}:{port}")
 
         def inner():
             return create_engine(
@@ -151,10 +149,7 @@ class DoltSQLContext:
                 dolt_commit_args = f"'-m', '{commit_message}'"
             else:
                 dolt_commit_args = f"'-a', '-m', '{commit_message}'"
-            result = [
-                dict(row)
-                for row in conn.execute(f"SELECT DOLT_COMMIT({dolt_commit_args})")
-            ]
+            result = [dict(row) for row in conn.execute(f"SELECT DOLT_COMMIT({dolt_commit_args})")]
             assert len(result) == 1, "Expected a single returned row with a commit hash"
             return result[0]["commit_hash"]
 
@@ -286,9 +281,7 @@ class DoltSQLContext:
             batch_start = i * batch_size
             batch_end = min((i + 1) * batch_size, len(rows))
             batch = rows[batch_start:batch_end]
-            logger.info(
-                f"Writing records {batch_start} through {batch_end} of {len(rows)} rows to Dolt"
-            )
+            logger.info(f"Writing records {batch_start} through {batch_end} of {len(rows)} rows to Dolt")
             self.write_batch(table, batch, on_duplicate_key_update)
 
         if commit:
@@ -314,16 +307,12 @@ class DoltSQLContext:
 
         return data_copy
 
-    def write_batch(
-        self, table: sa.Table, rows: List[dict], on_duplicate_key_update: bool
-    ):
+    def write_batch(self, table: sa.Table, rows: List[dict], on_duplicate_key_update: bool):
         coerced_data = list(clean_types(rows))
         inserts, updates = get_inserts_and_updates(self.engine, table, coerced_data)
 
         if not on_duplicate_key_update and updates:
-            raise ValueError(
-                "Duplicate keys present, but on_duplicate_key_update is off"
-            )
+            raise ValueError("Duplicate keys present, but on_duplicate_key_update is off")
 
         if inserts:
             logger.info(f"Inserting {len(inserts)} rows")
@@ -341,18 +330,12 @@ class DoltSQLContext:
             with self.engine.connect() as conn:
                 statement = table.update()
                 for pk_col in [col.name for col in table.columns if col.primary_key]:
-                    statement = statement.where(
-                        table.c[pk_col] == sa.bindparam(f"_{pk_col}")
-                    )
+                    statement = statement.where(table.c[pk_col] == sa.bindparam(f"_{pk_col}"))
                 non_pk_cols = [col.name for col in table.columns if not col.primary_key]
-                statement = statement.values(
-                    {col: sa.bindparam(f"_{col}") for col in non_pk_cols}
-                )
+                statement = statement.values({col: sa.bindparam(f"_{col}") for col in non_pk_cols})
                 conn.execute(statement, _updates)
 
-    def read_columns(
-        self, table: str, as_of: Optional[str] = None
-    ) -> Mapping[str, list]:
+    def read_columns(self, table: str, as_of: Optional[str] = None) -> Mapping[str, list]:
         return self.read_columns_sql(self._get_read_table_asof_query(table, as_of))
 
     def read_rows(self, table: str, as_of: Optional[str] = None) -> List[dict]:
@@ -467,9 +450,7 @@ class DoltSQLServerContext(DoltSQLContext):
             if self.server is not None:
                 logger.warning("Server already running")
 
-            log_file = SQL_LOG_FILE or os.path.join(
-                self.dolt.repo_dir(), "mysql_server.log"
-            )
+            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir(), "mysql_server.log")
 
             proc = Popen(
                 args=["dolt"] + server_args,
