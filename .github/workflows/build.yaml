@@ -1,6 +1,12 @@
 name: Doltpy Tests
 
-on: push
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 20 * * *' # run at noon PT
 
 jobs:
   # Run test suite across all major OS types
@@ -41,10 +47,11 @@ jobs:
         run: |
           poetry run pytest --ignore tests/sql --ignore tests/sql_sync/ . --cov=doltpy --cov-report=term --cov-report xml
       - uses: codecov/codecov-action@v1
+        if: ${{ matrix.python-version }} == '3.9'
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
           #files: ./coverage-${{ runner.os }}-${{ matrix.python-version }}.xml
-          name: codecov-umbrella-${{ runner.os }}-${{ matrix.python-version }} # optional
+          name: codecov-umbrella # optional
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
       - name: Discord Notify
