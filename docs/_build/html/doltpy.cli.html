@@ -1,0 +1,634 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>doltpy.cli package &#8212; Doltpy Documentation (0.1.x)</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/werkzeug.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+  <script>DOCUMENTATION_OPTIONS.URL_ROOT = './';</script>
+   
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Doltpy Documentation (0.1.x)</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">doltpy.cli package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="doltpy-cli-package">
+<h1>doltpy.cli package<a class="headerlink" href="#doltpy-cli-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="doltpy.cli.read.html">doltpy.cli.read package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.read.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.read.html#module-doltpy.cli.read.read">doltpy.cli.read.read module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.read.html#module-doltpy.cli.read">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="doltpy.cli.write.html">doltpy.cli.write package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.write.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.write.html#module-doltpy.cli.write.write">doltpy.cli.write.write module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doltpy.cli.write.html#module-doltpy.cli.write">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-doltpy.cli.dolt">
+<span id="doltpy-cli-dolt-module"></span><h2>doltpy.cli.dolt module<a class="headerlink" href="#module-doltpy.cli.dolt" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="doltpy.cli.dolt.Dolt">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">Dolt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">repo_dir</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">doltpy.types.dolt._T</span></code>]</p>
+<p>This class wraps the Dolt command line interface, mimicking functionality exactly to the extent that is possible.
+Some commands simply do not translate to Python, such as <cite>dolt sql</cite> (with no arguments) since that command
+launches an interactive shell.</p>
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#doltpy.cli.dolt.DoltStatus" title="doltpy.cli.dolt.DoltStatus">doltpy.cli.dolt.DoltStatus</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the table or list of tables in the working tree to staging.
+:param table_or_tables:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.blame">
+<code class="sig-name descname">blame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">rev</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.blame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a blame command that prints out a table that shows the authorship of the last change to a row.
+:param table_name:
+:param rev:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.branch">
+<code class="sig-name descname">branch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">branch_name</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">start_point</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">new_branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">delete</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">copy</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">move</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checkout, create, delete, move, or copy, a branch. Only
+:param branch_name:
+:param start_point:
+:param new_branch:
+:param force:
+:param delete:
+:param copy:
+:param move:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.checkout">
+<code class="sig-name descname">checkout</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">checkout_branch</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">start_point</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.checkout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checkout an existing branch, or create a new one, optionally at a specified commit. Or, checkout a table or list
+of tables.
+:param branch: branch to checkout or create
+:param table_or_tables: table or tables to checkout
+:param checkout_branch: branch to checkout
+:param start_point: tip of new branch
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.clone">
+<em class="property">static </em><code class="sig-name descname">clone</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">remote_url</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">new_dir</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">remote</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.clone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clones the specified DoltHub database into a new directory, or optionally an existing directory provided by the
+user.
+:param remote_url:
+:param new_dir:
+:param remote:
+:param branch:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.commit">
+<code class="sig-name descname">commit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">allow_empty</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">date</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)">datetime.datetime</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a commit with the currents in the working set that are currently in staging.
+:param message:
+:param allow_empty:
+:param date:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.config_global">
+<em class="property">classmethod </em><code class="sig-name descname">config_global</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">add</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">list</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">get</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">unset</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.config_global" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class method for manipulating global configs.
+:param name:
+:param value:
+:param add:
+:param list:
+:param get:
+:param unset:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.config_local">
+<code class="sig-name descname">config_local</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">add</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">list</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">get</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">unset</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.config_local" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance method for manipulating configs local to a repository.
+:param name:
+:param value:
+:param add:
+:param list:
+:param get:
+:param unset:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_check">
+<code class="sig-name descname">creds_check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endpoint</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">creds</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check that credentials authenticate with the specified endpoint, return True if authorized, False otherwise.
+:param endpoint: the endpoint to check
+:param creds: creds identified by public key ID
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_import">
+<code class="sig-name descname">creds_import</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">jwk_filename</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">no_profile</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not currently supported.
+:param jwk_filename:
+:param no_profile:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_ls">
+<code class="sig-name descname">creds_ls</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference internal" href="#doltpy.cli.dolt.DoltKeyPair" title="doltpy.cli.dolt.DoltKeyPair">doltpy.cli.dolt.DoltKeyPair</a><span class="p">]</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_ls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the set of keys this repo has into <cite>DoltKeyPair</cite> objects.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_new">
+<code class="sig-name descname">creds_new</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_new" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new set of credentials for this Dolt repository.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_rm">
+<code class="sig-name descname">creds_rm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">public_key</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_rm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the key pair identified by the specified public key ID.
+:param public_key:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.creds_use">
+<code class="sig-name descname">creds_use</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">public_key_id</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.creds_use" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use the credentials specified by the provided public keys ID.
+:param public_key_id:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.diff">
+<code class="sig-name descname">diff</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">other_commit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">data</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">schema</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">summary</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">sql</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">where</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">limit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a diff command and prints the output. In the future we plan to create a diff object that will allow
+for programmatic interactions.
+:param commit: commit to diff against the tip of the current branch
+:param other_commit: optionally specify two specific commits if desired
+:param table_or_tables: table or list of tables to diff
+:param data: diff only data
+:param schema: diff only schema
+:param summary: summarize the data changes shown, valid only with data
+:param sql: show the diff in terms of SQL
+:param where: apply a where clause to data diffs
+:param limit: limit the number of rows shown in a data diff
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.execute">
+<code class="sig-name descname">execute</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">print_output</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages executing a dolt command, pass all commands, sub-commands, and arguments as they would appear on the
+command line.
+:param args:
+:param print_output:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.fetch">
+<code class="sig-name descname">fetch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">remote</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'origin'</span></em>, <em class="sig-param"><span class="n">refspec_or_refspecs</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.fetch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the specified branch or list of branches from the remote provided, defaults to origin.
+:param remote: the reomte to fetch from
+:param refspec_or_refspecs: branch or branches to fetch
+:param force: whether to override local history with remote
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.init">
+<em class="property">static </em><code class="sig-name descname">init</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">repo_dir</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new repository in the directory specified, creating the directory if <cite>create_dir</cite> is passed, and returns
+a <cite>Dolt</cite> object representing the newly created repo.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.log">
+<code class="sig-name descname">log</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">number</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.9)">collections.OrderedDict</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the log created by running the log command into instances of <cite>DoltCommit</cite> that provide detail of the
+commit, including timestamp and hash.
+:param number:
+:param commit:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.ls">
+<code class="sig-name descname">ls</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">system</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">all</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference internal" href="#doltpy.cli.dolt.DoltTable" title="doltpy.cli.dolt.DoltTable">doltpy.cli.dolt.DoltTable</a><span class="p">]</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.ls" title="Permalink to this definition">¶</a></dt>
+<dd><p>List the tables in the working set, the system tables, or all. Parses the tables and their object hash into an
+object that also provides row count.
+:param system:
+:param all:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.merge">
+<code class="sig-name descname">merge</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">message</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">squash</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a merge operation. If conflicts result, the merge is aborted, as an interactive merge does not really
+make sense in a scripting environment, or at least we have not figured out how to model it in a way that does.
+:param branch:
+:param message:
+:param squash:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.pull">
+<code class="sig-name descname">pull</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">remote</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'origin'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.pull" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pull the latest changes from the specified remote.
+:param remote:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.push">
+<code class="sig-name descname">push</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">remote</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">refspec</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">set_upstream</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.push" title="Permalink to this definition">¶</a></dt>
+<dd><p>Push the to the specified remote. If set_upstream is provided will create an upstream reference of all branches
+in a repo.
+:param remote:
+:param refspec: optionally specify a branch to push
+:param set_upstream: add upstream reference for every branch successfully pushed
+:param force: overwrite the history of the upstream with this repo’s history
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.read_tables">
+<em class="property">static </em><code class="sig-name descname">read_tables</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">remote_url</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">committish</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">new_dir</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.read_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the specified tables, or all the tables, from the DoltHub database specified into a new local database,
+at the commit or branch provided. Users can optionally provide an existing directory.
+:param remote_url:
+:param committish:
+:param table_or_tables:
+:param new_dir:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.remote">
+<code class="sig-name descname">remote</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">add</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">url</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">remove</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.remote" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add or remove remotes to this repository. Note we do not currently support some more esoteric options for using
+AWS and GCP backends, but will do so in a future release.
+:param add:
+:param name:
+:param url:
+:param remove:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.repo_dir">
+<code class="sig-name descname">repo_dir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.repo_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>The absolute path of the directory this repository represents.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.repo_name">
+<em class="property">property </em><code class="sig-name descname">repo_name</code><a class="headerlink" href="#doltpy.cli.dolt.Dolt.repo_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">hard</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">soft</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset a table or set of tables that have changes in the working set to their value at the tip of the current
+branch.
+:param table_or_tables:
+:param hard:
+:param soft:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.schema_export">
+<code class="sig-name descname">schema_export</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">filename</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.schema_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export the scehma of the table specified to the file path specified.
+:param table:
+:param filename:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.schema_import">
+<code class="sig-name descname">schema_import</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">filename</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">create</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">update</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">replace</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">dry_run</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">keep_types</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">file_type</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pks</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">map</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">float_threshold</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">delim</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.schema_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>This implements schema import from Dolt, it works by inferring a schema from the file provided. It operates in
+three modes: create, update, and replace. All require a table name. Create and replace require a primary key, as
+they replace an existing table with a new one with a newly inferred schema.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table</strong> – name of the table to create or update</p></li>
+<li><p><strong>filename</strong> – file to infer schema from</p></li>
+<li><p><strong>create</strong> – create a table</p></li>
+<li><p><strong>update</strong> – update a table</p></li>
+<li><p><strong>replace</strong> – replace a table</p></li>
+<li><p><strong>dry_run</strong> – output the SQL to run, do not execute it</p></li>
+<li><p><strong>keep_types</strong> – when a column already exists, use its current type</p></li>
+<li><p><strong>file_type</strong> – type of file used for schema inference</p></li>
+<li><p><strong>pks</strong> – the list of primary keys</p></li>
+<li><p><strong>map</strong> – mapping file mapping column name to new value</p></li>
+<li><p><strong>float_threshold</strong> – minimum value fractional component must have to be float</p></li>
+<li><p><strong>delim</strong> – the delimeter used in the file being inferred from</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.schema_show">
+<code class="sig-name descname">schema_show</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.schema_show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dislay the schema of the specified table or tables at the (optionally) specified commit, defaulting to the tip
+of master on the current branch.
+:param table_or_tables:
+:param commit:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.sql">
+<code class="sig-name descname">sql</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">result_format</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">execute</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">save</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">message</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">list_saved</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">batch</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">multi_db_dir</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a SQL query, using the options to dictate how it is executed, and where the output goes.
+:param query: query to be executed
+:param result_format: the file format of the
+:param execute: execute a saved query, not valid with other parameters
+:param save: use the name provided to save the value of query
+:param message: the message associated with the saved query, if any
+:param list_saved: print out a list of saved queries
+:param batch: execute in batch mode, one statement after the other delimited by ;
+:param multi_db_dir: use a directory of Dolt repos, each one treated as a database
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.status">
+<code class="sig-name descname">status</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#doltpy.cli.dolt.DoltStatus" title="doltpy.cli.dolt.DoltStatus">doltpy.cli.dolt.DoltStatus</a><a class="headerlink" href="#doltpy.cli.dolt.Dolt.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the status of this repository into a <cite>DoltStatus</cite> object.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.table_cp">
+<code class="sig-name descname">table_cp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">old_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">new_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.table_cp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy an existing table to a new table, optionally at a specified commit.
+:param old_table: existing table name
+:param new_table: new table name
+:param commit: commit at which to read old_table
+:param force: override changes in the working set
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.table_export">
+<code class="sig-name descname">table_export</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">filename</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">schema</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mapping_file</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pk</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_type</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">continue_exporting</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.table_export" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table</strong> – </p></li>
+<li><p><strong>filename</strong> – </p></li>
+<li><p><strong>force</strong> – </p></li>
+<li><p><strong>schema</strong> – </p></li>
+<li><p><strong>mapping_file</strong> – </p></li>
+<li><p><strong>pk</strong> – </p></li>
+<li><p><strong>file_type</strong> – </p></li>
+<li><p><strong>continue_exporting</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.table_import">
+<code class="sig-name descname">table_import</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">filename</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">create_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">update_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">mapping_file</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pk</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">replace_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">file_type</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">continue_importing</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">delim</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.table_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>Import a table from a filename, inferring the schema from the file. Operates in two possible modes, update,
+create, or replace. If creating must provide a primary key.
+:param table: the table to be created or updated
+:param filename: the data file to import
+:param create_table: create a table
+:param update_table: update a table
+:param force: force the import to overwrite existing data
+:param mapping_file: file mapping column names in file to new names
+:param pk: columns from which to build a primary key
+:param replace_table: replace existing tables
+:param file_type: the type of the file being imported
+:param continue_importing:
+:param delim:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.table_mv">
+<code class="sig-name descname">table_mv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">old_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">new_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">force</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.table_mv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rename a table from name old_table to name new_table.
+:param old_table: existing table
+:param new_table: new table name
+:param force: override changes in the working set
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.table_rm">
+<code class="sig-name descname">table_rm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_or_tables</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.table_rm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the table or list of tables provided from the working set.
+:param table_or_tables:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="doltpy.cli.dolt.Dolt.version">
+<em class="property">static </em><code class="sig-name descname">version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.Dolt.version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltBranch">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltBranch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">commit_id</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltBranch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a branch, along with the commit it points to.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltCommit">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltCommit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ref</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">ts</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)">datetime.datetime</a></span></em>, <em class="sig-param"><span class="n">author</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">message</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">merge</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Tuple<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><span class="p">…</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltCommit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
+to the user.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="doltpy.cli.dolt.DoltDirectoryException">
+<em class="property">exception </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltDirectoryException</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltDirectoryException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="doltpy.cli.dolt.DoltException">
+<em class="property">exception </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltException</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exec_args</span></em>, <em class="sig-param"><span class="n">stdout</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stderr</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">exitcode</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>A class representing a Dolt exception.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltHubContext">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltHubContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">db_path</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">remote</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'origin'</span></em>, <em class="sig-param"><span class="n">tables_to_read</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltHubContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltKeyPair">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltKeyPair</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">public_key</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">key_id</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">active</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltKeyPair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a key pair generated by Dolt for authentication with remotes.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltRemote">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltRemote</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">url</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltRemote" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a remote, effectively a name and URL pair.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="doltpy.cli.dolt.DoltServerNotRunningException">
+<em class="property">exception </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltServerNotRunningException</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltServerNotRunningException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltStatus">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltStatus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">is_clean</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em>, <em class="sig-param"><span class="n">modified_tables</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">added_tables</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents the current status of a Dolt repo, summarized by the is_clean field which is True if the wokring set is
+clean, and false otherwise. If the working set is not clean, then the changes are stored in maps, one for added
+tables, and one for modifications, each name maps to a flag indicating whether the change is staged.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="doltpy.cli.dolt.DoltTable">
+<em class="property">class </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltTable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">table_hash</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">rows</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">system</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a Dolt table in the working set.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="doltpy.cli.dolt.DoltWrongServerException">
+<em class="property">exception </em><code class="sig-prename descclassname">doltpy.cli.dolt.</code><code class="sig-name descname">DoltWrongServerException</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.cli.dolt.DoltWrongServerException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-doltpy.cli">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-doltpy.cli" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+  <span id="sidebar-top"></span>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  
+    
+  
+
+  <h3>Contents</h3>
+  <ul>
+<li><a class="reference internal" href="#">doltpy.cli package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-doltpy.cli.dolt">doltpy.cli.dolt module</a></li>
+<li><a class="reference internal" href="#module-doltpy.cli">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+  <li><a href="index.html">Overview</a>
+    
+  </li>
+</ul>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  
+    <div class="footer" role="contentinfo">
+        &#169; Copyright .
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+  <script src="_static/version_warning_offset.js"></script>
+
+  </body>
+</html>

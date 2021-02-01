@@ -1,42 +1,48 @@
-from doltpy.cli import Dolt
-from retry import retry
-from sqlalchemy.engine import Engine
-from sqlalchemy import create_engine
-from subprocess import Popen, STDOUT
-import os
-import logging
-import sqlalchemy as sa
-from typing import List, Union, Mapping, Any, Iterable, Tuple
-from datetime import datetime, date, time
-import csv
-import pandas as pd
-import math
-from doltpy.shared import columns_to_rows, rows_to_columns
-from doltpy.sql.helpers import infer_table_schema, get_inserts_and_updates, clean_types
 import copy
 from collections import OrderedDict
+import csv
+import logging
+import math
+import os
+import datetime
+
+# from doltpy.shared import SQL_LOG_FILE
+from subprocess import STDOUT, Popen
+from typing import Any, Iterable, List, Mapping, Union, Optional, Tuple
+
+import pandas as pd  # type: ignore
+import sqlalchemy as sa  # type: ignore
+from retry import retry
+from sqlalchemy import create_engine  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
+from doltpy.cli import Dolt
+from doltpy.shared import columns_to_rows, rows_to_columns
+from doltpy.sql.helpers import infer_table_schema, get_inserts_and_updates, clean_types
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST, DEFAULT_PORT = '127.0.0.1', 3306
-SQL_LOG_FILE = 'temp_log'
+DEFAULT_HOST, DEFAULT_PORT = "127.0.0.1", 3306
+SQL_LOG_FILE = "temp_log"
 DEFAULT_BATCH_SIZE = 100000
 
 
 class ServerConfig:
-    def __init__(self,
-                 branch: str = None,
-                 config: str = None,
-                 host: str = DEFAULT_HOST,
-                 port: int = DEFAULT_PORT,
-                 user: str = None,
-                 password: str = None,
-                 timeout: int = None,
-                 readonly: bool = None,
-                 loglevel: str = None,
-                 multi_db_dir: str = None,
-                 no_auto_commit: bool = None,
-                 echo: bool = False):
+    def __init__(
+        self,
+        branch: Optional[str] = None,
+        config: Optional[str] = None,
+        host: str = DEFAULT_HOST,
+        port: int = DEFAULT_PORT,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        timeout: int = None,
+        readonly: bool = None,
+        loglevel: Optional[str] = None,
+        multi_db_dir: Optional[str] = None,
+        no_auto_commit: bool = None,
+        echo: bool = False,
+    ):
         self.branch = branch
         self.config = config
         self.host = host
@@ -56,13 +62,16 @@ class DoltCommit:
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
-    def __init__(self,
-                 ref: str,
-                 ts: datetime,
-                 author: str,
-                 email: str,
-                 message: str,
-                 parent_or_parents: Union[str, Tuple[str, str]] = None):
+
+    def __init__(
+        self,
+        ref: str,
+        ts: datetime.datetime,
+        author: str,
+        email: str,
+        message: str,
+        parent_or_parents: Union[str, Tuple[str, str]] = None,
+    ):
         self.hash = ref
         self.ts = ts
         self.author = author
@@ -71,14 +80,16 @@ class DoltCommit:
         self.parent_or_parents = parent_or_parents
 
     def __str__(self):
-        return f'{self.hash}: {self.author} @ {self.ts}, {self.message}'
+        return f"{self.hash}: {self.author} @ {self.ts}, {self.message}"
 
     def is_merge(self):
         return isinstance(self.parent_or_parents, tuple)
 
     def append_merge_parent(self, other_merge_parent: str):
         if isinstance(self.parent_or_parents, tuple):
-            raise ValueError('Already has a merge parent set')
+            raise ValueError("Already has a merge parent set")
+        elif not self.parent_or_parents:
+            raise ValueError("No merge parents set")
         self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
 
 
@@ -97,27 +108,39 @@ class DoltSQLContext:
         host = self.server_config.host
         port = self.server_config.port
 
-        logger.info(f'Creating engine for Dolt SQL Server instance running on {host}:{port}')
+        logger.info(f"Creating engine for Dolt SQL Server instance running on {host}:{port}")
 
         def inner():
-            return create_engine(f'mysql+mysqlconnector://{user}@{host}:{port}/{database}',
-                                 echo=self.server_config.echo)
+            return create_engine(
+                f"mysql+mysqlconnector://{user}@{host}:{port}/{database}",
+                echo=self.server_config.echo,
+            )
 
         return inner()
 
-    @retry(delay=2, tries=10, exceptions=(sa.exc.OperationalError, sa.exc.DatabaseError, sa.exc.InterfaceError))
+    @retry(
+        delay=2,
+        tries=10,
+        exceptions=(
+            sa.exc.OperationalError,
+            sa.exc.DatabaseError,
+            sa.exc.InterfaceError,
+        ),
+    )
     def verify_connection(self) -> bool:
         with self.engine.connect() as conn:
             conn.close()
             return True
 
-    def commit_tables(self,
-                      commit_message: str,
-                      table_or_tables: Union[str, List[str]] = None,
-                      allow_emtpy: bool = False) -> str:
-        if type(table_or_tables) == str:
+    def commit_tables(
+        self,
+        commit_message: Optional[str] = None,
+        table_or_tables: Optional[Union[str, List[str]]] = None,
+        allow_emtpy: bool = False,
+    ) -> str:
+        if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        else:
+        elif isinstance(table_or_tables, list):
             tables = table_or_tables
         with self.engine.connect() as conn:
             if tables:
@@ -127,99 +150,122 @@ class DoltSQLContext:
             else:
                 dolt_commit_args = f"'-a', '-m', '{commit_message}'"
             result = [dict(row) for row in conn.execute(f"SELECT DOLT_COMMIT({dolt_commit_args})")]
-            assert len(result) == 1, 'Expected a single returned row with a commit hash'
-            return result[0]['commit_hash']
+            assert len(result) == 1, "Expected a single returned row with a commit hash"
+            return result[0]["commit_hash"]
 
-    def execute(self, sql: str, commit: bool = False, commit_message: str = None, allow_emtpy: bool = False):
+    def execute(
+        self,
+        sql: str,
+        commit: bool = False,
+        commit_message: Optional[str] = None,
+        allow_emtpy: bool = False,
+    ):
         with self.engine.connect() as conn:
             conn.execute(sql)
 
         if commit:
             if not commit_message:
-                raise ValueError('Passed commit as True, but no commit message')
+                raise ValueError("Passed commit as True, but no commit message")
             return self.commit_tables(commit_message, None, allow_emtpy=allow_emtpy)
 
-    def write_columns(self,
-                      table: str,
-                      columns: Mapping[str, List[Any]],
-                      on_duplicate_key_update: bool = True,
-                      create_if_not_exists: bool = False,
-                      primary_key: List[str] = None,
-                      commit: bool = True,
-                      commit_message: str = None,
-                      commit_date: datetime = None,
-                      allow_empty: bool = False,
-                      batch_size: int = DEFAULT_BATCH_SIZE):
+    def write_columns(
+        self,
+        table: str,
+        columns: Mapping[str, List[Any]],
+        on_duplicate_key_update: bool = True,
+        create_if_not_exists: bool = False,
+        primary_key: Optional[List[str]] = None,
+        commit: bool = True,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
+        allow_empty: bool = False,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ):
 
         rows = columns_to_rows(columns)
-        return self.write_rows(table,
-                               rows,
-                               on_duplicate_key_update,
-                               create_if_not_exists,
-                               primary_key, commit,
-                               commit_message,
-                               commit_date,
-                               allow_empty,
-                               batch_size)
+        return self.write_rows(
+            table,
+            rows,
+            on_duplicate_key_update,
+            create_if_not_exists,
+            primary_key,
+            commit,
+            commit_message,
+            commit_date,
+            allow_empty,
+            batch_size,
+        )
 
-    def write_file(self,
-                   table: str,
-                   file_path: str,
-                   on_duplicate_key_update: bool = True,
-                   create_if_not_exists: bool = False,
-                   primary_key: List[str] = None,
-                   commit: bool = True,
-                   commit_message: str = None,
-                   commit_date: datetime = None,
-                   allow_empty: bool = False,
-                   batch_size: int = DEFAULT_BATCH_SIZE):
+    def write_file(
+        self,
+        table: str,
+        file_path: str,
+        on_duplicate_key_update: bool = True,
+        create_if_not_exists: bool = False,
+        primary_key: Optional[List[str]] = None,
+        commit: bool = True,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
+        allow_empty: bool = False,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ):
 
-        with open(file_path, 'r') as file_handle:
+        with open(file_path, "r") as file_handle:
             reader = csv.DictReader(file_handle)
             rows = [row for row in reader]
-        return self.write_rows(table,
-                               rows,
-                               on_duplicate_key_update,
-                               create_if_not_exists,
-                               primary_key, commit,
-                               commit_message,
-                               commit_date,
-                               allow_empty,
-                               batch_size)
+        return self.write_rows(
+            table,
+            rows,
+            on_duplicate_key_update,
+            create_if_not_exists,
+            primary_key,
+            commit,
+            commit_message,
+            commit_date,
+            allow_empty,
+            batch_size,
+        )
 
-    def write_pandas(self,
-                     table: str,
-                     df: pd.DataFrame,
-                     on_duplicate_key_update: bool = True,
-                     create_if_not_exists: bool = False,
-                     primary_key: List[str] = None,
-                     commit: bool = False,
-                     commit_message: str = None,
-                     commit_date: datetime = None,
-                     allow_empty: bool = False,
-                     batch_size: int = DEFAULT_BATCH_SIZE):
+    def write_pandas(
+        self,
+        table: str,
+        df: pd.DataFrame,
+        on_duplicate_key_update: bool = True,
+        create_if_not_exists: bool = False,
+        primary_key: Optional[List[str]] = None,
+        commit: bool = False,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
+        allow_empty: bool = False,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ):
 
-        return self.write_rows(table,
-                               df.to_dict('records'),
-                               on_duplicate_key_update,
-                               create_if_not_exists,
-                               primary_key, commit,
-                               commit_message,
-                               commit_date,
-                               allow_empty,
-                               batch_size)
+        return self.write_rows(
+            table,
+            df.to_dict("records"),
+            on_duplicate_key_update,
+            create_if_not_exists,
+            primary_key,
+            commit,
+            commit_message,
+            commit_date,
+            allow_empty,
+            batch_size,
+        )
 
-    def write_rows(self,
-                   table_name: str,
-                   rows: Iterable[dict],
-                   on_duplicate_key_update: bool = True,
-                   create_if_not_exists: bool = False,
-                   primary_key: List[str] = None,
-                   commit: bool = False,
-                   commit_message: str = None,
-                   commit_date: datetime = None,
-                   allow_empty: bool = False,
-                   batch_size: int = DEFAULT_BATCH_SIZE):
+    def write_rows(
+        self,
+        table_name: str,
+        rows: Iterable[dict],
+        on_duplicate_key_update: bool = True,
+        create_if_not_exists: bool = False,
+        primary_key: Optional[List[str]] = None,
+        commit: bool = False,
+        commit_message: Optional[str] = None,
+        commit_date: Optional[datetime.datetime] = None,
+        allow_empty: bool = False,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ):
 
         metadata = sa.MetaData(bind=self.engine)
         metadata.reflect()
@@ -235,7 +281,7 @@ class DoltSQLContext:
             batch_start = i * batch_size
             batch_end = min((i + 1) * batch_size, len(rows))
             batch = rows[batch_start:batch_end]
-            logger.info(f'Writing records {batch_start} through {batch_end} of {len(rows)} rows to Dolt')
+            logger.info(f"Writing records {batch_start} through {batch_end} of {len(rows)} rows to Dolt")
             self.write_batch(table, batch, on_duplicate_key_update)
 
         if commit:
@@ -253,8 +299,8 @@ class DoltSQLContext:
         for row in data:
             row_copy = {}
             for col, val in row.items():
-                if type(val) == date:
-                    row_copy[col] = datetime.combine(val, time())
+                if isinstance(val, datetime.date):
+                    row_copy[col] = datetime.datetime.combine(val, datetime.time())
                 else:
                     row_copy[col] = val
             data_copy.append(row_copy)
@@ -266,10 +312,10 @@ class DoltSQLContext:
         inserts, updates = get_inserts_and_updates(self.engine, table, coerced_data)
 
         if not on_duplicate_key_update and updates:
-            raise ValueError('Duplicate keys present, but on_duplicate_key_update is off')
+            raise ValueError("Duplicate keys present, but on_duplicate_key_update is off")
 
         if inserts:
-            logger.info(f'Inserting {len(inserts)} rows')
+            logger.info(f"Inserting {len(inserts)} rows")
             with self.engine.connect() as conn:
                 conn.execute(table.insert(), inserts)
 
@@ -277,30 +323,30 @@ class DoltSQLContext:
         _updates = copy.deepcopy(updates)
         for dic in _updates:
             for col in list(dic.keys()):
-                dic[f'_{col}'] = dic.pop(col)
+                dic[f"_{col}"] = dic.pop(col)
 
         if _updates:
-            logger.info(f'Updating {len(_updates)} rows')
+            logger.info(f"Updating {len(_updates)} rows")
             with self.engine.connect() as conn:
                 statement = table.update()
                 for pk_col in [col.name for col in table.columns if col.primary_key]:
-                    statement = statement.where(table.c[pk_col] == sa.bindparam(f'_{pk_col}'))
+                    statement = statement.where(table.c[pk_col] == sa.bindparam(f"_{pk_col}"))
                 non_pk_cols = [col.name for col in table.columns if not col.primary_key]
-                statement = statement.values({col: sa.bindparam(f'_{col}') for col in non_pk_cols})
+                statement = statement.values({col: sa.bindparam(f"_{col}") for col in non_pk_cols})
                 conn.execute(statement, _updates)
 
-    def read_columns(self, table: str, as_of: str = None) -> Mapping[str, list]:
+    def read_columns(self, table: str, as_of: Optional[str] = None) -> Mapping[str, list]:
         return self.read_columns_sql(self._get_read_table_asof_query(table, as_of))
 
-    def read_rows(self, table: str, as_of: str = None) -> List[dict]:
+    def read_rows(self, table: str, as_of: Optional[str] = None) -> List[dict]:
         return self.read_rows_sql(self._get_read_table_asof_query(table, as_of))
 
-    def read_pandas(self, table: str, as_of: str = None) -> pd.DataFrame:
+    def read_pandas(self, table: str, as_of: Optional[str] = None) -> pd.DataFrame:
         return self.read_pandas_sql(self._get_read_table_asof_query(table, as_of))
 
     @classmethod
-    def _get_read_table_asof_query(cls, table: str, as_of: str = None) -> str:
-        base_query = f'SELECT * FROM `{table}`'
+    def _get_read_table_asof_query(cls, table: str, as_of: Optional[str] = None) -> str:
+        base_query = f"SELECT * FROM `{table}`"
         return f'{base_query} AS OF "{as_of}"' if as_of else base_query
 
     def read_columns_sql(self, sql: str) -> Mapping[str, list]:
@@ -321,7 +367,7 @@ class DoltSQLContext:
             return [dict(row) for row in result]
 
     def log(self) -> OrderedDict:
-        query = f'''
+        query = f"""
             SELECT
                 da.`commit_hash`,
                 dca.`parent_hash`,
@@ -334,29 +380,30 @@ class DoltSQLContext:
                     ON dc.commit_hash = dca.commit_hash
             ORDER BY
                 `date` DESC
-        '''
+        """
         with self.engine.connect() as conn:
-            commits = OrderedDict()
+            commits: OrderedDict[str, DoltCommit] = OrderedDict()
             res = conn.execute(query)
             for row in res:
-                ref = row['commit_hash']
+                ref = row["commit_hash"]
                 if ref in commits:
-                    commits[ref].append_merge_parent(row['parent_hash'])
+                    commits[ref].append_merge_parent(row["parent_hash"])
                 else:
-                    ref = row['commit_hash']
-                    commit = DoltCommit(ref=row['commit_hash'],
-                                        ts=row['date'],
-                                        author=row['commiter'],
-                                        email=row['email'],
-                                        message=row['message'],
-                                        parent_or_parents=row['parent_hash'])
+                    ref = row["commit_hash"]
+                    commit = DoltCommit(
+                        ref=row["commit_hash"],
+                        ts=row["date"],
+                        author=row["commiter"],
+                        email=row["email"],
+                        message=row["message"],
+                        parent_or_parents=row["parent_hash"],
+                    )
                     commits[ref] = commit
 
             return commits
 
 
 class DoltSQLEngineContext(DoltSQLContext):
-
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
         self.dolt = dolt
         self.server_config = server_config
@@ -365,7 +412,6 @@ class DoltSQLEngineContext(DoltSQLContext):
 
 
 class DoltSQLServerContext(DoltSQLContext):
-
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
         self.dolt = dolt
         self.server_config = server_config
@@ -376,7 +422,7 @@ class DoltSQLServerContext(DoltSQLContext):
     def __enter__(self):
         if not self.dolt.status().is_clean:
             # TODO better error messages
-            raise ValueError('DoltSQLServerManager does not support ')
+            raise ValueError("DoltSQLServerManager does not support ")
         if self.server_config.branch:
             current_branch, _ = self.dolt.branch()
             if current_branch.name != self.server_config.branch:
@@ -402,40 +448,42 @@ class DoltSQLServerContext(DoltSQLContext):
 
         def inner(server_args):
             if self.server is not None:
-                logger.warning('Server already running')
+                logger.warning("Server already running")
 
-            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir(), 'mysql_server.log')
+            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir(), "mysql_server.log")
 
-            proc = Popen(args=['dolt'] + server_args,
-                         cwd=self.dolt.repo_dir(),
-                         stdout=open(log_file, 'w'),
-                         stderr=STDOUT)
+            proc = Popen(
+                args=["dolt"] + server_args,
+                cwd=self.dolt.repo_dir(),
+                stdout=open(log_file, "w"),
+                stderr=STDOUT,
+            )
 
             self.server = proc
 
-        args = ['sql-server']
+        args = ["sql-server"]
 
         if self.server_config.config:
-            args.extend(['--config', self.server_config.config])
+            args.extend(["--config", self.server_config.config])
         else:
             if self.server_config.host:
-                args.extend(['--host', self.server_config.host])
+                args.extend(["--host", self.server_config.host])
             if self.server_config.port:
-                args.extend(['--port', str(self.server_config.port)])
+                args.extend(["--port", str(self.server_config.port)])
             if self.server_config.user:
-                args.extend(['--user', self.server_config.user])
+                args.extend(["--user", self.server_config.user])
             if self.server_config.password:
-                args.extend(['--password', self.server_config.password])
+                args.extend(["--password", self.server_config.password])
             if self.server_config.timeout:
-                args.extend(['--timeout', str(self.server_config.timeout)])
+                args.extend(["--timeout", str(self.server_config.timeout)])
             if self.server_config.readonly:
-                args.extend(['--readonly'])
+                args.extend(["--readonly"])
             if self.server_config.loglevel:
-                args.extend(['--loglevel', self.server_config.loglevel])
+                args.extend(["--loglevel", self.server_config.loglevel])
             if self.server_config.multi_db_dir:
-                args.extend(['--multi-db-dir', self.server_config.multi_db_dir])
+                args.extend(["--multi-db-dir", self.server_config.multi_db_dir])
             if self.server_config.no_auto_commit:
-                args.extend(['--no-auto-commit'])
+                args.extend(["--no-auto-commit"])
 
         inner(args)
 

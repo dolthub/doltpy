@@ -1,8 +1,9 @@
-from typing import Tuple, Iterable, Mapping, Callable, List
-from sqlalchemy import MetaData, Table
-from sqlalchemy.engine import Engine
-from retry import retry
 import logging
+from typing import Callable, Iterable, List, Mapping, Tuple
+
+from retry import retry
+from sqlalchemy import MetaData, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +42,14 @@ def build_source_reader(engine: Engine, reader: Callable[[Engine, Table], TableU
     :param reader:
     :return:
     """
+
     def inner(tables: List[str]) -> DoltAsTargetUpdate:
         result = {}
         metadata = MetaData(bind=engine)
         metadata.reflect()
 
         for table in [table for table_name, table in metadata.tables.items() if table_name in tables]:
-            logger.info(f'Reading tables {table}')
+            logger.info(f"Reading tables {table}")
             result[table.name] = reader(engine, table)
 
         return result
@@ -61,6 +63,7 @@ def get_table_reader() -> Callable[[Engine, Table], List[dict]]:
     state, that is the current state. We simply capture this state by reading out all the data in the database.
     :return:
     """
+
     def inner(engine: Engine, table: Table) -> List[dict]:
         with engine.connect() as conn:
             result = conn.execute(table.select())
@@ -77,10 +80,12 @@ def get_table_metadata(engine: Engine, table_name: str) -> Table:
     return metadata.tables[table_name]
 
 
-def get_target_writer_helper(engine: Engine,
-                             get_upsert_statement,
-                             update_on_duplicate: bool,
-                             clean_types: Callable[[Iterable[dict]], List[dict]] = None) -> DoltAsSourceWriter:
+def get_target_writer_helper(
+    engine: Engine,
+    get_upsert_statement,
+    update_on_duplicate: bool,
+    clean_types: Callable[[Iterable[dict]], List[dict]] = None,
+) -> DoltAsSourceWriter:
     """
     Given a database connection returns a function that when passed a mapping from table names to TableUpdate will
     apply the table update. A table update consists of primary key values to drop, and data to insert/update.
@@ -90,6 +95,7 @@ def get_target_writer_helper(engine: Engine,
     :param clean_types: an optional function to clean up the types being written
     :return:
     """
+
     def inner(table_data_map: DoltAsSourceUpdate):
         metadata = MetaData(bind=engine)
         metadata.reflect()

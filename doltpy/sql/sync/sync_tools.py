@@ -1,13 +1,24 @@
-from typing import Mapping
-from doltpy.sql.sync.db_tools import DoltAsTargetReader, DoltAsTargetWriter, DoltAsSourceReader, DoltAsSourceWriter
-from sqlalchemy.engine import Engine
-from sqlalchemy import Table, Column, MetaData
 import logging
+from typing import Mapping
+
+from sqlalchemy import Column, MetaData, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+
+from doltpy.sql.sync.db_tools import (
+    DoltAsSourceReader,
+    DoltAsSourceWriter,
+    DoltAsTargetReader,
+    DoltAsTargetWriter,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetWriter, table_map: Mapping[str, str]):
+def sync_to_dolt(
+    source_reader: DoltAsTargetReader,
+    target_writer: DoltAsTargetWriter,
+    table_map: Mapping[str, str],
+):
     """
     Executes a sync from another database (currently on MySQL) to Dolt. Since generally other databases have a single
     notion of state, we merely seek to capture that notion of state. The source_reader function in
@@ -22,11 +33,15 @@ def sync_to_dolt(source_reader: DoltAsTargetReader, target_writer: DoltAsTargetW
     :param table_map:
     :return:
     """
-    logger.info(f'Syncing the following tables to Dolt:\n{table_map}')
+    logger.info(f"Syncing the following tables to Dolt:\n{table_map}")
     _sync_helper(source_reader, target_writer, table_map)
 
 
-def sync_from_dolt(source_reader: DoltAsSourceReader, target_writer: DoltAsSourceWriter, table_map: Mapping[str, str]):
+def sync_from_dolt(
+    source_reader: DoltAsSourceReader,
+    target_writer: DoltAsSourceWriter,
+    table_map: Mapping[str, str],
+):
     """
     Executes a sync from Dolt to another database (currently only MySQL). Works by taking source_reader that reads from
     Dolt. Various implementations are provided in doltpy.etl.sql_sync.dolt that offer different semantics. For example,
@@ -41,7 +56,7 @@ def sync_from_dolt(source_reader: DoltAsSourceReader, target_writer: DoltAsSourc
     :param table_map:
     :return:
     """
-    logger.info(f'Syncing the following tables from Dolt:\n{table_map}')
+    logger.info(f"Syncing the following tables from Dolt:\n{table_map}")
     _sync_helper(source_reader, target_writer, table_map)
 
 
@@ -51,7 +66,12 @@ def _sync_helper(source_reader, target_writer, table_map: Mapping[str, str]):
     target_writer(remapped)
 
 
-def sync_schema_to_dolt(source_engine: Engine, target_engine: Engine, table_map: Mapping[str, str], type_mapping: dict):
+def sync_schema_to_dolt(
+    source_engine: Engine,
+    target_engine: Engine,
+    table_map: Mapping[str, str],
+    type_mapping: dict,
+):
     """
 
     :param source_engine:
@@ -73,9 +93,7 @@ def sync_schema_to_dolt(source_engine: Engine, target_engine: Engine, table_map:
         target_table.create(target_engine)
 
 
-def coerce_schema_to_dolt(target_table_name: str,
-                          table: Table,
-                          type_mapping: dict) -> Table:
+def coerce_schema_to_dolt(target_table_name: str, table: Table, type_mapping: dict) -> Table:
     target_cols = []
     for col in table.columns:
         target_col = coerce_column_to_dolt(col, type_mapping)
@@ -93,8 +111,10 @@ def coerce_column_to_dolt(column: Column, type_mapping: dict):
     :param type_mapping:
     :return:
     """
-    return Column(column.name,
-                  type_mapping[type(column.type)] if type(column.type) in type_mapping else column.type,
-                  primary_key=column.primary_key,
-                  autoincrement=column.autoincrement,
-                  nullable=column.nullable)
+    return Column(
+        column.name,
+        type_mapping[type(column.type)] if type(column.type) in type_mapping else column.type,
+        primary_key=column.primary_key,
+        autoincrement=column.autoincrement,
+        nullable=column.nullable,
+    )

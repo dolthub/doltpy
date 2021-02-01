@@ -1,11 +1,13 @@
-from sqlalchemy import String, DateTime, Date, Integer, Float, Table, MetaData, Column
-from datetime import datetime, date, time
-from doltpy.shared import rows_to_columns
-from typing import List, Mapping, Iterable, Tuple, Any
-from sqlalchemy.engine import Engine
-from sqlalchemy.sql import select
-import pandas as pd
 import logging
+import datetime
+from typing import Any, Iterable, List, Mapping, Tuple, Optional, Dict
+
+import pandas as pd  # type: ignore
+from sqlalchemy import Column, Date, DateTime, Float, Integer, MetaData, String, Table  # type: ignore
+from sqlalchemy.engine import Engine  # type: ignore
+from sqlalchemy.sql import select  # type: ignore
+
+from doltpy.shared import rows_to_columns
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +21,18 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
     :param data:
     :return:
     """
-    data_copy = []
+    data_copy: List[Dict[str, Any]] = []
     for row in data:
-        row_copy = {}
+        row_copy: Dict[str, Any] = {}
         for col, val in row.items():
-            if type(val) == date:
-                row_copy[col] = datetime.combine(val, time())
-            elif type(val) == list:
+            if isinstance(val, datetime.date):
+                row_copy[col] = datetime.datetime.combine(val, datetime.time())
+            elif isinstance(val, list):
                 if not val:
                     row_copy[col] = None
                 else:
-                    row_copy[col] = ','.join(str(el) if el is not None else 'NULL' for el in val)
-            elif type(val) == dict:
+                    row_copy[col] = ",".join(str(el) if el is not None else "NULL" for el in val)
+            elif isinstance(val, dict):
                 row_copy[col] = str(val)
             elif pd.isna(val):
                 row_copy[col] = None
@@ -79,7 +81,12 @@ def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> T
     return inserts, updates
 
 
-def infer_table_schema(metadata: MetaData, table_name: str, rows: Iterable[dict], primary_key: List[str]):
+def infer_table_schema(
+    metadata: MetaData,
+    table_name: str,
+    rows: Iterable[dict],
+    primary_key: Optional[List[str]],
+):
     # generate and execute a create table statement
     cols_to_types = {}
     columns = rows_to_columns(rows)
@@ -90,7 +97,7 @@ def infer_table_schema(metadata: MetaData, table_name: str, rows: Iterable[dict]
             if val is not None:
                 first_non_null = val
                 break
-            raise ValueError('Cannot provide an empty list, types cannot be inferred')
+            raise ValueError("Cannot provide an empty list, types cannot be inferred")
         cols_to_types[col_name] = _get_col_type(first_non_null, list_of_values)
 
     table = _get_table_def(metadata, table_name, cols_to_types, primary_key)
@@ -98,22 +105,29 @@ def infer_table_schema(metadata: MetaData, table_name: str, rows: Iterable[dict]
 
 
 def _get_col_type(sample_value: Any, values: Any):
-    if type(sample_value) == str:
+    if isinstance(sample_value, str):
         return String(2 * max(len(val) for val in values))
-    elif type(sample_value) == int:
+    elif isinstance(sample_value, int):
         return Integer
-    elif type(sample_value) == float:
+    elif isinstance(sample_value, float):
         return Float
-    elif type(sample_value) == datetime:
+    elif isinstance(sample_value, datetime.datetime):
         return DateTime
-    elif type(sample_value) == date:
+    elif isinstance(sample_value, datetime.date):
         return Date
     else:
-        raise ValueError('Value of type {} is unsupported'.format(type(sample_value)))
+        raise ValueError("Value of type {} is unsupported".format(type(sample_value)))
 
 
-def _get_table_def(metadata, table_name: str, cols_with_types: Mapping[str, str], primary_key: List[str] = None):
+def _get_table_def(
+    metadata,
+    table_name: str,
+    cols_with_types: Mapping[str, str],
+    primary_key: Optional[List[str]] = None,
+):
     _primary_key = primary_key or []
-    columns = [Column(col_name, col_type, primary_key=col_name in _primary_key)
-               for col_name, col_type in cols_with_types.items()]
+    columns = [
+        Column(col_name, col_type, primary_key=col_name in _primary_key)
+        for col_name, col_type in cols_with_types.items()
+    ]
     return Table(table_name, metadata, *columns)
