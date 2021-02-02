@@ -161,7 +161,7 @@ class DoltSQLContext:
         commit: bool = False,
         commit_message: Optional[str] = None,
         allow_emtpy: bool = False,
-    ):
+    ) -> Optional[str]:
         with self.engine.connect() as conn:
             conn.execute(sql)
 
@@ -395,6 +395,34 @@ class DoltSQLContext:
                     commits[ref] = commit
 
             return commits
+
+    # TODO
+    #  we likely want to support committish semantics here, i.e. anything that can resolve to a commit
+    def diff(
+        self,
+        from_commit: str,
+        to_commit: str,
+        table_or_tables: Union[str, List[str]]
+    ) -> Mapping[str, pd.DataFrame]:
+        if isinstance(table_or_tables, str):
+            tables = [table_or_tables]
+        else:
+            tables = table_or_tables
+
+        def get_query(table: str) -> str:
+            return f"""
+                SELECT
+                    *
+                FROM
+                    dolt_diff_{table}
+                WHERE
+                    from_commit = '{from_commit}'
+                    AND to_COMMIT = '{to_commit}'
+            """
+
+        result = {table: self.read_pandas_sql(get_query(table)) for table in tables}
+
+        return result
 
 
 class DoltSQLEngineContext(DoltSQLContext):
