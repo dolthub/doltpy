@@ -12,13 +12,15 @@ from typing import Any, Iterable, List, Mapping, Union, Optional, Tuple
 
 import pandas as pd  # type: ignore
 import sqlalchemy as sa  # type: ignore
+import numpy as np  # type: ignore
 from retry import retry
 from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
+from sqlalchemy.dialects.mysql import insert  # type: ignore
 
 from doltpy.cli import Dolt
 from doltpy.shared import columns_to_rows, rows_to_columns
-from doltpy.sql.helpers import infer_table_schema, get_inserts_and_updates, clean_types
+from doltpy.sql.helpers import infer_table_schema, clean_types
 
 logger = logging.getLogger(__name__)
 
@@ -239,10 +241,17 @@ class DoltSQLContext:
         allow_empty: bool = False,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
+        dt_columns = df.select_dtypes(include=[np.datetime64]).columns
+        rows = df.to_dict("records")
+
+        for row in rows:
+            for column in dt_columns:
+                if pd.isna(row[column]):
+                    row[column] = None
 
         return self.write_rows(
             table,
-            df.to_dict("records"),
+            rows,
             on_duplicate_key_update,
             create_if_not_exists,
             primary_key,
@@ -282,7 +291,7 @@ class DoltSQLContext:
             batch_end = min((i + 1) * batch_size, len(rows))
             batch = rows[batch_start:batch_end]
             logger.info(f"Writing records {batch_start} through {batch_end} of {len(rows)} rows to Dolt")
-            self.write_batch(table, batch, on_duplicate_key_update)
+            self._write_batch(table, batch, on_duplicate_key_update)
 
         if commit:
             return self.commit_tables(commit_message, table_name, allow_empty)
@@ -307,33 +316,17 @@ class DoltSQLContext:
 
         return data_copy
 
-    def write_batch(self, table: sa.Table, rows: List[dict], on_duplicate_key_update: bool):
-        coerced_data = list(clean_types(rows))
-        inserts, updates = get_inserts_and_updates(self.engine, table, coerced_data)
+    def _write_batch(self, table: sa.Table, rows: List[dict], on_duplicate_key_update: bool):
+        rows = list(clean_types(rows))
 
-        if not on_duplicate_key_update and updates:
-            raise ValueError("Duplicate keys present, but on_duplicate_key_update is off")
+        logger.info(f"Updating {len(rows)} rows")
+        with self.engine.connect() as conn:
+            statement = insert(table).values(rows)
+            if on_duplicate_key_update:
+                update_dict = {el.name: el for el in statement.inserted if not el.primary_key}
+                statement = statement.on_duplicate_key_update(update_dict)
 
-        if inserts:
-            logger.info(f"Inserting {len(inserts)} rows")
-            with self.engine.connect() as conn:
-                conn.execute(table.insert(), inserts)
-
-        # We need to prefix the columns with "_" in order to use bindparam properly
-        _updates = copy.deepcopy(updates)
-        for dic in _updates:
-            for col in list(dic.keys()):
-                dic[f"_{col}"] = dic.pop(col)
-
-        if _updates:
-            logger.info(f"Updating {len(_updates)} rows")
-            with self.engine.connect() as conn:
-                statement = table.update()
-                for pk_col in [col.name for col in table.columns if col.primary_key]:
-                    statement = statement.where(table.c[pk_col] == sa.bindparam(f"_{pk_col}"))
-                non_pk_cols = [col.name for col in table.columns if not col.primary_key]
-                statement = statement.values({col: sa.bindparam(f"_{col}") for col in non_pk_cols})
-                conn.execute(statement, _updates)
+            conn.execute(statement)
 
     def read_columns(self, table: str, as_of: Optional[str] = None) -> Mapping[str, list]:
         return self.read_columns_sql(self._get_read_table_asof_query(table, as_of))

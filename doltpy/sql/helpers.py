@@ -62,25 +62,6 @@ def hash_row_els(row: dict, cols: List[str]) -> int:
     return hash(frozenset({col: row[col] for col in cols}.items()))
 
 
-def get_inserts_and_updates(engine: Engine, table: Table, data: List[dict]) -> Tuple[List[dict], List[dict]]:
-    existing_pks = get_existing_pks(engine, table)
-    if not existing_pks:
-        return data, []
-
-    existing_pks_set = set(existing_pks.keys())
-    pk_cols = [col.name for col in table.columns if col.primary_key]
-    inserts, updates = [], []
-    for row in data:
-        row_hash = hash_row_els(row, pk_cols)
-
-        if row_hash in existing_pks_set:
-            updates.append(row)
-        else:
-            inserts.append(row)
-
-    return inserts, updates
-
-
 def infer_table_schema(
     metadata: MetaData,
     table_name: str,
