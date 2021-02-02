@@ -22,7 +22,7 @@ def _add_test_table(dolt: Dolt, table_name: str):
             `name` VARCHAR(32),
             `adjective` VARCHAR(32),
             `id` INT NOT NULL,
-            `date_of_death` DATETIME, 
+            `date_of_death` DATETIME,
             PRIMARY KEY (`id`)
         );
     ''')

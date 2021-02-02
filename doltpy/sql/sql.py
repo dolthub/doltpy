@@ -1,5 +1,6 @@
 import copy
 from collections import OrderedDict
+from dataclasses import dataclass
 import csv
 import logging
 import math
@@ -29,57 +30,34 @@ SQL_LOG_FILE = "temp_log"
 DEFAULT_BATCH_SIZE = 100000
 
 
+@dataclass
 class ServerConfig:
-    def __init__(
-        self,
-        branch: Optional[str] = None,
-        config: Optional[str] = None,
-        host: str = DEFAULT_HOST,
-        port: int = DEFAULT_PORT,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        timeout: int = None,
-        readonly: bool = None,
-        loglevel: Optional[str] = None,
-        multi_db_dir: Optional[str] = None,
-        no_auto_commit: bool = None,
-        echo: bool = False,
-    ):
-        self.branch = branch
-        self.config = config
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.timeout = timeout
-        self.readonly = readonly
-        self.loglevel = loglevel
-        self.multi_db_dir = multi_db_dir
-        self.no_auto_commit = no_auto_commit
-        self.echo = echo
+    branch: Optional[str] = None
+    config: Optional[str] = None
+    host: str = DEFAULT_HOST
+    port: int = DEFAULT_PORT
+    user: Optional[str] = None
+    password: Optional[str] = None
+    timeout: Optional[int] = None
+    readonly: Optional[bool] = None
+    loglevel: Optional[str] = None
+    multi_db_dir: Optional[str] = None
+    no_auto_commit: Optional[bool] = None
+    echo: bool = False
 
 
+@dataclass
 class DoltCommit:
     """
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
-
-    def __init__(
-        self,
-        ref: str,
-        ts: datetime.datetime,
-        author: str,
-        email: str,
-        message: str,
-        parent_or_parents: Union[str, Tuple[str, str]] = None,
-    ):
-        self.hash = ref
-        self.ts = ts
-        self.author = author
-        self.email = email
-        self.message = message
-        self.parent_or_parents = parent_or_parents
+    ref: str
+    ts: datetime.datetime
+    author: str
+    email: str
+    message: str
+    parent_or_parents: Optional[Union[str, Tuple[str, str]]] = None
 
     def __str__(self):
         return f"{self.hash}: {self.author} @ {self.ts}, {self.message}"
@@ -95,6 +73,7 @@ class DoltCommit:
         self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
 
 
+@dataclass
 class DoltSQLContext:
     dolt: Dolt
     server_config: ServerConfig

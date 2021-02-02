@@ -163,6 +163,7 @@ def insert_unique_key(df: pd.DataFrame) -> pd.DataFrame:
     :param df:
     :return:
     """
+    # TODO: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.util.hash_pandas_object.html
     assert (
         INSERTED_ROW_HASH_COL not in df.columns and INSERTED_COUNT_COL not in df.columns
     ), "Require hash_id and count not in df"

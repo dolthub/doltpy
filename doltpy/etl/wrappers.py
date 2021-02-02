@@ -46,7 +46,7 @@ def load_to_dolthub(
             for dolt_loader in loaders:
                 branch = dolt_loader(dolthub_context.dolt)
                 if push:
-                    logger.info("Pushing changes to remote {} on branch {}".format(remote_name, branch))
+                    logger.info(f"Pushing changes to remote {remote_name} on branch {branch}")
                     dolthub_context.dolt.push(remote_name, branch)
 
 

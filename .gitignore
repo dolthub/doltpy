@@ -11,3 +11,4 @@ dist
 Pipfile*
 doltpy.egg-info
 .coverage
+temp_log
