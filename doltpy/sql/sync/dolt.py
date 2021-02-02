@@ -162,7 +162,7 @@ def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: Optional[str] = N
     if not commit_ref or len(commits) == 1:
         _, commit = commits.popitem()
     else:
-        _, commit = commits[commit_ref]
+        commit = commits[commit_ref]
 
     return commit
 

@@ -369,8 +369,9 @@ class DoltSQLContext:
     def log(self) -> OrderedDict:
         query = f"""
             SELECT
-                da.`commit_hash`,
+                dc.`commit_hash`,
                 dca.`parent_hash`,
+                `committer`,
                 `email`,
                 `date`,
                 `message`
@@ -393,7 +394,7 @@ class DoltSQLContext:
                     commit = DoltCommit(
                         ref=row["commit_hash"],
                         ts=row["date"],
-                        author=row["commiter"],
+                        author=row["committer"],
                         email=row["email"],
                         message=row["message"],
                         parent_or_parents=row["parent_hash"],

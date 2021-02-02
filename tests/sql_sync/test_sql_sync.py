@@ -22,7 +22,6 @@ def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     validate_dolt_as_source(mysql_conn, mysql_table, get_mysql_target_writer, dolt_repo, dolt_table)
 
 
-@pytest.mark.sql_sync
 def test_mysql_to_dolt(mysql_with_table, repo_with_table):
     """
     Tests MySQL to Dolt, see validate_dolt_as_source for details.
@@ -38,7 +37,6 @@ def test_mysql_to_dolt(mysql_with_table, repo_with_table):
                             dolt_table)
 
 
-@pytest.mark.sql_sync
 def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to Postgres, see validate_dolt_as_source for details.
@@ -48,7 +46,6 @@ def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     validate_dolt_as_source(postgres_conn, postgres_table, get_postgres_target_writer, dolt_repo, dolt_table)
 
 
-@pytest.mark.sql_sync
 def test_postgres_to_dolt(postgres_with_table, db_with_table):
     """
     Tests Postgres to Dolt, see validate_dolt_as_source for details.
@@ -64,7 +61,6 @@ def test_postgres_to_dolt(postgres_with_table, db_with_table):
                             dolt_table)
 
 
-@pytest.mark.sql_sync
 def test_postgres_to_dolt_array_types(postgres_with_table_with_arrays, db_with_table_with_arrays):
     postgres_engine, postgres_table = postgres_with_table_with_arrays
     dssc, dolt_table = db_with_table_with_arrays
@@ -82,7 +78,6 @@ def test_postgres_to_dolt_array_types(postgres_with_table_with_arrays, db_with_t
     assert_rows_equal(clean_dolt_data, db_data, lambda dic: dic['id'])
 
 
-@pytest.mark.sql_sync
 def test_oracle_to_mysql(oracle_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to Oracle, see validate_dolt_as_source for details.
@@ -92,7 +87,6 @@ def test_oracle_to_mysql(oracle_with_table, create_dolt_test_data_commits):
     validate_dolt_as_source(oracle_conn, oracle_table, get_oracle_target_writer, dssc, dolt_table)
 
 
-@pytest.mark.sql_sync
 def test_oracle_to_dolt(oracle_with_table, db_with_table):
     """
     Tests Oracle to Dolt, see validate_dolt_as_source for details.
