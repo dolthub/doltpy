@@ -1,5 +1,5 @@
-import logging
 import pytest
+import logging
 from doltpy.sql.sync.mysql import get_target_writer as get_mysql_target_writer
 from doltpy.sql.sync.postgres import get_target_writer as get_postgres_target_writer
 from doltpy.sql.sync.oracle import get_target_writer as get_oracle_target_writer
@@ -13,7 +13,6 @@ from .helpers.data_helper import assert_rows_equal, TEST_DATA_WITH_ARRAYS, deser
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.sql_sync
 def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     """
     Tests Dolt to MySQL, see validate_dolt_as_source for details.
