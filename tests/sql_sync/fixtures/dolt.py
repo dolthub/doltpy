@@ -1,14 +1,16 @@
 import pytest
 import logging
 from doltpy.sql import DoltSQLServerContext
-from doltpy.sql.tests.helpers import TEST_SERVER_CONFIG
-from doltpy.sql.sync.tests.helpers.data_helper import (TEST_DATA_INITIAL,
-                                                       TEST_DATA_APPEND_SINGLE_ROW,
-                                                       TEST_DATA_APPEND_MULTIPLE_ROWS,
-                                                       TEST_TABLE_METADATA,
-                                                       DOLT_TABLE_WITH_ARRAYS,
-                                                       get_dolt_update_row_statement,
-                                                       get_dolt_drop_pk_query)
+from tests.sql.helpers import TEST_SERVER_CONFIG
+from tests.sql_sync.helpers.data_helper import (
+    TEST_DATA_INITIAL,
+    TEST_DATA_APPEND_SINGLE_ROW,
+    TEST_DATA_APPEND_MULTIPLE_ROWS,
+    TEST_TABLE_METADATA,
+    DOLT_TABLE_WITH_ARRAYS,
+    get_dolt_update_row_statement,
+    get_dolt_drop_pk_query
+)
 from typing import Tuple
 from sqlalchemy import Table, MetaData
 

@@ -1,7 +1,7 @@
 import pytest
-from doltpy.sql.sync.tests.helpers.data_helper import TEST_TABLE_METADATA, POSTGRES_TABLE_WITH_ARRAYS
-from doltpy.sql.sync.tests.helpers.schema_sync_helper import POSTGRES_TABLE as POSTGRES_SCHEMA_SYNC_TEST_TABLE
-from doltpy.sql.sync.tests.fixtures.db_fixtures_helper import engine_helper
+from tests.sql_sync.helpers.data_helper import TEST_TABLE_METADATA, POSTGRES_TABLE_WITH_ARRAYS
+from tests.sql_sync.helpers.schema_sync_helper import POSTGRES_TABLE as POSTGRES_SCHEMA_SYNC_TEST_TABLE
+from tests.sql_sync.fixtures.db_fixtures_helper import engine_helper
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
 

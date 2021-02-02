@@ -5,7 +5,6 @@ import os
 
 from doltpy.cli.dolt import Dolt
 from .cli.helpers import get_repo_path_tmp_path
-from .fixtures import *
 
 TEST_TABLE = 'characters'
 TEST_DATA_INITIAL = [

@@ -1,7 +1,7 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy import Table, MetaData
 import pytest
-from doltpy.sql.sync.tests.helpers.data_helper import TEST_TABLE_METADATA
+from tests.sql_sync.helpers.data_helper import TEST_TABLE_METADATA
 from typing import Tuple
 from sqlalchemy import create_engine
 import cx_Oracle

@@ -64,3 +64,8 @@ ignore_missing_imports = true
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+markers = [
+    "sql_sync: marks tests as being for doltpy.sql.sync and not run in CI (deselect with '-m \"sql_sync\"')"
+]

@@ -1,8 +1,7 @@
 import pytest
 import yaml
-from sqlalchemy import create_engine
+import sqlalchemy as sa
 from retry import retry
-import sqlalchemy
 
 
 @pytest.fixture(scope='session')
@@ -35,7 +34,7 @@ def engine_helper(dialect: str, user: str, password: str, host: str, port: int, 
     :param database:
     :return:
     """
-    engine = create_engine(
+    engine = sa.create_engine(
         '{dialect}://{user}:{password}@{host}:{port}/{database}'.format(
             dialect=dialect,
             user=user,
@@ -48,9 +47,9 @@ def engine_helper(dialect: str, user: str, password: str, host: str, port: int, 
     )
 
     @retry(delay=2, tries=10, exceptions=(
-        sqlalchemy.exc.OperationalError,
-        sqlalchemy.exc.DatabaseError,
-        sqlalchemy.exc.InterfaceError,
+        sa.exc.OperationalError,
+        sa.exc.DatabaseError,
+        sa.exc.InterfaceError,
     ))
     def verify_connection():
         conn = engine.connect()
