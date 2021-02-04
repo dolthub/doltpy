@@ -7,9 +7,10 @@ from typing import Callable, List, Union, Optional
 
 import pandas as pd  # type: ignore
 
-from doltpy.cli.dolt import Dolt
-from doltpy.cli.read import read_pandas
-from doltpy.cli.write import UPDATE, write_file, write_pandas
+from ..cli.dolt import Dolt
+from ..cli.read import read_pandas
+from ..cli.write import UPDATE, write_file, write_pandas
+from ..shared import to_list
 
 DoltTableWriter = Callable[[Dolt], str]
 DoltLoader = Callable[[Dolt], str]
@@ -246,11 +247,6 @@ def get_dolt_loader(
     :param transaction_mode:
     :return: the branch written to
     """
-    if isinstance(writer_or_writers, list):
-        writers = writer_or_writers
-    else:
-        writers = [writer_or_writers]
-
     def inner(repo: Dolt):
         current_branch, current_branch_list = repo.branch()
         original_branch = current_branch.name
@@ -268,7 +264,7 @@ def get_dolt_loader(
         if transaction_mode:
             raise NotImplementedError("transaction_mode is not yet implemented")
 
-        tables_updated = [writer(repo) for writer in writers]
+        tables_updated = [writer(repo) for writer in to_list(writer_or_writers)]
 
         if commit:
             if not repo.status().is_clean:

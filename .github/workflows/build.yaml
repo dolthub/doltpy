@@ -22,6 +22,13 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash
+          dolt config --global --add user.email bojack@horseman.com
+          dolt config --global --add user.name "Bojack Horseman"
+          dolt config --global --add metrics.host eventsapi.awsdev.ld-corp.com
+          dolt config --global --add metrics.port 443
       - uses: Gr1N/setup-poetry@v4
       - uses: actions/cache@v1
         with:
