@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterable, List, Mapping
+from typing import Iterable, List, Mapping, Union, Any
 
 
 def columns_to_rows(columns: Mapping[str, list]) -> List[dict]:
@@ -19,3 +19,7 @@ def rows_to_columns(rows: Iterable[dict]) -> Mapping[str, list]:
             columns[col].append(val)
 
     return columns
+
+
+def to_list(value: Union[Any, List[Any]]) -> Any:
+    return [value] if not isinstance(value, list) else value

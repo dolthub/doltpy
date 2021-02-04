@@ -1,8 +1,9 @@
 import logging
 from typing import List, Union, Optional
 
-from doltpy.cli import Dolt, DoltHubContext
-from doltpy.etl.loaders import DoltLoader
+from ..cli import Dolt, DoltHubContext
+from ..etl.loaders import DoltLoader
+from ..shared.helpers import to_list
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +29,6 @@ def load_to_dolthub(
     :param remote_url:
     :return:
     """
-    if isinstance(loader_or_loaders, list):
-        loaders = loader_or_loaders
-    else:
-        loaders = [loader_or_loaders]
-
     with DoltHubContext(remote_url, dolt_dir, remote_name) as dolthub_context:
         logger.info(
             f"""Commencing to load to DoltHub with the following options:
@@ -43,7 +39,7 @@ def load_to_dolthub(
             """
         )
         if not dry_run:
-            for dolt_loader in loaders:
+            for dolt_loader in to_list(loader_or_loaders):
                 branch = dolt_loader(dolthub_context.dolt)
                 if push:
                     logger.info(f"Pushing changes to remote {remote_name} on branch {branch}")
@@ -59,10 +55,6 @@ def load_to_dolt(loader_or_loaders: Union[DoltLoader, List[DoltLoader]], dolt_di
     :param dry_run:
     :return:
     """
-    if isinstance(loader_or_loaders, list):
-        loaders = loader_or_loaders
-    else:
-        loaders = [loader_or_loaders]
 
     logger.info(
         """Commencing load to Dolt with the following options:
@@ -73,5 +65,5 @@ def load_to_dolt(loader_or_loaders: Union[DoltLoader, List[DoltLoader]], dolt_di
     )
 
     if not dry_run:
-        for dolt_loader in loaders:
+        for dolt_loader in to_list(loader_or_loaders):
             dolt_loader(Dolt(dolt_dir))

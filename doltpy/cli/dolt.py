@@ -7,10 +7,10 @@ import tempfile
 from collections import OrderedDict
 import datetime
 from subprocess import PIPE, Popen
-import sys
-from typing import cast, List, Dict, Tuple, Union, Optional
+from typing import List, Dict, Tuple, Union, Optional
 
 from ..types.dolt import DoltT
+from ..shared.helpers import to_list
 
 logger = logging.getLogger(__name__)
 
@@ -297,12 +297,7 @@ class Dolt(DoltT):
         :param table_or_tables:
         :return:
         """
-        if isinstance(table_or_tables, str):
-            to_add = [table_or_tables]
-        else:
-            to_add = table_or_tables
-
-        self.execute(["add"] + to_add)
+        self.execute(["add"] + to_list(table_or_tables))
         return self.status()
 
     def reset(
@@ -319,10 +314,7 @@ class Dolt(DoltT):
         :param soft:
         :return:
         """
-        if isinstance(table_or_tables, str):
-            to_reset = [table_or_tables]
-        else:
-            to_reset = table_or_tables
+        to_reset = to_list(table_or_tables)
 
         args = ["reset"]
 
@@ -582,10 +574,8 @@ class Dolt(DoltT):
         if other_commit:
             args.append(other_commit)
 
-        if isinstance(table_or_tables, str):
-            args.append(table_or_tables)
-        elif isinstance(table_or_tables, list):
-            args.append(" ".join(table_or_tables))
+        if table_or_tables:
+            args.append(" ".join(to_list(table_or_tables)))
 
         self.execute(args)
 
@@ -731,10 +721,8 @@ class Dolt(DoltT):
                     args.append(start_point)
             args.append(branch)
 
-        elif isinstance(table_or_tables, str):
-            args.append(table_or_tables)
-        elif isinstance(table_or_tables, list):
-            args.append(" ".join(table_or_tables))
+        if table_or_tables:
+            args.append(" ".join(to_list(table_or_tables)))
 
         self.execute(args)
 
@@ -841,10 +829,8 @@ class Dolt(DoltT):
             args.append("--force")
         if remote:
             args.append(remote)
-        if isinstance(refspec_or_refspecs, str):
-            args.extend([refspec_or_refspecs])
-        elif isinstance(refspec_or_refspecs, list):
-            args.extend(refspec_or_refspecs)
+        if refspec_or_refspecs:
+            args.extend(to_list(refspec_or_refspecs))
 
         self.execute(args)
 
@@ -920,10 +906,8 @@ class Dolt(DoltT):
 
         args.extend(["--dir", new_dir, remote_url, committish])
 
-        if isinstance(table_or_tables, str):
-            args.extend([table_or_tables])
-        elif isinstance(table_or_tables, list):
-            args.extend(table_or_tables)
+        if table_or_tables:
+            args.extend(to_list(table_or_tables))
 
         _execute(args, cwd=new_dir)
 
@@ -1285,17 +1269,12 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        if isinstance(table_or_tables, str):
-            to_show = [table_or_tables]
-        else:
-            to_show = table_or_tables
-
         args = ["schema", "show"]
 
         if commit:
             args.append(commit)
 
-        args.extend(to_show)
+        args.extend(to_list(table_or_tables))
 
         self.execute(args)
 
@@ -1305,12 +1284,7 @@ class Dolt(DoltT):
         :param table_or_tables:
         :return:
         """
-        if isinstance(table_or_tables, str):
-            tables = [table_or_tables]
-        else:
-            tables = table_or_tables
-
-        self.execute(["rm", " ".join(tables)])
+        self.execute(["rm", " ".join(to_list(table_or_tables))])
 
     def table_import(
         self,

@@ -19,9 +19,9 @@ from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
 from sqlalchemy.dialects.mysql import insert  # type: ignore
 
-from doltpy.cli import Dolt
-from doltpy.shared import columns_to_rows, rows_to_columns
-from doltpy.sql.helpers import infer_table_schema, clean_types
+from ..cli import Dolt
+from ..shared import columns_to_rows, rows_to_columns, to_list
+from ..sql.helpers import infer_table_schema, clean_types
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class DoltCommit:
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
+
     ref: str
     ts: datetime.datetime
     author: str
@@ -119,10 +120,8 @@ class DoltSQLContext:
         table_or_tables: Optional[Union[str, List[str]]] = None,
         allow_emtpy: bool = False,
     ) -> str:
-        if isinstance(table_or_tables, str):
-            tables = [table_or_tables]
-        else:
-            tables = table_or_tables
+        tables = to_list(table_or_tables)
+
         with self.engine.connect() as conn:
             if tables:
                 for table in tables:
@@ -148,6 +147,8 @@ class DoltSQLContext:
             if not commit_message:
                 raise ValueError("Passed commit as True, but no commit message")
             return self.commit_tables(commit_message, None, allow_emtpy=allow_emtpy)
+
+        return None
 
     def write_columns(
         self,
@@ -378,15 +379,9 @@ class DoltSQLContext:
     # TODO
     #  we likely want to support committish semantics here, i.e. anything that can resolve to a commit
     def diff(
-        self,
-        from_commit: str,
-        to_commit: str,
-        table_or_tables: Union[str, List[str]]
+        self, from_commit: str, to_commit: str, table_or_tables: Union[str, List[str]]
     ) -> Mapping[str, pd.DataFrame]:
-        if isinstance(table_or_tables, str):
-            tables = [table_or_tables]
-        else:
-            tables = table_or_tables
+        tables = [table_or_tables] if isinstance(table_or_tables, str) else table_or_tables
 
         def get_query(table: str) -> str:
             return f"""
