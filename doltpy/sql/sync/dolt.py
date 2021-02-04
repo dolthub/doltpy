@@ -228,8 +228,8 @@ def _get_diff_table_clause(dolt_commit: DoltCommit) -> str:
         return f"""
             (
                 (from_commit = '{merge_parent}' OR from_commit = '{other_merge_parent}')
-                AND to_commit = '{dolt_commit.hash}'
+                AND to_commit = '{dolt_commit.ref}'
             )
         """
     else:
-        return f"""(from_commit = '{dolt_commit.parent_or_parents}' AND to_commit = '{dolt_commit.hash}')"""
+        return f"""(from_commit = '{dolt_commit.parent_or_parents}' AND to_commit = '{dolt_commit.ref}')"""

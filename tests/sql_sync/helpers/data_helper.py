@@ -222,6 +222,9 @@ def assert_rows_equal(left: List[dict],
 
 
 def coerce_date(left_value, right_value):
+    if isinstance(left_value, datetime) and isinstance(right_value, datetime):
+        return left_value, right_value
+
     if isinstance(left_value, datetime) and isinstance(right_value, date):
         left_value = date(left_value.year, left_value.month, left_value.day)
 

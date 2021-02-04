@@ -18,22 +18,22 @@ def test_dolt_to_mysql(mysql_with_table, create_dolt_test_data_commits):
     Tests Dolt to MySQL, see validate_dolt_as_source for details.
     """
     mysql_conn, mysql_table = mysql_with_table
-    dolt_repo, dolt_table = create_dolt_test_data_commits
-    validate_dolt_as_source(mysql_conn, mysql_table, get_mysql_target_writer, dolt_repo, dolt_table)
+    dssc, dolt_table = create_dolt_test_data_commits
+    validate_dolt_as_source(mysql_conn, mysql_table, get_mysql_target_writer, dssc, dolt_table)
 
 
-def test_mysql_to_dolt(mysql_with_table, repo_with_table):
+def test_mysql_to_dolt(mysql_with_table, db_with_table):
     """
     Tests MySQL to Dolt, see validate_dolt_as_source for details.
     """
     mysql_engine, mysql_table = mysql_with_table
-    dolt_repo, dolt_table = repo_with_table
+    dssc, dolt_table = db_with_table
     validate_dolt_as_target(mysql_engine,
                             mysql_table,
                             get_source_reader,
                             get_mysql_target_writer,
                             get_table_reader,
-                            dolt_repo,
+                            dssc,
                             dolt_table)
 
 
@@ -42,8 +42,8 @@ def test_dolt_postgres(postgres_with_table, create_dolt_test_data_commits):
     Tests Dolt to Postgres, see validate_dolt_as_source for details.
     """
     postgres_conn, postgres_table = postgres_with_table
-    dolt_repo, dolt_table = create_dolt_test_data_commits
-    validate_dolt_as_source(postgres_conn, postgres_table, get_postgres_target_writer, dolt_repo, dolt_table)
+    dssc, dolt_table = create_dolt_test_data_commits
+    validate_dolt_as_source(postgres_conn, postgres_table, get_postgres_target_writer, dssc, dolt_table)
 
 
 def test_postgres_to_dolt(postgres_with_table, db_with_table):

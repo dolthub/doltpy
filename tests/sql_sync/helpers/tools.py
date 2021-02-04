@@ -128,14 +128,14 @@ def validate_dolt_as_target(db_engine: Engine,
     for update_data in update_sequence:
         get_db_target_writer(db_engine)({str(db_table.name): ([], update_data)})
         sync_to_dolt_helper()
-        latest_commit = list(dssc.dolt.log().keys())[0]
+        latest_commit = list(dssc.log().keys())[0]
         assertion_helper(latest_commit, update_data)
 
     with db_engine.connect() as conn:
         conn.execute(db_table.delete().where(db_table.c.first_name == 'Novak'))
 
     sync_to_dolt_helper()
-    latest_commit = list(dssc.dolt.log().keys())[0]
+    latest_commit = list(dssc.log().keys())[0]
     _, dolt_data = get_dolt_table_reader(latest_commit)(str(dolt_table.name), dssc)
     db_data = get_db_table_reader()(db_engine, db_table)
     assert_rows_equal(list(dolt_data), db_data, datetime_strict=datetime_strict)

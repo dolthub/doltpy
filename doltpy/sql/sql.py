@@ -60,7 +60,7 @@ class DoltCommit:
     parent_or_parents: Optional[Union[str, Tuple[str, str]]] = None
 
     def __str__(self):
-        return f"{self.hash}: {self.author} @ {self.ts}, {self.message}"
+        return f"{self.ref}: {self.author} @ {self.ts}, {self.message}"
 
     def is_merge(self):
         return isinstance(self.parent_or_parents, tuple)
@@ -121,7 +121,7 @@ class DoltSQLContext:
     ) -> str:
         if isinstance(table_or_tables, str):
             tables = [table_or_tables]
-        elif isinstance(table_or_tables, list):
+        else:
             tables = table_or_tables
         with self.engine.connect() as conn:
             if tables:

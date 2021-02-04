@@ -1,36 +1,35 @@
 from doltpy.sql.sync.sync_tools import sync_schema_to_dolt
 from doltpy.sql.sync.postgres import POSTGRES_TO_DOLT_TYPE_MAPPINGS
 from doltpy.sql.sync.mysql import MYSQL_TO_DOLT_TYPE_MAPPINGS
-from doltpy.cli.dolt import Dolt
+from doltpy.sql import DoltSQLServerContext
 from sqlalchemy.engine import Engine
 from sqlalchemy import MetaData
 from .helpers.schema_sync_helper import TEST_SOURCE_TABLE, TEST_TARGET_TABLE, ALTER_TABLE
-import pytest
 
 TABLE_MAP = {TEST_SOURCE_TABLE: TEST_TARGET_TABLE}
 
 
-def test_mysql_to_dolt(mysql_with_schema_sync_test_table, empty_repo_with_server_process):
+def test_mysql_to_dolt(mysql_with_schema_sync_test_table, empty_db_with_server_process):
     mysql_engine, _ = mysql_with_schema_sync_test_table
-    dolt = empty_repo_with_server_process
+    dolt = empty_db_with_server_process
     _test_schema_sync_helper(mysql_engine, MYSQL_TO_DOLT_TYPE_MAPPINGS, dolt)
 
 
-def test_postgres_to_dolt(postgres_with_schema_sync_test_table, empty_repo_with_server_process):
+def test_postgres_to_dolt(postgres_with_schema_sync_test_table, empty_db_with_server_process):
     postgres_engine, _ = postgres_with_schema_sync_test_table
-    dolt = empty_repo_with_server_process
+    dolt = empty_db_with_server_process
     _test_schema_sync_helper(postgres_engine, POSTGRES_TO_DOLT_TYPE_MAPPINGS, dolt)
 
 
-def _test_schema_sync_helper(source_engine: Engine, type_mapping: dict, dolt: Dolt):
-    sync_schema_to_dolt(source_engine, dolt , TABLE_MAP, type_mapping)
-    _compare_schema_helper(TEST_SOURCE_TABLE, source_engine, TEST_TARGET_TABLE, dolt.engine, type_mapping)
+def _test_schema_sync_helper(source_engine: Engine, type_mapping: dict, dssc: DoltSQLServerContext):
+    sync_schema_to_dolt(source_engine, dssc.engine, TABLE_MAP, type_mapping)
+    _compare_schema_helper(TEST_SOURCE_TABLE, source_engine, TEST_TARGET_TABLE, dssc.engine, type_mapping)
 
     with source_engine.connect() as conn:
         conn.execute(ALTER_TABLE)
 
-    sync_schema_to_dolt(source_engine, dolt, TABLE_MAP, type_mapping)
-    _compare_schema_helper(TEST_SOURCE_TABLE, source_engine, TEST_TARGET_TABLE, dolt.engine, type_mapping)
+    sync_schema_to_dolt(source_engine, dssc.engine, TABLE_MAP, type_mapping)
+    _compare_schema_helper(TEST_SOURCE_TABLE, source_engine, TEST_TARGET_TABLE, dssc.engine, type_mapping)
 
 
 def _compare_schema_helper(source_table_name: str,
