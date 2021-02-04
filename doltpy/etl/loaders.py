@@ -247,6 +247,7 @@ def get_dolt_loader(
     :param transaction_mode:
     :return: the branch written to
     """
+
     def inner(repo: Dolt):
         current_branch, current_branch_list = repo.branch()
         original_branch = current_branch.name
