@@ -1,6 +1,12 @@
 name: Doltpy Tests
 
-on: push
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 20 * * *' # run at noon PT
 
 jobs:
   # Run test suite across all major OS types
@@ -11,25 +17,47 @@ jobs:
         python-version: ['3.7', '3.8', '3.9']
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        sudo curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash
-        dolt config --global --add user.email bojack@horseman.com
-        dolt config --global --add user.name "Bojack Horseman"
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Execute pytest
-      run: |
-        pytest -m 'not sql_sync'
-    - name: Discord Notify
-      if: always()
-      uses: dolthub/ga-discord-notify@master
-      with:
-        job-status: ${{ job.status }}
-        webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-        notify-on-success: false
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash
+          dolt config --global --add user.email bojack@horseman.com
+          dolt config --global --add user.name "Bojack Horseman"
+          dolt config --global --add metrics.host eventsapi.awsdev.ld-corp.com
+          dolt config --global --add metrics.port 443
+      - uses: Gr1N/setup-poetry@v4
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-poetry-
+      - name: Install poetry dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Execute black
+        run: poetry run black . --check --exclude tests -t py37
+      - name: Execute mypy
+        run: poetry run mypy doltpy
+      - name: Execute pytest
+        run: |
+          poetry run pytest --ignore tests/sql --ignore tests/sql_sync/ . --cov=doltpy --cov-report=term --cov-report xml
+      - uses: codecov/codecov-action@v1
+        if: ${{ matrix.python-version }} == '3.9'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          #files: ./coverage-${{ runner.os }}-${{ matrix.python-version }}.xml
+          name: codecov-umbrella # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
+      - name: Discord Notify
+        if: always()
+        uses: dolthub/ga-discord-notify@master
+        with:
+          job-status: ${{ job.status }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          notify-on-success: false

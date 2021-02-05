@@ -1,0 +1,247 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>doltpy.etl package &#8212; Doltpy Documentation (0.1.x)</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/werkzeug.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+  <script>DOCUMENTATION_OPTIONS.URL_ROOT = './';</script>
+   
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Doltpy Documentation (0.1.x)</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">doltpy.etl package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="doltpy-etl-package">
+<h1>doltpy.etl package<a class="headerlink" href="#doltpy-etl-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-doltpy.etl.loaders">
+<span id="doltpy-etl-loaders-module"></span><h2>doltpy.etl.loaders module<a class="headerlink" href="#module-doltpy.etl.loaders" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="doltpy.etl.loaders.create_table_from_schema_import">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">create_table_from_schema_import</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">repo</span><span class="p">:</span> <span class="n"><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a></span></em>, <em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">pks</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">commit_message</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.etl.loaders.create_table_from_schema_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute Dolt.schema_import_create(…) against a file with a specified set of primary key columns, and optionally
+commit the created table.
+:param repo:
+:param table:
+:param pks:
+:param path:
+:param commit:
+:param commit_message:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.create_table_from_schema_import_unique_key">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">create_table_from_schema_import_unique_key</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">repo</span><span class="p">:</span> <span class="n"><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a></span></em>, <em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">commit_message</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.etl.loaders.create_table_from_schema_import_unique_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute Dolt.schema_import_create(…) against a file where we will use insert_unique_key(…) to create a unique
+key on this data. The standard “hash_id” column name will be used for the unique key.
+:param repo:
+:param table:
+:param path:
+:param commit:
+:param commit_message:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_branch_creator">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_branch_creator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">new_branch_name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">refspec</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.etl.loaders.get_branch_creator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function that creates a branch at the specified refspec.
+:param new_branch_name:
+:param refspec:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_bulk_table_writer">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_bulk_table_writer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">get_data</span><span class="p">:</span> <span class="n">Callable<span class="p">[</span><span class="p">]</span><span class="p">, </span>_io.StringIO<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">pk_cols</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">import_mode</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">transformers</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span>_io.StringIO<span class="p">]</span><span class="p">, </span>_io.StringIO<span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.etl.loaders.get_bulk_table_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function that takes a Dolt repository object and writes the contents of the file like object returned by
+the function parameter <cite>get_data</cite> to the table specified using the primary keys passed. Optionally toggle the import
+mode and apply a list of transformers to do some data cleaning operations. For example, we might apply a transformer
+that converts some date strings to proper datetime objects.
+:param table:
+:param get_data:
+:param pk_cols:
+:param import_mode:
+:param transformers:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_df_table_writer">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_df_table_writer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">get_data</span><span class="p">:</span> <span class="n">Callable<span class="p">[</span><span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">pk_cols</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">import_mode</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">transformers</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span>pandas.core.frame.DataFrame<span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.etl.loaders.get_df_table_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function that takes a Dolt repository object and writes the Pandas DataFrame returned by the function
+parameter <cite>get_data</cite> to the table specified using the primary keys passed. Optionally toggle the import mode and
+apply a list of transformers to do some data cleaning operations. For example, we might apply a transformer that
+converts some date strings to proper datetime objects.
+:param table:
+:param get_data:
+:param pk_cols:
+:param import_mode:
+:param transformers:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_dolt_loader">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_dolt_loader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">writer_or_writers</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">, </span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">commit</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em>, <em class="sig-param"><span class="n">message</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'master'</span></em>, <em class="sig-param"><span class="n">transaction_mode</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.etl.loaders.get_dolt_loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a repo and a set of table loaders, run the table loaders and conditionally commit the results with the
+specified message on the specified branch. If transaction_mode is true then ensure all loaders/transformers are
+successful, or all are rolled back.
+:param writer_or_writers:
+:param commit:
+:param message:
+:param branch:
+:param transaction_mode:
+:return: the branch written to</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_table_transformer">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_table_transformer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">get_data</span><span class="p">:</span> <span class="n">Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">target_table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">transformer</span><span class="p">:</span> <span class="n">Callable<span class="p">[</span><span class="p">[</span>pandas.core.frame.DataFrame<span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">target_pk_cols</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">import_mode</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'update'</span></em><span class="sig-paren">)</span> &#x2192; Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.etl.loaders.get_table_transformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of get_df_table writer where the input is a Dolt repository. This is used for transforming raw data into
+derived tables.
+:param get_data:
+:param target_table:
+:param target_pk_cols:
+:param transformer:
+:param import_mode:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.get_unique_key_table_writer">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">get_unique_key_table_writer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">get_data</span><span class="p">:</span> <span class="n">Callable<span class="p">[</span><span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">import_mode</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'update'</span></em>, <em class="sig-param"><span class="n">transformers</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span>pandas.core.frame.DataFrame<span class="p">]</span><span class="p">, </span>pandas.core.frame.DataFrame<span class="p">]</span><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="headerlink" href="#doltpy.etl.loaders.get_unique_key_table_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a convenience function wrapping for loading data when using the <cite>insert_primary_key</cite> transformer to
+generate a unique key.
+:param table:
+:param get_data:
+:param import_mode:
+:param transformers:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.loaders.insert_unique_key">
+<code class="sig-prename descclassname">doltpy.etl.loaders.</code><code class="sig-name descname">insert_unique_key</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span><span class="p">:</span> <span class="n">pandas.core.frame.DataFrame</span></em><span class="sig-paren">)</span> &#x2192; pandas.core.frame.DataFrame<a class="headerlink" href="#doltpy.etl.loaders.insert_unique_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function takes Pandas <cite>DataFrame</cite> and inserts a unique hash to each row created from the row itself, along
+with a count of how many rows produce the same hash. The idea is to provide some rudimentary tools for writing data
+with unique keys.
+:param df:
+:return:</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-doltpy.etl.wrappers">
+<span id="doltpy-etl-wrappers-module"></span><h2>doltpy.etl.wrappers module<a class="headerlink" href="#module-doltpy.etl.wrappers" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="doltpy.etl.wrappers.load_to_dolt">
+<code class="sig-prename descclassname">doltpy.etl.wrappers.</code><code class="sig-name descname">load_to_dolt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loader_or_loaders</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">, </span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">dolt_dir</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">dry_run</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.etl.wrappers.load_to_dolt" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function takes a <cite>DoltLoaderBuilder</cite>, repo and remote settings, and attempts to execute the loaders returned
+by the builder.
+:param loader_or_loaders:
+:param dolt_dir:
+:param dry_run:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doltpy.etl.wrappers.load_to_dolthub">
+<code class="sig-prename descclassname">doltpy.etl.wrappers.</code><code class="sig-name descname">load_to_dolthub</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loader_or_loaders</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">, </span>List<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span><a class="reference internal" href="doltpy.cli.html#doltpy.cli.dolt.Dolt" title="doltpy.cli.dolt.Dolt">doltpy.cli.dolt.Dolt</a><span class="p">]</span><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">clone</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em>, <em class="sig-param"><span class="n">push</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em>, <em class="sig-param"><span class="n">remote_name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">remote_url</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">dolt_dir</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dry_run</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doltpy.etl.wrappers.load_to_dolthub" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function takes a <cite>DoltLoaderBuilder</cite>, repo and remote settings, and attempts to execute the loaders returned
+by the builder.
+:param loader_or_loaders:
+:param dolt_dir:
+:param clone:
+:param push:
+:param remote_name:
+:param dry_run:
+:param remote_url:
+:return:</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-doltpy.etl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-doltpy.etl" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+  <span id="sidebar-top"></span>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  
+    
+  
+
+  <h3>Contents</h3>
+  <ul>
+<li><a class="reference internal" href="#">doltpy.etl package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-doltpy.etl.loaders">doltpy.etl.loaders module</a></li>
+<li><a class="reference internal" href="#module-doltpy.etl.wrappers">doltpy.etl.wrappers module</a></li>
+<li><a class="reference internal" href="#module-doltpy.etl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+  <li><a href="index.html">Overview</a>
+    
+  </li>
+</ul>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  
+    <div class="footer" role="contentinfo">
+        &#169; Copyright .
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+  <script src="_static/version_warning_offset.js"></script>
+
+  </body>
+</html>

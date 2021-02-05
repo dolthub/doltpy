@@ -9,3 +9,6 @@ dist
 .eggs/
 .sqlhistory
 Pipfile*
+doltpy.egg-info
+.coverage
+temp_log
