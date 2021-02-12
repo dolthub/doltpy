@@ -56,3 +56,10 @@ def test_commit_tables(with_test_tables):
 @pytest.mark.skip()
 def test_commit_tables_empty_commit():
     pass
+
+
+def test_show_tables(with_test_tables):
+    dolt = with_test_tables
+    with DoltSQLServerContext(dolt, TEST_SERVER_CONFIG) as dssc:
+        tables = dssc.tables()
+        assert TEST_TABLE_ONE in tables and TEST_TABLE_TWO in tables

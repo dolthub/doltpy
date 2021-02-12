@@ -87,9 +87,7 @@ def get_source_reader(
 
     def inner(tables: List[str]) -> DoltAsSourceUpdate:
         result = {}
-        # TODO do this in SQL
-        dolt_tables = [table.name for table in dsc.dolt.ls()]
-        missing_tables = [table for table in tables if table not in dolt_tables]
+        missing_tables = [table for table in tables if table not in dsc.tables()]
         if missing_tables:
             logger.error(f"The following tables are missing, exiting:\n{missing_tables}")
             raise ValueError(f"Missing tables {missing_tables}")
@@ -178,7 +176,7 @@ def get_table_reader(
 
     def inner(table_name: str, dsc: DoltSQLContext) -> DoltTableUpdate:
         # TODO do this in SQL
-        query_commit = commit_ref or list(dsc.dolt.log().keys())[0]
+        query_commit = commit_ref or list(dsc.log().keys())[0]
         table = get_table_metadata(dsc.engine, table_name)
         commit = get_from_commit_to_commit(dsc, query_commit)
         pks_to_drop = get_dropped_pks(dsc.engine, table, commit)
