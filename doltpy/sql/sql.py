@@ -76,7 +76,7 @@ class DoltCommit:
 
 @dataclass
 class DoltSQLContext:
-    dolt: Dolt
+    database: str
     server_config: ServerConfig
     engine: Engine
 
@@ -85,7 +85,7 @@ class DoltSQLContext:
         Get a connection to ths server process that this repo is running, raise an exception if it is not running.
         :return:
         """
-        database = self.dolt.repo_name
+        database = self.database
         user = self.server_config.user
         host = self.server_config.host
         port = self.server_config.port
@@ -398,6 +398,11 @@ class DoltSQLContext:
 
         return result
 
+    def tables(self) -> List[str]:
+        with self.engine.connect() as conn:
+            result = conn.execute("SHOW TABLES")
+            return [row["Table"] for row in result]
+
 
 class DoltSQLEngineContext(DoltSQLContext):
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
@@ -410,6 +415,7 @@ class DoltSQLEngineContext(DoltSQLContext):
 class DoltSQLServerContext(DoltSQLContext):
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
         self.dolt = dolt
+        self.database = dolt.repo_name
         self.server_config = server_config
         self.engine = self._get_engine()
         self.server = None

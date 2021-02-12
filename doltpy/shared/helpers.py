@@ -22,4 +22,4 @@ def rows_to_columns(rows: Iterable[dict]) -> Mapping[str, list]:
 
 
 def to_list(value: Union[Any, List[Any]]) -> Any:
-    return [value] if not isinstance(value, list) else value
+    return [value] if not isinstance(value, list) and value is not None else value
