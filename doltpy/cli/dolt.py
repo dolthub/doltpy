@@ -156,7 +156,6 @@ class DoltCommit:
             if ref in commits:
                 commits[ref].append_merge_parent(row["parent_hash"])
             else:
-                ref = row["commit_hash"]
                 commit = DoltCommit(
                     ref=row["commit_hash"],
                     ts=row["date"],
