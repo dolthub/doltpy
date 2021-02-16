@@ -5,6 +5,8 @@ import logging
 import os
 import tempfile
 from collections import OrderedDict
+from dataclasses import dataclass
+import pandas as pd  # type: ignore
 import datetime
 from subprocess import PIPE, Popen
 from typing import List, Dict, Tuple, Union, Optional
@@ -101,28 +103,70 @@ class DoltTable:
         return f"DoltTable(name: {self.name}, table_hash: {self.table_hash}, rows: {self.rows}, system: {self.system})"
 
 
+@dataclass
 class DoltCommit:
     """
     Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
     to the user.
     """
 
-    def __init__(
-        self,
-        ref: str,
-        ts: datetime.datetime,
-        author: str,
-        message: str,
-        merge: Optional[Tuple[str, ...]] = None,
-    ):
-        self.hash = ref
-        self.ts = ts
-        self.author = author
-        self.message = message
-        self.merge = merge
+    ref: str
+    ts: datetime.datetime
+    author: str
+    email: str
+    message: str
+    parent_or_parents: Optional[Union[str, Tuple[str, str]]] = None
 
     def __str__(self):
-        return f"{self.hash}: {self.author} @ {self.ts}, {self.message}"
+        return f"{self.ref}: {self.author} @ {self.ts}, {self.message}"
+
+    def is_merge(self):
+        return isinstance(self.parent_or_parents, tuple)
+
+    def append_merge_parent(self, other_merge_parent: str):
+        if isinstance(self.parent_or_parents, tuple):
+            raise ValueError("Already has a merge parent set")
+        elif not self.parent_or_parents:
+            raise ValueError("No merge parents set")
+        self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
+
+    @classmethod
+    def get_log_table_query(cls):
+        return f"""
+            SELECT
+                dc.`commit_hash`,
+                dca.`parent_hash`,
+                `committer`,
+                `email`,
+                `date`,
+                `message`
+            FROM
+                dolt_commits AS dc
+                LEFT OUTER JOIN dolt_commit_ancestors AS dca
+                    ON dc.commit_hash = dca.commit_hash
+            ORDER BY
+                `date` DESC
+        """
+
+    @classmethod
+    def parse_dolt_log_table(cls, rows: List[dict]) -> OrderedDict:
+        commits: OrderedDict[str, DoltCommit] = OrderedDict()
+        for row in rows:
+            ref = row["commit_hash"]
+            if ref in commits:
+                commits[ref].append_merge_parent(row["parent_hash"])
+            else:
+                commit = DoltCommit(
+                    ref=row["commit_hash"],
+                    ts=row["date"],
+                    author=row["committer"],
+                    email=row["email"],
+                    message=row["message"],
+                    parent_or_parents=row["parent_hash"],
+                )
+                commits[ref] = commit
+
+        return commits
 
 
 class DoltKeyPair:
@@ -485,42 +529,9 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        args = ["log"]
-
-        if number:
-            args.extend(["--number", str(number)])
-        if commit:
-            raise NotImplementedError()
-
-        output = self.execute(args, print_output=False)
-        result = OrderedDict()
-        for i, line in enumerate(output):
-            if line.startswith("commit"):
-                offsets: Optional[Tuple[Optional[int], int, int, int]] = None
-                if output[i + 1].startswith("Merge"):
-                    offsets = (1, 2, 3, 5)
-                else:
-                    offsets = (None, 1, 2, 4)
-
-                merge_pos, author_offset, date_offset, message_offset = offsets
-
-                current_commit = line.split(" ")[1]
-                merge = None
-                if merge_pos:
-                    merge = tuple(output[merge_pos].split(":")[1].lstrip().split(" "))
-                author = output[i + author_offset].split(":")[1].lstrip()
-                date = datetime.datetime.strptime(
-                    output[i + date_offset].split(":", maxsplit=1)[1].lstrip(),
-                    "%a %b %d %H:%M:%S %z %Y",
-                )
-                message = output[i + message_offset].lstrip("\t")
-                commit_metadata = (current_commit, date, author, message)
-                if None in commit_metadata:
-                    raise ValueError(f"Invalid commit metadata: {commit_metadata}")
-
-                result[current_commit] = DoltCommit(current_commit, date, author, message, merge)
-
-        return result
+        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(), result_format="csv")).to_dict("records")
+        commits = DoltCommit.parse_dolt_log_table(res)
+        return commits
 
     def diff(
         self,

@@ -1,4 +1,3 @@
-import copy
 from collections import OrderedDict
 from dataclasses import dataclass
 import csv
@@ -9,7 +8,7 @@ import datetime
 
 # from doltpy.shared import SQL_LOG_FILE
 from subprocess import STDOUT, Popen
-from typing import Any, Iterable, List, Mapping, Union, Optional, Tuple
+from typing import Any, Iterable, List, Mapping, Union, Optional
 
 import pandas as pd  # type: ignore
 import sqlalchemy as sa  # type: ignore
@@ -19,7 +18,7 @@ from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
 from sqlalchemy.dialects.mysql import insert  # type: ignore
 
-from ..cli import Dolt
+from ..cli import Dolt, DoltCommit
 from ..shared import columns_to_rows, rows_to_columns, to_list
 from ..sql.helpers import infer_table_schema, clean_types
 
@@ -44,34 +43,6 @@ class ServerConfig:
     multi_db_dir: Optional[str] = None
     no_auto_commit: Optional[bool] = None
     echo: bool = False
-
-
-@dataclass
-class DoltCommit:
-    """
-    Represents metadata about a commit, including a ref, timestamp, and author, to make it easier to sort and present
-    to the user.
-    """
-
-    ref: str
-    ts: datetime.datetime
-    author: str
-    email: str
-    message: str
-    parent_or_parents: Optional[Union[str, Tuple[str, str]]] = None
-
-    def __str__(self):
-        return f"{self.ref}: {self.author} @ {self.ts}, {self.message}"
-
-    def is_merge(self):
-        return isinstance(self.parent_or_parents, tuple)
-
-    def append_merge_parent(self, other_merge_parent: str):
-        if isinstance(self.parent_or_parents, tuple):
-            raise ValueError("Already has a merge parent set")
-        elif not self.parent_or_parents:
-            raise ValueError("No merge parents set")
-        self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
 
 
 @dataclass
@@ -340,40 +311,10 @@ class DoltSQLContext:
             return [dict(row) for row in result]
 
     def log(self) -> OrderedDict:
-        query = f"""
-            SELECT
-                dc.`commit_hash`,
-                dca.`parent_hash`,
-                `committer`,
-                `email`,
-                `date`,
-                `message`
-            FROM
-                dolt_commits AS dc
-                LEFT OUTER JOIN dolt_commit_ancestors AS dca
-                    ON dc.commit_hash = dca.commit_hash
-            ORDER BY
-                `date` DESC
-        """
         with self.engine.connect() as conn:
-            commits: OrderedDict[str, DoltCommit] = OrderedDict()
-            res = conn.execute(query)
-            for row in res:
-                ref = row["commit_hash"]
-                if ref in commits:
-                    commits[ref].append_merge_parent(row["parent_hash"])
-                else:
-                    ref = row["commit_hash"]
-                    commit = DoltCommit(
-                        ref=row["commit_hash"],
-                        ts=row["date"],
-                        author=row["committer"],
-                        email=row["email"],
-                        message=row["message"],
-                        parent_or_parents=row["parent_hash"],
-                    )
-                    commits[ref] = commit
-
+            res = conn.execute(DoltCommit.get_log_table_query())
+            commit_data = [dict(row) for row in res]
+            commits = DoltCommit.parse_dolt_log_table(commit_data)
             return commits
 
     # TODO
