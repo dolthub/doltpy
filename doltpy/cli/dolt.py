@@ -6,7 +6,7 @@ import os
 import tempfile
 from collections import OrderedDict
 from dataclasses import dataclass
-import pandas as pd
+import pandas as pd  # type: ignore
 import datetime
 from subprocess import PIPE, Popen
 from typing import List, Dict, Tuple, Union, Optional
@@ -530,7 +530,7 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(), result_format='csv')).to_dict('records')
+        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(), result_format="csv")).to_dict("records")
         commits = DoltCommit.parse_dolt_log_table(res)
         return commits
 
