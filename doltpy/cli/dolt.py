@@ -30,7 +30,7 @@ class DoltException(Exception):
         stderr: Optional[Union[str, bytes]] = None,
         exitcode: Optional[int] = 1,
     ):
-        super().__init__(exec_args)
+        super().__init__(" ".join(exec_args), stdout, stderr, exitcode)
         self.exec_args = exec_args
         self.stdout = stdout
         self.stderr = stderr
