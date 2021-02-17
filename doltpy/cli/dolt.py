@@ -58,7 +58,6 @@ def _execute(args: List[str], cwd: Optional[str] = None):
     out, err = proc.communicate()
     exitcode = proc.returncode
 
-    print(out, err)
     if exitcode != 0:
         raise DoltException(_args, out, err, exitcode)
 
