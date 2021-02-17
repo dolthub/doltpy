@@ -12,13 +12,16 @@ jobs:
     name: Bump Version
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Bump Version
-        uses: dolthub/ga-bump-version@master
+      - name: Update Doltpy version
+        run: sed -i 's/version =.*/version = "'"$VERSION"'"/' "$FILE"
+        env:
+          FILE: ${{ format('{0}/setup.py', github.workspace) }}
+          VERSION: ${{ github.event.inputs.version }}
+      - uses: EndBug/add-and-commit@v7
         with:
-          version-string: ${{ github.event.inputs.version }}
-          version-file: setup.py
+          message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
+          add: ${{ format('{0}/setup.py', github.workspace) }}
+          cwd: "."
       - name: Discord Notify
         if: always()
         uses: dolthub/ga-discord-notify@master
