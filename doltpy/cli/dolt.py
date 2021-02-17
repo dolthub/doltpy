@@ -30,7 +30,7 @@ class DoltException(Exception):
         stderr: Optional[Union[str, bytes]] = None,
         exitcode: Optional[int] = 1,
     ):
-        super().__init__(exec_args)
+        super().__init__(" ".join(exec_args), stdout, stderr, exitcode)
         self.exec_args = exec_args
         self.stdout = stdout
         self.stderr = stderr
@@ -58,6 +58,7 @@ def _execute(args: List[str], cwd: Optional[str] = None):
     out, err = proc.communicate()
     exitcode = proc.returncode
 
+    print(out, err)
     if exitcode != 0:
         raise DoltException(_args, out, err, exitcode)
 
