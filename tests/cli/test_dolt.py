@@ -124,8 +124,9 @@ def test_merge_conflict(create_test_table):
     repo.merge('other', message_merge)
 
     commits = list(repo.log().values())
+    print(commits)
     # TODO the last commmit ends up being message_three, the tip of branch "other"
-    head_of_master = commits[1]
+    head_of_master = commits[0]
 
     assert head_of_master.message == message_two
 
@@ -144,6 +145,41 @@ def test_dolt_log(create_test_table):
     previous_commit = commits[1]
     assert current_commit.message == message_two
     assert previous_commit.message == message_one
+
+
+def test_dolt_log_number(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Julianna, the very serious intellectual'
+    message_two = 'Added Stan the Man'
+    repo.add(test_table)
+    repo.commit('Julianna, the very serious intellectual')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Stan", 4)')
+    repo.add(test_table)
+    repo.commit(message_two)
+
+    commits = list(repo.log(number=1).values())
+
+    assert len(commits) == 1
+    current_commit = commits[0]
+    assert current_commit.message == message_two
+
+
+def test_dolt_log_commit(create_test_table):
+    repo, test_table = create_test_table
+    message_one = 'Julianna, the very serious intellectual'
+    message_two = 'Added Stan the Man'
+    repo.add(test_table)
+    repo.commit('Julianna, the very serious intellectual')
+    repo.sql('INSERT INTO `test_players` (`name`, `id`) VALUES ("Stan", 4)')
+    repo.add(test_table)
+    repo.commit(message_two)
+
+    commits = list(repo.log(number=1).values())
+    commits = list(repo.log(commit=commits[0].ref).values())
+
+    assert len(commits) == 1
+    current_commit = commits[0]
+    assert current_commit.message == message_two
 
 
 def test_dolt_log_merge_commit(create_test_table):

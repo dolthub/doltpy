@@ -57,8 +57,10 @@ def _execute(args: List[str], cwd: Optional[str] = None):
     proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
     exitcode = proc.returncode
+    logger.info(" ".join(_args))
 
     if exitcode != 0:
+        logger.error(err)
         raise DoltException(_args, out, err, exitcode)
 
     return out.decode("utf-8")
@@ -131,8 +133,8 @@ class DoltCommit:
         self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
 
     @classmethod
-    def get_log_table_query(cls):
-        return f"""
+    def get_log_table_query(cls, number: Optional[int] = None, commit: Optional[str] = None):
+        base = f"""
             SELECT
                 dc.`commit_hash`,
                 dca.`parent_hash`,
@@ -144,9 +146,17 @@ class DoltCommit:
                 dolt_commits AS dc
                 LEFT OUTER JOIN dolt_commit_ancestors AS dca
                     ON dc.commit_hash = dca.commit_hash
-            ORDER BY
-                `date` DESC
         """
+
+        if commit is not None:
+            base += f"WHERE dc.`commit_hash`='{commit}'"
+
+        base + f"ORDER BY `date` DESC"
+
+        if number is not None:
+            base += f"LIMIT {number}"
+
+        return base
 
     @classmethod
     def parse_dolt_log_table(cls, rows: List[dict]) -> OrderedDict:
@@ -529,7 +539,7 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(), result_format="csv")).to_dict("records")
+        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(number=number, commit=commit), result_format="csv")).to_dict("records")
         commits = DoltCommit.parse_dolt_log_table(res)
         return commits
 
