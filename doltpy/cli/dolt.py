@@ -540,7 +540,9 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(number=number, commit=commit), result_format="csv")).to_dict("records")
+        res = pd.DataFrame(
+            self.sql(DoltCommit.get_log_table_query(number=number, commit=commit), result_format="csv")
+        ).to_dict("records")
         commits = DoltCommit.parse_dolt_log_table(res)
         return commits
 
