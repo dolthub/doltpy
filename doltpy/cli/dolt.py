@@ -30,7 +30,7 @@ class DoltException(Exception):
         stderr: Optional[Union[str, bytes]] = None,
         exitcode: Optional[int] = 1,
     ):
-        super().__init__(" ".join(exec_args), stdout, stderr, exitcode)
+        super().__init__(exec_args, stdout, stderr, exitcode)
         self.exec_args = exec_args
         self.stdout = stdout
         self.stderr = stderr
@@ -54,14 +54,15 @@ class DoltDirectoryException(Exception):
 
 def _execute(args: List[str], cwd: Optional[str] = None):
     _args = ["dolt"] + args
+    str_args = " ".join(" ".join(args).split())
+    logger.info(str_args)
     proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
     exitcode = proc.returncode
-    logger.info(" ".join(_args))
 
     if exitcode != 0:
         logger.error(err)
-        raise DoltException(_args, out, err, exitcode)
+        raise DoltException(str_args, out, err, exitcode)
 
     return out.decode("utf-8")
 
@@ -156,7 +157,6 @@ class DoltCommit:
         if number is not None:
             base += f"\nLIMIT {number}"
 
-        print(base)
         return base
 
     @classmethod
