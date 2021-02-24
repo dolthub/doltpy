@@ -1278,7 +1278,7 @@ class Dolt(DoltT):
         if delim:
             args.extend(["--delim", delim])
 
-        args.extend([table, filename])
+        args.extend([str(table), str(filename)])
 
         self.execute(args)
 
