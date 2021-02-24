@@ -151,11 +151,12 @@ class DoltCommit:
         if commit is not None:
             base += f"WHERE dc.`commit_hash`='{commit}'"
 
-        base + f"ORDER BY `date` DESC"
+        base += f"\nORDER BY `date` DESC"
 
         if number is not None:
-            base += f"LIMIT {number}"
+            base += f"\nLIMIT {number}"
 
+        print(base)
         return base
 
     @classmethod
