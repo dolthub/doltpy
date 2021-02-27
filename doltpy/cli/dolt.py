@@ -30,7 +30,7 @@ class DoltException(Exception):
         stderr: Optional[Union[str, bytes]] = None,
         exitcode: Optional[int] = 1,
     ):
-        super().__init__(" ".join(exec_args), stdout, stderr, exitcode)
+        super().__init__(exec_args, stdout, stderr, exitcode)
         self.exec_args = exec_args
         self.stdout = stdout
         self.stderr = stderr
@@ -54,12 +54,15 @@ class DoltDirectoryException(Exception):
 
 def _execute(args: List[str], cwd: Optional[str] = None):
     _args = ["dolt"] + args
+    str_args = " ".join(" ".join(args).split())
+    logger.info(str_args)
     proc = Popen(args=_args, cwd=cwd, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
     exitcode = proc.returncode
 
     if exitcode != 0:
-        raise DoltException(_args, out, err, exitcode)
+        logger.error(err)
+        raise DoltException(str_args, out, err, exitcode)
 
     return out.decode("utf-8")
 
@@ -131,8 +134,8 @@ class DoltCommit:
         self.parent_or_parents = (self.parent_or_parents, other_merge_parent)
 
     @classmethod
-    def get_log_table_query(cls):
-        return f"""
+    def get_log_table_query(cls, number: Optional[int] = None, commit: Optional[str] = None):
+        base = f"""
             SELECT
                 dc.`commit_hash`,
                 dca.`parent_hash`,
@@ -144,9 +147,17 @@ class DoltCommit:
                 dolt_commits AS dc
                 LEFT OUTER JOIN dolt_commit_ancestors AS dca
                     ON dc.commit_hash = dca.commit_hash
-            ORDER BY
-                `date` DESC
         """
+
+        if commit is not None:
+            base += f"WHERE dc.`commit_hash`='{commit}'"
+
+        base += f"\nORDER BY `date` DESC"
+
+        if number is not None:
+            base += f"\nLIMIT {number}"
+
+        return base
 
     @classmethod
     def parse_dolt_log_table(cls, rows: List[dict]) -> OrderedDict:
@@ -529,7 +540,9 @@ class Dolt(DoltT):
         :param commit:
         :return:
         """
-        res = pd.DataFrame(self.sql(DoltCommit.get_log_table_query(), result_format="csv")).to_dict("records")
+        res = pd.DataFrame(
+            self.sql(DoltCommit.get_log_table_query(number=number, commit=commit), result_format="csv")
+        ).to_dict("records")
         commits = DoltCommit.parse_dolt_log_table(res)
         return commits
 
@@ -1268,7 +1281,7 @@ class Dolt(DoltT):
         if delim:
             args.extend(["--delim", delim])
 
-        args.extend([table, filename])
+        args.extend([str(table), str(filename)])
 
         self.execute(args)
 
