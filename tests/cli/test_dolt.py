@@ -170,17 +170,7 @@ def test_dolt_log_number(create_test_table):
 
 def test_dolt_single_commit_log(create_test_table):
     repo, test_table = create_test_table
-    #message_one = 'Julianna, the very serious intellectual'
-    #repo.add(test_table)
-    #repo.commit(message_one)
-
-    #commits = list(repo.log(number=1).values())
-    #commits = list(repo.log(commit=commits[0].ref).values())
-
     assert len(repo.log()) == 1
-    #assert len(commits) == 1
-    #current_commit = commits[0]
-    #assert current_commit.message == message_one
 
 
 def test_dolt_log_commit(create_test_table):
