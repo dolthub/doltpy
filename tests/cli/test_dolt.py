@@ -63,6 +63,11 @@ def test_commit(create_test_table):
     assert repo.status().is_clean and len(repo.log()) == before_commit_count + 1
 
 
+def test_head(create_test_table):
+    repo, test_table = create_test_table
+    assert list(repo.log().values())[0].ref == repo.head
+
+
 def test_merge_fast_forward(create_test_table):
     repo, test_table = create_test_table
     message_one = 'Base branch'
@@ -161,6 +166,21 @@ def test_dolt_log_number(create_test_table):
     assert len(commits) == 1
     current_commit = commits[0]
     assert current_commit.message == message_two
+
+
+def test_dolt_single_commit_log(create_test_table):
+    repo, test_table = create_test_table
+    #message_one = 'Julianna, the very serious intellectual'
+    #repo.add(test_table)
+    #repo.commit(message_one)
+
+    #commits = list(repo.log(number=1).values())
+    #commits = list(repo.log(commit=commits[0].ref).values())
+
+    assert len(repo.log()) == 1
+    #assert len(commits) == 1
+    #current_commit = commits[0]
+    #assert current_commit.message == message_one
 
 
 def test_dolt_log_commit(create_test_table):
