@@ -5,7 +5,7 @@ description = ""
 authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = ">=3.6.1,<4.0"
 attrs = "19.3.0"
 decorator = "4.4.2"
 numpy = "1.19.0"
@@ -37,7 +37,6 @@ sphinx-markdown-builder = "^0.5.4"
 pallets_sphinx_themes = "^1.2.3"
 sphinx_issues = "^1.2.0"
 "sphinxcontrib.log_cabinet" = "^1.0.1"
-ipython = "^7.19.0"
 pytest = "^6.2.2"
 pytest-docker = "^0.10.1"
 pytest-cov = "^2.11.1"
