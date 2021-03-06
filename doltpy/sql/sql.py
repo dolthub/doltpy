@@ -8,7 +8,7 @@ import datetime
 
 # from doltpy.shared import SQL_LOG_FILE
 from subprocess import STDOUT, Popen
-from typing import Any, Iterable, List, Mapping, Union, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Union, Optional
 
 import pandas as pd  # type: ignore
 import sqlalchemy as sa  # type: ignore
@@ -310,7 +310,7 @@ class DoltSQLContext:
             result = conn.execute(sql)
             return [dict(row) for row in result]
 
-    def log(self) -> OrderedDict:
+    def log(self) -> Dict:
         with self.engine.connect() as conn:
             res = conn.execute(DoltCommit.get_log_table_query())
             commit_data = [dict(row) for row in res]

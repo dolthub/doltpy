@@ -33,7 +33,7 @@ def _add_test_table(dolt: Dolt, table_name: str):
 def test_context_manager_cleanup(init_empty_test_repo):
     dolt = init_empty_test_repo
     with DoltSQLServerContext(dolt, TEST_SERVER_CONFIG) as _:
-        assert _count_proc_helper('running') == 1
+        assert _count_proc_helper('running') + _count_proc_helper('sleeping') == 1
 
     assert _count_proc_helper('zombie') == 1
 
