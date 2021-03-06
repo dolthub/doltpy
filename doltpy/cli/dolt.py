@@ -161,8 +161,8 @@ class DoltCommit:
         return base
 
     @classmethod
-    def parse_dolt_log_table(cls, rows: List[dict]) -> OrderedDict:
-        commits: OrderedDict[str, DoltCommit] = OrderedDict()
+    def parse_dolt_log_table(cls, rows: List[dict]) -> Dict:
+        commits: Dict[str, DoltCommit] = OrderedDict()
         for row in rows:
             ref = row["commit_hash"]
             if ref in commits:
@@ -541,7 +541,7 @@ class Dolt(DoltT):
         dict_reader = csv.DictReader(io.StringIO("\n".join(output)))
         return list(dict_reader)
 
-    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> Dict:
         """
         Parses the log created by running the log command into instances of `DoltCommit` that provide detail of the
         commit, including timestamp and hash.

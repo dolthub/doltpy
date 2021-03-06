@@ -1,6 +1,6 @@
 import abc
 import datetime
-from typing import Generic, List, Mapping, OrderedDict, Tuple, TypeVar, Union, Optional
+from typing import Generic, List, Mapping, Dict, Tuple, TypeVar, Union, Optional
 
 __all__ = ["DoltT"]
 
@@ -83,7 +83,7 @@ class DoltT(Generic[_T]):
         ...
 
     @abc.abstractmethod
-    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> OrderedDict:
+    def log(self, number: Optional[int] = None, commit: Optional[str] = None) -> Dict:
         ...
 
     @abc.abstractmethod
