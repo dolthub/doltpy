@@ -5,7 +5,7 @@ description = ""
 authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.6"
 attrs = "19.3.0"
 decorator = "4.4.2"
 numpy = "1.19.0"
