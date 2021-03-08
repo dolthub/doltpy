@@ -12,23 +12,24 @@ jobs:
     name: Bump Version
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Update Doltpy version
         run: sed -i 's/version =.*/version = "'"$VERSION"'"/' "$FILE"
         env:
           FILE: setup.py
           VERSION: ${{ github.event.inputs.version }}
-      - uses: EndBug/add-and-commit@v7
-        with:
-          message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
-          add: ${{ format('{0}/setup.py', github.workspace) }}
-          cwd: "."
-      - name: Discord Notify
-        if: always()
-        uses: dolthub/ga-discord-notify@master
-        with:
-          job-status: ${{ job.status }}
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          notify-on-success: false
+      #- uses: EndBug/add-and-commit@v7
+        #with:
+          #message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
+          #add: ${{ format('{0}/setup.py', github.workspace) }}
+          #cwd: "."
+      #- name: Discord Notify
+        #if: always()
+        #uses: dolthub/ga-discord-notify@master
+        #with:
+          #job-status: ${{ job.status }}
+          #webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          #notify-on-success: false
 
   #create-release:
     #needs: bump-version
