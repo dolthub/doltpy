@@ -7,7 +7,7 @@ from typing import Callable, List, Union, Optional
 
 import pandas as pd  # type: ignore
 
-from ..cli.dolt import Dolt
+from ..cli.dolt import Dolt  # type: ignore
 from ..cli.read import read_pandas
 from ..cli.write import UPDATE, write_file, write_pandas
 from ..shared import to_list

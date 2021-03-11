@@ -38,7 +38,7 @@ def create_test_table(init_empty_test_repo, create_test_data) -> Tuple[Dolt, str
     yield repo, 'test_players'
 
     if 'test_players' in [table.name for table in repo.ls()]:
-        _execute(['table', 'rm', 'test_players'], repo.repo_dir())
+        _execute(['table', 'rm', 'test_players'], repo.repo_dir)
 
 
 def test_init(tmp_path):
@@ -95,7 +95,7 @@ def test_merge_fast_forward(create_test_table):
     fast_forward_commit = commits[0]
     parent = commits[1]
 
-    assert isinstance(fast_forward_commit.parent_or_parents, str)
+    assert isinstance(fast_forward_commit.parents, str)
     assert fast_forward_commit.message == message_two
     assert parent.message == message_one
 
@@ -130,7 +130,7 @@ def test_merge_conflict(create_test_table):
 
     commits = list(repo.log().values())
     # TODO the last commmit ends up being message_three, the tip of branch "other"
-    head_of_master = commits[1]
+    head_of_master = commits[0]
 
     assert head_of_master.message == message_two
 
@@ -225,7 +225,7 @@ def test_dolt_log_merge_commit(create_test_table):
     second_merge_parent = commits[2]
 
     assert merge_commit.message == message_merge
-    assert {first_merge_parent.ref, second_merge_parent.ref} == set(merge_commit.parent_or_parents)
+    assert {first_merge_parent.ref, second_merge_parent.ref} == set(merge_commit.parents)
 
 
 def test_get_dirty_tables(create_test_table):
@@ -280,7 +280,7 @@ def test_get_dirty_tables(create_test_table):
 
 def test_checkout_with_tables(create_test_table):
     repo, test_table = create_test_table
-    repo.checkout(table_or_tables=test_table)
+    repo.checkout(tables=test_table)
     assert repo.status().is_clean
 
 

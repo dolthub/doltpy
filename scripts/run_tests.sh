@@ -13,5 +13,5 @@ fi
 
 cd $BASE
 poetry run mypy doltpy
-poetry run black . --check --exclude tests -t py37
+poetry run black doltpy --check --exclude tests -t py37
 poetry run pytest tests

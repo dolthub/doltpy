@@ -18,7 +18,7 @@ from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
 from sqlalchemy.dialects.mysql import insert  # type: ignore
 
-from ..cli import Dolt, DoltCommit
+from ..cli import Dolt, Commit
 from ..shared import columns_to_rows, rows_to_columns, to_list
 from ..sql.helpers import infer_table_schema, clean_types
 
@@ -312,9 +312,9 @@ class DoltSQLContext:
 
     def log(self) -> Dict:
         with self.engine.connect() as conn:
-            res = conn.execute(DoltCommit.get_log_table_query())
+            res = conn.execute(Commit.get_log_table_query())
             commit_data = [dict(row) for row in res]
-            commits = DoltCommit.parse_dolt_log_table(commit_data)
+            commits = Commit.parse_dolt_log_table(commit_data)
             return commits
 
     # TODO
@@ -393,11 +393,11 @@ class DoltSQLServerContext(DoltSQLContext):
             if self.server is not None:
                 logger.warning("Server already running")
 
-            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir(), "mysql_server.log")
+            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir, "mysql_server.log")
 
             proc = Popen(
                 args=["dolt"] + server_args,
-                cwd=self.dolt.repo_dir(),
+                cwd=self.dolt.repo_dir,
                 stdout=open(log_file, "w"),
                 stderr=STDOUT,
             )
