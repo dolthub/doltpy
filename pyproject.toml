@@ -47,6 +47,10 @@ hypothesis = "^6.7.0"
 pg = ["psycopg2-binary"]
 oracle = ["cx-oracle"]
 
+[tool.poetry.scripts]
+"dolthub-load" = "doltpy.etl:dolthub_loader_main"
+"dolt-load" = "doltpy.etl:dolt_loader_main"
+
 [tool.pytest.ini_options]
 markers = [
     "sql_sync: SQL: tests",
