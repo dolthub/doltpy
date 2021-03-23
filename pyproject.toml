@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "doltpy"
-version = "0.1.0"
+version = "2.0.5"
 description = ""
 authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
 
@@ -61,7 +61,7 @@ markers = [
 line-length = 120
 
 [mypy]
-python_version = 3.7
+python_version = "2.0.5"
 
 [mypy-doltpy]
 ignore_missing_imports = true
