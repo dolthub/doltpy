@@ -4,7 +4,7 @@ from typing import Callable, List, Tuple, Optional
 from sqlalchemy import MetaData, Table  # type: ignore
 from sqlalchemy.engine import Engine  # type: ignore
 
-from doltpy.sql import DoltCommit
+from doltpy.sql import Commit
 from doltpy.sql import DoltSQLContext
 from doltpy.sql.helpers import get_existing_pks, hash_row_els
 from doltpy.sql.sync.db_tools import (
@@ -124,7 +124,7 @@ def get_table_reader_diffs(
     return inner
 
 
-def get_dropped_pks(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
+def get_dropped_pks(engine: Engine, table: Table, dolt_commit: Commit) -> List[dict]:
     """
     Given table_metadata, a connection, and a pair of commits, will return the list of pks that were dropped between
     the two commits.
@@ -147,7 +147,7 @@ def get_dropped_pks(engine: Engine, table: Table, dolt_commit: DoltCommit) -> Li
     return _query_helper(engine, query)
 
 
-def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: Optional[str] = None) -> DoltCommit:
+def get_from_commit_to_commit(dsc: DoltSQLContext, commit_ref: Optional[str] = None) -> Commit:
     """
     Given a repo and commit it returns the commit and its parent, if no commit is provided the head and the parent of
     head are returned.
@@ -186,7 +186,7 @@ def get_table_reader(
     return inner
 
 
-def _read_from_dolt_diff(engine: Engine, table: Table, dolt_commit: DoltCommit) -> List[dict]:
+def _read_from_dolt_diff(engine: Engine, table: Table, dolt_commit: Commit) -> List[dict]:
     query = f"""
         SELECT
             {','.join(f'`to_{col.name}` as {col.name}' for col in table.columns)}
@@ -219,10 +219,10 @@ def _query_helper(engine: Engine, query: str):
         return [dict(row) for row in result]
 
 
-def _get_diff_table_clause(dolt_commit: DoltCommit) -> str:
+def _get_diff_table_clause(dolt_commit: Commit) -> str:
     if dolt_commit.is_merge():
-        assert isinstance(dolt_commit.parent_or_parents, tuple)
-        merge_parent, other_merge_parent = dolt_commit.parent_or_parents
+        assert isinstance(dolt_commit.parents, tuple)
+        merge_parent, other_merge_parent = dolt_commit.parents
         return f"""
             (
                 (from_commit = '{merge_parent}' OR from_commit = '{other_merge_parent}')
@@ -230,4 +230,4 @@ def _get_diff_table_clause(dolt_commit: DoltCommit) -> str:
             )
         """
     else:
-        return f"""(from_commit = '{dolt_commit.parent_or_parents}' AND to_commit = '{dolt_commit.ref}')"""
+        return f"""(from_commit = '{dolt_commit.parents}' AND to_commit = '{dolt_commit.ref}')"""

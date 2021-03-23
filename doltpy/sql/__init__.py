@@ -6,7 +6,7 @@ from .sql import (
     DoltSQLServerContext,
     DoltSQLEngineContext,
     ServerConfig,
-    DoltCommit,
+    Commit,
 )
 
 register_cleanup()
