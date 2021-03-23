@@ -9,7 +9,7 @@ on:
 
 jobs:
   bump-version:
-    name: Bump Version
+    name: Bump Version and Release
     runs-on: ubuntu-18.04
     strategy:
       matrix:
@@ -17,15 +17,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Update Doltpy version
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python_version }}
+      - uses: Gr1N/setup-poetry@v4
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-poetry-
+      - name: Install poetry dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Update Doltcli version
         run: sed -i 's/version =.*/version = "'"$VERSION"'"/' "$FILE"
         env:
-          FILE: setup.py
+          FILE: pyproject.toml
           VERSION: ${{ github.event.inputs.version }}
       - uses: EndBug/add-and-commit@v7
         with:
-          message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
-          add: ${{ format('{0}/setup.py', github.workspace) }}
+          message: ${{ format('[ga-bump-release] update Doltcli version to {0}', github.event.inputs.version) }}
+          add: ${{ format('{0}/pyproject.toml', github.workspace) }}
           cwd: "."
       - name: Create Release
         id: create_release
@@ -37,26 +51,11 @@ jobs:
           release_name: ${{ github.event.inputs.version }}
           draft: false
           prerelease: false
-      - name: Checkout release
+      - name: Publish
         run: |
-          git fetch --tags --all
-          git checkout tags/v${{ github.event.inputs.version }} -b v${{ github.event.inputs.version }}
-      - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python_version }}
-      - name: Build from source
-        run: |
-          python setup.py sdist
-      - name: Publish Doltpy to PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: DoltHub
-          password: ${{ secrets.pypi_password }}
-      - name: Discord Notify
-        if: always()
-        uses: dolthub/ga-discord-notify@master
-        with:
-          job-status: ${{ job.status }}
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          notify-on-success: true
+          poetry config http-basic.pypi $USERNAME $PASSWORD
+          poetry build
+          poetry publish
+        env:
+          PASSWORD: ${{ secrets.pypi_password }}
+          USERNAME: Dolthub
