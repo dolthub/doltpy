@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "doltpy"
 version = "2.0.5"
-description = ""
+description = "A Python package for using Dolt database via Python."
 authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
+readme = "README.md"
+homepage = "https://github.com/dolthub/doltpy"
+keywords = ["Dolt", "Liquidata", "DoltHub", "ETL", "ELT", "MLOps"]
 
 [tool.poetry.dependencies]
 python = ">=3.6.1,<4.0"
