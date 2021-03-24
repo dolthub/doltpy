@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "doltpy"
-version = "0.1.0"
-description = ""
+version = "2.0.5"
+description = "A Python package for using Dolt database via Python."
 authors = ["Oscar Batori <oscar@dolthub.com>", "Max Hoffman <max@dolthub.com>"]
+readme = "README.md"
+homepage = "https://github.com/dolthub/doltpy"
+keywords = ["Dolt", "Liquidata", "DoltHub", "ETL", "ELT", "MLOps"]
 
 [tool.poetry.dependencies]
 python = ">=3.6.1,<4.0"
@@ -47,6 +50,10 @@ hypothesis = "^6.7.0"
 pg = ["psycopg2-binary"]
 oracle = ["cx-oracle"]
 
+[tool.poetry.scripts]
+"dolthub-load" = "doltpy.etl:dolthub_loader_main"
+"dolt-load" = "doltpy.etl:dolt_loader_main"
+
 [tool.pytest.ini_options]
 markers = [
     "sql_sync: SQL: tests",
@@ -57,7 +64,7 @@ markers = [
 line-length = 120
 
 [mypy]
-python_version = 3.7
+python_version = "2.0.5"
 
 [mypy-doltpy]
 ignore_missing_imports = true
