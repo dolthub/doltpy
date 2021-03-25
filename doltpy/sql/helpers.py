@@ -25,7 +25,11 @@ def clean_types(data: Iterable[dict]) -> List[dict]:
     for row in data:
         row_copy: Dict[str, Any] = {}
         for col, val in row.items():
-            if isinstance(val, datetime.date):
+            if isinstance(val, pd.Timestamp):
+                row_copy[col] = val.to_pydatetime()
+            elif isinstance(val, datetime.datetime):
+                row_copy[col] = val
+            elif isinstance(val, datetime.date):
                 row_copy[col] = datetime.datetime.combine(val, datetime.time())
             elif isinstance(val, list):
                 if not val:
