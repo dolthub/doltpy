@@ -13,7 +13,6 @@ from .helpers.data_helper import (assert_rows_equal,
 from doltpy.sql.sync.dolt import get_table_reader_diffs, get_table_reader, get_target_writer
 from doltpy.sql.sync.db_tools import get_table_metadata, DoltTableUpdate
 import logging
-import pytest
 from typing import Callable, Tuple, List
 from sqlalchemy import Table
 from doltpy.sql import DoltSQLServerContext
