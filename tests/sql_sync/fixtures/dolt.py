@@ -1,7 +1,6 @@
 import pytest
 import logging
-from doltpy.sql import DoltSQLServerContext
-from tests.sql.helpers import TEST_SERVER_CONFIG
+from doltpy.sql import DoltSQLServerContext, ServerConfig
 from tests.sql_sync.helpers.data_helper import (
     TEST_DATA_INITIAL,
     TEST_DATA_APPEND_SINGLE_ROW,
@@ -13,25 +12,42 @@ from tests.sql_sync.helpers.data_helper import (
 )
 from typing import Tuple
 from sqlalchemy import Table, MetaData
+import yaml
+import os
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def db_with_table(request, init_empty_test_repo) -> Tuple[DoltSQLServerContext, Table]:
-    dssc = DoltSQLServerContext(init_empty_test_repo, TEST_SERVER_CONFIG)
+def with_db_config(tmp_path):
+    conf_path = os.path.join(tmp_path, 'server_conf.yaml')
+    conf = {
+        'listener': {
+            'max_connections': 3
+        }
+    }
+
+    with open(conf_path, 'w') as f:
+        yaml.dump(conf, stream=f)
+
+    return ServerConfig(user='root', config=conf_path)
+
+
+@pytest.fixture
+def db_with_table(request, init_empty_test_repo, with_db_config) -> Tuple[DoltSQLServerContext, Table]:
+    dssc = DoltSQLServerContext(init_empty_test_repo, with_db_config)
     return _test_table_helper(dssc, request, TEST_TABLE_METADATA)
 
 
 @pytest.fixture
-def db_with_table_with_arrays(request, init_empty_test_repo) -> Tuple[DoltSQLServerContext, Table]:
-    dssc = DoltSQLServerContext(init_empty_test_repo, TEST_SERVER_CONFIG)
+def db_with_table_with_arrays(request, init_empty_test_repo, with_db_config) -> Tuple[DoltSQLServerContext, Table]:
+    dssc = DoltSQLServerContext(init_empty_test_repo, with_db_config)
     return _test_table_helper(dssc, request, DOLT_TABLE_WITH_ARRAYS)
 
 
 @pytest.fixture
-def empty_db_with_server_process(request, init_empty_test_repo) -> DoltSQLServerContext:
-    dssc = DoltSQLServerContext(init_empty_test_repo, TEST_SERVER_CONFIG)
+def empty_db_with_server_process(request, init_empty_test_repo, with_db_config) -> DoltSQLServerContext:
+    dssc = DoltSQLServerContext(init_empty_test_repo, with_db_config)
     _server_helper(dssc, request)
     return dssc
 

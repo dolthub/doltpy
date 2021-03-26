@@ -3,7 +3,7 @@ from typing import List
 from datetime import datetime
 import pandas as pd
 
-TEST_SERVER_CONFIG = ServerConfig(user='root')
+TEST_SERVER_CONFIG = ServerConfig(user='root', )
 
 TEST_TABLE = 'characters'
 TEST_DATA_INITIAL = [

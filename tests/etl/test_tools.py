@@ -120,7 +120,7 @@ def test_insert_unique_key(init_empty_test_repo):
                     True,
                     'Updating test data')(repo)
     result = read_pandas(repo, test_table)
-    assert result.loc[result['id'] == '1', 'count'].iloc[0] == '2' and 'hash_id' in result.columns
+    assert result.loc[result['id'] == 1, 'count'].iloc[0] == 2 and 'hash_id' in result.columns
 
 
 def test_insert_unique_key_column_error():
@@ -243,7 +243,7 @@ def test_get_bulk_table_loader(init_empty_test_repo):
     for line in expected.readlines():
         player_name, weeks_at_number_1 = line.split(',')
         assert (player_name in players_to_week_counts and
-                players_to_week_counts[player_name] == weeks_at_number_1.rstrip())
+                players_to_week_counts[player_name] == int(weeks_at_number_1.rstrip()))
 
 
 def test_load_to_dolt_new_branch(initial_test_data):

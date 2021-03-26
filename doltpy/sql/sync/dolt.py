@@ -203,7 +203,7 @@ def _read_from_dolt_diff(engine: Engine, table: Table, dolt_commit: Commit) -> L
 def _read_from_dolt_history(engine: Engine, table: Table, commit_ref: str) -> List[dict]:
     query = f"""
         SELECT
-            {','.join(f'`{col.name}`' for col in table.columns)}
+            {','.join(f"`{col.name}` AS {col.name}" for col in table.columns)}
         FROM
             dolt_history_{table.name}
         WHERE
