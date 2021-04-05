@@ -1,0 +1,31 @@
+name: publish_conda
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SemVer format tag, i.e. 0.23.4'
+        required: true
+
+jobs:
+  conda_publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Update Doltpy version
+      run: |
+        sed -i 's/version{{':'}} .*/version{{':'}} $VERSION/' "$FILE"
+        sed -i 's/git_rev{{':'}} .*/git_rev{{':'}} v$VERSION/' "$FILE"
+      env:
+        FILE: conda/meta.yaml
+        VERSION: ${{ github.event.inputs.version }}
+    - uses: EndBug/add-and-commit@v7
+      with:
+        message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
+        add: ${{ format('{0}/conda/meta.yaml', github.workspace) }}
+        cwd: "."
+    - name: publish-to-conda
+      uses: maxibor/conda-package-publish-action@v1.1
+      with:
+        subDir: 'conda'
+        AnacondaToken: ${{ secrets.CONDA_SECRET }}
