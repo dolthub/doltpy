@@ -47,8 +47,8 @@ pg = ["psycopg2-binary"]
 oracle = ["cx-oracle"]
 
 [tool.poetry.scripts]
-"dolthub-load" = "doltpy.etl:dolthub_loader_main"
-"dolt-load" = "doltpy.etl:dolt_loader_main"
+"dolthub-load" = "doltpy.etl:load_to_dolthub"
+"dolt-load" = "doltpy.etl:load_to_dolt"
 
 [tool.pytest.ini_options]
 markers = [
