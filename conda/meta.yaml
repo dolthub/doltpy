@@ -1,20 +1,20 @@
+{% set version = "2.0.6" %}
+}
 package:
   name: doltpy
-  version: 2.0.6
-
-source:
-  git_url: https://github.com/dolthub/doltpy.git
-  git_rev: master
-  git_depth: 1
+  version: {{ version }}
 
 build:
+  script:
+    - PIP_NO_INDEX="False" $PYTHON -m pip install --no-deps doltpy=={{ version }}
   entry_points:
     - dolthub-load = doltpy.etl:load_to_dolthub
     - dolt-load = doltpy.etl:load_to_dolt
 
 requirements:
   build:
-    - python
+    - python {{ python }}
+    - pip
   run:
     - python
     - attrs >=19.3.0

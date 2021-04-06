@@ -11,17 +11,16 @@ jobs:
   conda_publish:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Update Doltpy version
       run: |
-        sed -i 's/version{{':'}} .*/version{{':'}} "'"$VERSION"'"/' "$FILE"
-        sed -i 's/git_rev{{':'}} .*/git_rev{{':'}} "'v"$VERSION'"'/' "$FILE"
+        sed -i 's/version = \S*/version = "'"$VERSION"'"/' "$FILE"
       env:
         FILE: conda/meta.yaml
         VERSION: ${{ github.event.inputs.version }}
     - uses: EndBug/add-and-commit@v7
       with:
-        message: ${{ format('[ga-bump-release] update Doltpy version to {0}', github.event.inputs.version) }}
+        message: ${{ format('[ga-bump-release] update Doltpy Conda version to {0}', github.event.inputs.version) }}
         add: ${{ format('{0}/conda/meta.yaml', github.workspace) }}
         cwd: "."
     - name: publish-to-conda
@@ -29,3 +28,4 @@ jobs:
       with:
         subDir: 'conda'
         AnacondaToken: ${{ secrets.CONDA_SECRET }}
+
