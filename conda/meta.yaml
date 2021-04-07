@@ -1,22 +1,32 @@
+{% set name = "doltpy" %}
 {% set version = "2.0.6" %}
+{% set sha = "510e83da39532814e2a53d4a1d1ba50c271b2bb785b5d282d9fbd29d9d3e54d2" %}
 
 package:
-  name: doltpy
+  name: {{ name }}
   version: {{ version }}
 
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha }}
+
 build:
-  script:
-    - PIP_NO_INDEX="False" $PYTHON -m pip install --no-deps doltpy=={{ version }}
+  #noarch: python
   entry_points:
     - dolthub-load = doltpy.etl:load_to_dolthub
     - dolt-load = doltpy.etl:load_to_dolt
 
 requirements:
   build:
-    - python {{ python }}
+    - python >=3.6
     - pip
+    - poetry
+  host:
+    - python >=3.6
+    - pip
+    - poetry
   run:
-    - python
+    - python >=3.6
     - attrs >=19.3.0
     - decorator >=4.4.2
     - numpy >=1.19.0
