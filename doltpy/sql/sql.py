@@ -42,6 +42,7 @@ class ServerConfig:
     loglevel: Optional[str] = None
     multi_db_dir: Optional[str] = None
     no_auto_commit: Optional[bool] = None
+    max_connections: Optional[int] = None
     echo: bool = False
 
 
@@ -60,12 +61,13 @@ class DoltSQLContext:
         user = self.server_config.user
         host = self.server_config.host
         port = self.server_config.port
+        password = self.server_config.password
 
         logger.info(f"Creating engine for Dolt SQL Server instance running on {host}:{port}")
 
         def inner():
             return create_engine(
-                f"mysql+mysqlconnector://{user}@{host}:{port}/{database}",
+                f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}",
                 echo=self.server_config.echo,
             )
 
@@ -428,6 +430,8 @@ class DoltSQLServerContext(DoltSQLContext):
                 args.extend(["--multi-db-dir", self.server_config.multi_db_dir])
             if self.server_config.no_auto_commit:
                 args.extend(["--no-auto-commit"])
+            if self.server_config.max_connections:
+                args.extend(["--max-connections", str(self.server_config.max_connections)])
 
         inner(args)
 
