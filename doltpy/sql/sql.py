@@ -349,6 +349,7 @@ class DoltSQLContext:
 class DoltSQLEngineContext(DoltSQLContext):
     def __init__(self, dolt: Dolt, server_config: ServerConfig):
         self.dolt = dolt
+        self.database = dolt.repo_name
         self.server_config = server_config
         self.engine = self._get_engine()
         self.verify_connection()
