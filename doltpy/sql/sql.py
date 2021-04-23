@@ -66,7 +66,7 @@ class DoltSQLContext:
         logger.info(f"Creating engine for Dolt SQL Server instance running on {host}:{port}")
 
         def inner():
-            if password:
+            if password is not None:
                 return create_engine(
                     f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}",
                     echo=self.server_config.echo,
