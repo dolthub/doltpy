@@ -71,7 +71,7 @@ class DoltSQLContext:
                     f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}",
                     echo=self.server_config.echo,
                 )
-            else :
+            else:
                 return create_engine(
                     f"mysql+mysqlconnector://{user}@{host}:{port}/{database}",
                     echo=self.server_config.echo,
