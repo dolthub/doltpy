@@ -23,6 +23,8 @@ Doltpy is broken up into modules.
 ### `doltpy.cli`
 This is the most important module. It effectively wraps the Dolt command-line-interface (CLI) that is exposed by the Go binary. The CLI is exposed more or less exactly as it is implemented, returning wrapper objects where appropriate.
 
+It's implementation has moved to a separate repository [here](https://github.com/dolthub/doltcli)
+
 #### `doltpy.cli.read` and `doltpy.cli.write`
 These modules provide basic read and write interfaces for reading and writing a variety of tabular data formats, including:
 - CSV files
