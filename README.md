@@ -44,4 +44,4 @@ This package provides tools for syncing data to and from Dolt, and other relatio
 This module provides a set of tools for scripting ETL/ELT workflows. At Liquidata we use it internally to push datasets onto DoltHub.
 
 ## More Information
-As alluded to above, you can find a more detailed description of Doltpy [here](https://docs.dolthub.com/reference/python/).
+As alluded to above, you can find a more detailed description of Doltpy [here](https://docs.dolthub.com/interfaces/python).
