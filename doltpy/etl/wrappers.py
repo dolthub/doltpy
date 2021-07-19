@@ -32,7 +32,7 @@ def load_to_dolthub(
     with DoltHubContext(remote_url, dolt_dir, remote_name) as dolthub_context:
         logger.info(
             f"""Commencing to load to DoltHub with the following options:
-                            - dolt_dir  {dolthub_context.dolt.repo_dir()}
+                            - dolt_dir  {dolthub_context.dolt.repo_dir}
                             - clone     {clone}
                             - remote    {remote_name}
                             - push      {push}
