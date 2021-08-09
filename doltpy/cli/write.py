@@ -57,4 +57,5 @@ def write_pandas(
         commit_message=commit_message,
         commit_date=commit_date,
         do_continue=do_continue,
+        do_gc=do_gc,
     )

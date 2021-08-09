@@ -293,7 +293,7 @@ description = "Slim Python interface for Dolt's CLI API."
 name = "doltcli"
 optional = false
 python-versions = ">=3.6.1,<4.0"
-version = "0.1.13"
+version = "0.1.14"
 
 [package.dependencies]
 dataclasses = {version = ">=0.6", markers = "python_version < \"3.7\""}
@@ -920,7 +920,7 @@ oracle = []
 pg = []
 
 [metadata]
-content-hash = "33f87cd0582ece5117f2423055ef4921c79506ec8ef6f4b5801f21b2631efd15"
+content-hash = "2e42a94f5d3a8179ddc8a9ff0c7a36228af4b04bfc819c8680a12b488a3d4121"
 lock-version = "1.1"
 python-versions = ">=3.6.1,<4.0"
 
@@ -1138,8 +1138,8 @@ docopt = [
     {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
 ]
 doltcli = [
-    {file = "doltcli-0.1.13-py3-none-any.whl", hash = "sha256:2d3cb82bb3dff4781db8eb6035c9d4467dddc509943ee53b7a0bbe9735357844"},
-    {file = "doltcli-0.1.13.tar.gz", hash = "sha256:24eb5b1198248963ca29f1d48db461e365f16c2cd871d254006c29cf50dcb6c8"},
+    {file = "doltcli-0.1.14-py3-none-any.whl", hash = "sha256:39d7462ce3f2f2690a3bfba45c9f78f96983f20028460e32c3c6b4a9acd67e31"},
+    {file = "doltcli-0.1.14.tar.gz", hash = "sha256:0aa602f22625593c185ce880038aae5d130a549a5ae7ece0f803599f8dd15587"},
 ]
 filelock = [
     {file = "filelock-3.0.12-py3-none-any.whl", hash = "sha256:929b7d63ec5b7d6b71b0fa5ac14e030b3f70b75747cef1b10da9b879fef15836"},
