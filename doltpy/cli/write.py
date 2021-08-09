@@ -26,6 +26,8 @@ def write_pandas(
     commit: Optional[bool] = False,
     commit_message: Optional[str] = None,
     commit_date: Optional[datetime.datetime] = None,
+    do_continue: Optional[bool] = False,
+    do_gc: Optional[bool] = True,
 ):
     """
 
@@ -43,6 +45,7 @@ def write_pandas(
     def writer(filepath: str):
         clean = df.dropna(subset=primary_key)
         clean.to_csv(filepath, index=False)
+        return filepath
 
     _import_helper(
         dolt=dolt,
@@ -53,4 +56,5 @@ def write_pandas(
         commit=commit,
         commit_message=commit_message,
         commit_date=commit_date,
+        do_continue=do_continue,
     )
