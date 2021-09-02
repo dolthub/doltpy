@@ -2,7 +2,7 @@
 This is DoltPy, the Python API for [Dolt](https://github.com/dolthub/dolt). Python is the language of choice for data science and data engineering, and thus we thought it would be wise to publish an API for building automated workflows on top of Dolt and [DoltHub](https://www.dolthub.com/), a collaboration platform for Dolt databases.
 
 ## Installation
-You need to install Dolt, which is documented [here](https://www.dolthub.com/docs/tutorials/installation/). It's easy for *nix users:
+You need to install Dolt, which is documented [here](https://docs.dolthub.com/getting-started/installation). It's easy for *nix users:
 ```
 $ sudo bash -c 'curl -L https://github.com/liquidata-inc/dolt/releases/latest/download/install.sh | sudo bash'
 ```
