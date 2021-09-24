@@ -233,7 +233,7 @@ def get_dolt_loader(
     writer_or_writers: Union[DoltTableWriter, List[DoltTableWriter]],
     commit: bool,
     message: str,
-    branch: str = "master",
+    branch: str = "main",
     transaction_mode: bool = None,
 ) -> DoltLoader:
     """
