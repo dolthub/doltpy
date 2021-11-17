@@ -17,13 +17,13 @@ def compare_rows_helper(expected: List[dict], actual: List[dict]):
         l_cols, r_cols = set(l.keys()), set(r.keys())
         assert l_cols == r_cols, f'Unequal sets of columns: {l_cols} != {r_cols}'
 
-        #for col in l_cols:
-            #l_val, r_val = l[col], r[col]
+        for col in l_cols:
+            l_val, r_val = l[col], r[col]
 
-            #if col.startswith('date') and l_val and r_val:
-                #l_val, r_val = l_val[:10], r_val[:10]
-            #if l_val != r_val and not ((l_val is None or l_val == '') and (r_val == '' or pd.isna(r_val))):
-                #errors.append(f'{col}: {l_val} != {r_val}')
+            if col.startswith('date') and l_val and r_val:
+                l_val, r_val = l_val[:10], r_val[:10]
+            if l_val != r_val and not ((l_val is None or l_val == '') and (r_val == '' or pd.isna(r_val))):
+                errors.append(f'{col}: {l_val} != {r_val}')
 
-    #error_str = '\n'.join(errors)
-    #assert not errors, f'Failed with the following unequal columns:\n{error_str}'
+    error_str = '\n'.join(errors)
+    assert not errors, f'Failed with the following unequal columns:\n{error_str}'
