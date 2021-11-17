@@ -178,11 +178,7 @@ def test_branching(initial_test_data):
     assert 'Margaret' in list(womens_data['name'])
     assert 'Rafael' in list(mens_data['name'])
 
-<<<<<<< HEAD
     repo.checkout(DEFAULT_BRANCH)
-=======
-    repo.checkout('main')
->>>>>>> master
     womens_data, mens_data = read_pandas(repo, WOMENS_MAJOR_COUNT), read_pandas(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' not in list(womens_data['name'])
     assert 'Rafael' not in list(mens_data['name'])
