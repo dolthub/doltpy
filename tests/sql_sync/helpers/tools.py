@@ -88,7 +88,7 @@ def validate_dolt_as_target(db_engine: Engine,
     """
     Validates syncing from a relational database, so far MySQL and Postgres, to Dolt. Work by making a series of writes
     to the relational database (running in a Docker container provided by a fixture), executing a sync, and then
-    validating the HEAD of master of the Dolt repo has the expected values. It also validates that the Dolt history is
+    validating the HEAD of main of the Dolt repo has the expected values. It also validates that the Dolt history is
     correct after every write. Finally validates that deletes flow through to Dolt.
     :param db_engine:
     :param db_table:

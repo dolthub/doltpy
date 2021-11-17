@@ -13,7 +13,7 @@ from doltpy.etl import (get_df_table_writer,
                         get_branch_creator)
 
 
-MAIN_BRANCH = "main"
+DEFAULT_BRANCH = "main"
 MENS_MAJOR_COUNT, WOMENS_MAJOR_COUNT = 'mens_major_count', 'womens_major_count'
 AVERAGE_MAJOR_COUNT = 'average_major_count'
 INITIAL_WOMENS = pd.DataFrame({'name': ['Serena'], 'major_count': [23]})
@@ -24,7 +24,7 @@ SECOND_UPDATE_WOMENS = pd.DataFrame({'name': ['Steffi'], 'major_count': [22]})
 SECOND_UPDATE_MENS = pd.DataFrame({'name': ['Novak'], 'major_count': [16]})
 
 
-def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame, branch: str = MAIN_BRANCH):
+def _populate_test_data_helper(repo: Dolt, mens: pd.DataFrame, womens: pd.DataFrame, branch: str = DEFAULT_BRANCH):
     table_loaders = [get_df_table_writer(MENS_MAJOR_COUNT, lambda: mens, ['name']),
                      get_df_table_writer(WOMENS_MAJOR_COUNT, lambda: womens, ['name'])]
     get_dolt_loader(table_loaders,
@@ -178,7 +178,11 @@ def test_branching(initial_test_data):
     assert 'Margaret' in list(womens_data['name'])
     assert 'Rafael' in list(mens_data['name'])
 
-    repo.checkout(MAIN_BRANCH)
+<<<<<<< HEAD
+    repo.checkout(DEFAULT_BRANCH)
+=======
+    repo.checkout('main')
+>>>>>>> master
     womens_data, mens_data = read_pandas(repo, WOMENS_MAJOR_COUNT), read_pandas(repo, MENS_MAJOR_COUNT)
     assert 'Margaret' not in list(womens_data['name'])
     assert 'Rafael' not in list(mens_data['name'])
@@ -253,14 +257,14 @@ def test_load_to_dolt_new_branch(initial_test_data):
 
     # check we have only the expected branches in the sample data
     _, branches = repo.branch()
-    assert [b.name for b in branches] == [MAIN_BRANCH]
+    assert [b.name for b in branches] == [DEFAULT_BRANCH]
 
     # load some data to a new branch
     _populate_test_data_helper(repo, UPDATE_MENS, UPDATE_WOMENS, test_branch)
 
     # check that we are still on the branch we started on
     current_branch, current_branches = repo.branch()
-    assert current_branch.name == MAIN_BRANCH and [b.name for b in current_branches] == [MAIN_BRANCH, test_branch]
+    assert current_branch.name == DEFAULT_BRANCH and [b.name for b in current_branches] == [DEFAULT_BRANCH, test_branch]
 
     # check out our new branch and confirm our data is present
     repo.checkout(test_branch)
@@ -292,7 +296,7 @@ def test_branch_creator(initial_test_data):
     repo = initial_test_data
     new_branch = 'new-branch'
     _, branches = repo.branch()
-    assert [b.name for b in branches] == [MAIN_BRANCH]
+    assert [b.name for b in branches] == [DEFAULT_BRANCH]
     branch_name = get_branch_creator(new_branch)(repo)
     assert branch_name == new_branch
     _, branches = repo.branch()
