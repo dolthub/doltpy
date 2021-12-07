@@ -6,7 +6,7 @@ This is distinct from existing relational database solutions, such as MySQL, Pos
 
 This document shows how to use Dolt to create version history of an existing relational database without having to actually modify that database. We use our Python API, [Doltpy](https://github.com/dolthub/docs/tree/bfdf7d8c4c511940b3281abe0290c8eb4097e6c0/reference/python/README.md), to achieve this. The setup can visualized as follows:
 
-![Sync to Dolt](./sql-sync-diagram.png)
+![Sync to Dolt](./sql_sync_diagram.png)
 
 The left hand side shows a schematic for the how each sync corresponds to a commit in Dolt, and the right hand side the query interface presented to the user via Dolt SQL. We can now "time travel" through our database history.
 
