@@ -43,5 +43,7 @@ def test_read_pandas(with_initial_test_data):
     first_write = read_pandas(dolt, TEST_TABLE, first_commit)
     compare_rows_helper(TEST_DATA_INITIAL, first_write.to_dict('records'))
     second_write = read_pandas(dolt, TEST_TABLE, second_commit)
-    compare_rows_helper(TEST_DATA_COMBINED, second_write.to_dict('records'))
+    res = second_write.to_dict('records')
+    res = sorted(res, key=lambda x: int(x['id']))
+    compare_rows_helper(TEST_DATA_COMBINED, res)
 

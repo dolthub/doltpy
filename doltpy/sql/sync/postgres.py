@@ -15,9 +15,9 @@ POSTGRES_TO_DOLT_TYPE_MAPPINGS = {
     postgresql.CIDR: mysql.VARCHAR(43),
     postgresql.INET: mysql.VARCHAR(43),
     postgresql.MACADDR: mysql.VARCHAR(43),
-    postgresql.JSON: mysql.LONGTEXT,
-    postgresql.JSONB: mysql.LONGTEXT,
-    postgresql.ARRAY: mysql.LONGTEXT,
+    postgresql.JSON: mysql.JSON,
+    postgresql.JSONB: mysql.JSON,
+    postgresql.ARRAY: mysql.JSON,
     postgresql.UUID: mysql.VARCHAR(43),
     postgresql.BYTEA: mysql.LONGTEXT,
 }
