@@ -1,12 +1,12 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 import csv
+import io
 import logging
 import math
 import os
 import datetime
 
-# from doltpy.shared import SQL_LOG_FILE
 from subprocess import STDOUT, Popen
 from typing import Any, Dict, Iterable, List, Mapping, Union, Optional
 
@@ -25,7 +25,6 @@ from ..sql.helpers import infer_table_schema, clean_types
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST, DEFAULT_PORT = "127.0.0.1", 3306
-SQL_LOG_FILE = "temp_log"
 DEFAULT_BATCH_SIZE = 100000
 
 
@@ -43,6 +42,7 @@ class ServerConfig:
     multi_db_dir: Optional[str] = None
     no_auto_commit: Optional[bool] = None
     max_connections: Optional[int] = None
+    log_file: Optional[str] = None
     echo: bool = False
 
 
@@ -403,12 +403,16 @@ class DoltSQLServerContext(DoltSQLContext):
             if self.server is not None:
                 logger.warning("Server already running")
 
-            log_file = SQL_LOG_FILE or os.path.join(self.dolt.repo_dir, "mysql_server.log")
+            log_file = self.server_config.log_file or os.path.join(self.dolt.repo_dir, "mysql_server.log")
+            if isinstance(log_file, io.IOBase):
+                out = log_file
+            else:
+                out = open(log_file, "w")
 
             proc = Popen(
                 args=["dolt"] + server_args,
                 cwd=self.dolt.repo_dir,
-                stdout=open(log_file, "w"),
+                stdout=out,
                 stderr=STDOUT,
             )
 
