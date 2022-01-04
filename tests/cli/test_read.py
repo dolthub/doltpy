@@ -2,7 +2,7 @@ from doltpy.cli import Dolt
 from typing import List
 import pytest
 from doltpy.cli.write import write_rows, CREATE, UPDATE
-from .helpers import compare_rows_helper
+from .helpers import compare_rows
 from doltpy.cli.read import read_pandas
 
 
@@ -41,7 +41,7 @@ def test_read_pandas(with_initial_test_data):
     dolt, first_commit = with_initial_test_data
     second_commit = update_test_data(dolt)
     first_write = read_pandas(dolt, TEST_TABLE, first_commit)
-    compare_rows_helper(TEST_DATA_INITIAL, first_write.to_dict('records'))
+    compare_rows(TEST_DATA_INITIAL, first_write.to_dict('records'), "id")
     second_write = read_pandas(dolt, TEST_TABLE, second_commit)
-    compare_rows_helper(TEST_DATA_COMBINED, second_write.to_dict('records'))
+    compare_rows(TEST_DATA_COMBINED, second_write.to_dict('records'), "id")
 
