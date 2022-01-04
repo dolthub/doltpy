@@ -1,3 +1,4 @@
+import io
 import psutil
 import os
 import shutil
@@ -96,3 +97,9 @@ def test_show_tables_engine(sql_server):
     conn = DoltSQLEngineContext(dolt, conf)
     tables = conn.tables()
     assert "tracks" in tables
+
+def test_log_file(sql_server, tmp_path):
+    log_file = tmp_path / "temp_log"
+    conf = ServerConfig(user="root", host="localhost", port="3306", log_file=log_file)
+    with DoltSQLServerContext(sql_server, conf) as conn:
+        assert len(log_file.open().read()) > 0
