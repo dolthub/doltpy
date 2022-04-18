@@ -43,8 +43,10 @@ def write_pandas(
     """
 
     def writer(filepath: str):
-        clean = df.dropna(subset=primary_key)
-        clean.to_csv(filepath, index=False)
+        filtered = df
+        if import_mode != "update":
+            filtered = df.dropna(subset=primary_key)
+        filtered.to_csv(filepath, index=False)
         return filepath
 
     _import_helper(

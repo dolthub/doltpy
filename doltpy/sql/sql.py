@@ -350,8 +350,8 @@ class DoltSQLContext:
 
     def tables(self) -> List[str]:
         with self.engine.connect() as conn:
-            result = conn.execute("SHOW TABLES")
-            return [row["Table"] for row in result]
+            result = conn.execute("select table_name from information_schema.tables where table_schema = DATABASE();")
+            return [row["table_name"] for row in result]
 
 
 class DoltSQLEngineContext(DoltSQLContext):
