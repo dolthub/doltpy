@@ -9,12 +9,12 @@ from doltpy.cli.read import read_pandas
 TEST_TABLE = 'characters'
 TEST_DATA_INITIAL = [
     {'name': 'Anna', 'adjective': 'tragic', 'id': 1, 'date_of_death': '1877-01-01'},
-    {'name': 'Vronksy', 'adjective': 'honorable', 'id': 2, 'date_of_death': ''},
-    {'name': 'Oblonksy', 'adjective': 'buffoon', 'id': 3, 'date_of_death': ''},
+    {'name': 'Vronksy', 'adjective': 'honorable', 'id': 2, 'date_of_death': '1877-1-1'},
+    {'name': 'Oblonksy', 'adjective': 'buffoon', 'id': 3, 'date_of_death': '1877'},
 ]
 
 TEST_DATA_UPDATE = [
-    {'name': 'Levin', 'adjective': 'tiresome', 'id': 4, 'date_of_death': ''}
+    {'name': 'Levin', 'adjective': 'tiresome', 'id': 4, 'date_of_death': '1877-01-01'}
 ]
 
 TEST_DATA_COMBINED = TEST_DATA_INITIAL + TEST_DATA_UPDATE
@@ -37,11 +37,20 @@ def _write_helper(dolt: Dolt, data: List[dict], update_type: str):
     return dolt, commit_hash
 
 
-def test_read_pandas(with_initial_test_data):
+def test_read_pandas_csv(with_initial_test_data):
     dolt, first_commit = with_initial_test_data
     second_commit = update_test_data(dolt)
     first_write = read_pandas(dolt, TEST_TABLE, first_commit)
     compare_rows(TEST_DATA_INITIAL, first_write.to_dict('records'), "id")
     second_write = read_pandas(dolt, TEST_TABLE, second_commit)
+    compare_rows(TEST_DATA_COMBINED, second_write.to_dict('records'), "id")
+
+
+def test_read_pandas_pq(with_initial_test_data):
+    dolt, first_commit = with_initial_test_data
+    second_commit = update_test_data(dolt)
+    first_write = read_pandas(dolt, TEST_TABLE, first_commit, fmt="parquet")
+    compare_rows(TEST_DATA_INITIAL, first_write.to_dict('records'), "id")
+    second_write = read_pandas(dolt, TEST_TABLE, second_commit, fmt="pq")
     compare_rows(TEST_DATA_COMBINED, second_write.to_dict('records'), "id")
 
