@@ -30,15 +30,17 @@ logger = logging.getLogger(__name__)
 def parse_to_pandas(sql_output: str) -> pd.DataFrame:
     return pd.read_csv(sql_output)
 
+
 def read_pandas_sql(dolt: Dolt, sql: str) -> pd.DataFrame:
     return read_table_sql(dolt, sql, result_parser=parse_to_pandas)
 
-def read_pandas_parquet(dolt: Dolt, asof: str, table: str) -> pd.DataFrame:
+
+def read_pandas_parquet(dolt: Dolt, table: str, asof: str = None) -> pd.DataFrame:
     # TODO: either dolt export should support as of, or sql query should
     #       support parquet output format
     ab = dolt.active_branch
     letters = string.ascii_lowercase
-    tmp_branch = ''.join(random.choice(letters) for i in range(10))
+    tmp_branch = "".join(random.choice(letters) for i in range(10))
     try:
         dolt.checkout(tmp_branch, checkout_branch=True, start_point=asof)
         with TemporaryDirectory() as tmpdir:
@@ -49,10 +51,11 @@ def read_pandas_parquet(dolt: Dolt, asof: str, table: str) -> pd.DataFrame:
         dolt.checkout(ab)
         dolt.branch(tmp_branch, delete=True)
 
-def read_pandas(dolt: Dolt, table: str, as_of: str = None, fmt = "csv") -> pd.DataFrame:
+
+def read_pandas(dolt: Dolt, table: str, as_of: str = None, fmt="csv") -> pd.DataFrame:
     if fmt == "csv":
         return read_pandas_sql(dolt, get_read_table_asof_query(table, as_of))
     elif fmt == "parquet" or fmt == "pq":
-        return read_pandas_parquet(dolt, as_of, table)
+        return read_pandas_parquet(dolt, table, as_of)
     else:
         raise RuntimeError(f"unexpected read format: {fmt}; expected: 'parquet' or 'csv'")
