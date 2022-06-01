@@ -27,6 +27,7 @@ wcwidth = "0.2.5"
 more-itertools = "^8.6.0"
 mysql-connector-python = "^8.0.20"
 doltcli = "^0.1.14"
+pyarrow = ">=6.0.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
