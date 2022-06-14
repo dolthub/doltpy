@@ -1,6 +1,6 @@
 # Current State - Deprecated
 
-DoltPy was created in an era where Dolt was a command-line tool. We've worked very hard to make Dolt a MySQL compatible database. To use Dolt with Python, start a Dolt SQL server using `dolt sql-server` and connect with any Python MySQL client. Use the exposed Dolt stored procedures or system tables to access version control functionality. Popular libraries like Pandas all support MySQL connectivity.
+DoltPy was created in an era where Dolt was a command-line tool. We've worked very hard to make Dolt a MySQL compatible database. To use Dolt with Python, start a Dolt SQL server using `dolt sql-server` and connect with [any Python MySQL client](https://docs.dolthub.com/sql-reference/supported-clients/clients#python). Use the exposed Dolt [stored procedures](https://docs.dolthub.com/sql-reference/version-control/dolt-sql-procedures) or [system tables](https://docs.dolthub.com/sql-reference/version-control/dolt-system-tables) to access version control functionality. Popular libraries like Pandas all support MySQL connectivity.
 
 Dolt MySQL client support works in any language, not just Python. Thus, it is more time efficient for us to focus on that interface.
 
