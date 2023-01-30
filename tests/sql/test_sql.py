@@ -102,4 +102,5 @@ def test_log_file(sql_server, tmp_path):
     log_file = tmp_path / "temp_log"
     conf = ServerConfig(user="root", host="localhost", port="3307", log_file=log_file)
     with DoltSQLServerContext(sql_server, conf) as conn:
+        time.sleep(.5)
         assert len(log_file.open().read()) > 0

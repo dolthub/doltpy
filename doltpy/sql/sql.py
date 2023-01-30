@@ -413,7 +413,7 @@ class DoltSQLServerContext(DoltSQLContext):
                 args=["dolt"] + server_args,
                 cwd=self.dolt.repo_dir,
                 stdout=out,
-                stderr=out,
+                stderr=STDOUT,
             )
 
             self.server = proc
