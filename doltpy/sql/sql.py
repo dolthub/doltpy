@@ -111,7 +111,7 @@ class DoltSQLContext:
             result = [dict(row) for row in conn.execute(f"CALL DOLT_COMMIT({dolt_commit_args})")]
             print(result)
             assert len(result) == 1, "Expected a single returned row with a commit hash"
-            return result[0]["commit_hash"]
+            return result[0]["hash"]
 
     def execute(
         self,
