@@ -99,7 +99,7 @@ def test_show_tables_engine(sql_server):
     assert "tracks" in tables
 
 def test_log_file(sql_server, tmp_path):
-    log_file = tmp_path + "/temp_log"
+    log_file = tmp_path / "temp_log"
     conf = ServerConfig(user="root", host="localhost", port="3307", log_file=log_file)
     with DoltSQLServerContext(sql_server, conf) as conn:
         assert len(log_file.open().read()) > 0
