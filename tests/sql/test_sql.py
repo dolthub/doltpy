@@ -81,7 +81,7 @@ def sql_server():
         db = Dolt.init(db_path)
         db.sql("create table tracks (TrackId bigint, Name text)")
         db.sql("insert into tracks values (0, 'Sue'), (1, 'L'), (2, 'M'), (3, 'Ji'), (4, 'Po')")
-        db.sql("select dolt_commit('-am', 'Init tracks')")
+        db.sql("call dolt_commit('-Am', 'Init tracks')")
         p = Popen(args=["dolt", "sql-server", "-l", "trace", "--port", "3307"], cwd=db_path)
         time.sleep(.5)
         yield db
@@ -100,6 +100,7 @@ def test_show_tables_engine(sql_server):
 
 def test_log_file(sql_server, tmp_path):
     log_file = tmp_path / "temp_log"
-    conf = ServerConfig(user="root", host="localhost", port="3306", log_file=log_file)
+    conf = ServerConfig(user="root", host="localhost", port="3307", log_file=log_file)
     with DoltSQLServerContext(sql_server, conf) as conn:
+        time.sleep(.5)
         assert len(log_file.open().read()) > 0
