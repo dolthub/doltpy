@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python_version }}
-      - uses: Gr1N/setup-poetry@v4
+      - uses: Gr1N/setup-poetry@v8
       - uses: actions/cache@v1
         with:
           path: ~/.cache/pypoetry/virtualenvs
