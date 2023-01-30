@@ -104,11 +104,11 @@ class DoltSQLContext:
         with self.engine.connect() as conn:
             if tables:
                 for table in tables:
-                    conn.execute(f"SELECT DOLT_ADD('{table}')")
+                    conn.execute(f"CALL DOLT_ADD('{table}')")
                 dolt_commit_args = f"'-m', '{commit_message}'"
             else:
                 dolt_commit_args = f"'-a', '-m', '{commit_message}'"
-            result = [dict(row) for row in conn.execute(f"SELECT DOLT_COMMIT({dolt_commit_args}) as commit_hash")]
+            result = [dict(row) for row in conn.execute(f"CALL DOLT_COMMIT({dolt_commit_args}) as commit_hash")]
             print(result)
             assert len(result) == 1, "Expected a single returned row with a commit hash"
             return result[0]["commit_hash"]
