@@ -81,7 +81,7 @@ def sql_server():
         db = Dolt.init(db_path)
         db.sql("create table tracks (TrackId bigint, Name text)")
         db.sql("insert into tracks values (0, 'Sue'), (1, 'L'), (2, 'M'), (3, 'Ji'), (4, 'Po')")
-        db.sql("call dolt_commit('-am', 'Init tracks')")
+        db.sql("call dolt_commit('-Am', 'Init tracks')")
         p = Popen(args=["dolt", "sql-server", "-l", "trace", "--port", "3307"], cwd=db_path)
         time.sleep(.5)
         yield db
