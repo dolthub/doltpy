@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python_version }}
-        uses: '3.8'
+        uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: '3.8'
       - uses: Gr1N/setup-poetry@v8
       - name: Install poetry dependencies
         run: poetry install
