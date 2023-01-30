@@ -21,12 +21,6 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
       - uses: Gr1N/setup-poetry@v8
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-poetry-
       - name: Install poetry dependencies
         run: poetry install
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
